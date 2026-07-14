@@ -1,30 +1,31 @@
 package com.engboost.monitoringdevices.feature.wifi.impl.presentation
 
-import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.engboost.monitoringdevices.scanner.wifi.api.WifiNetwork
-import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanEvent
-import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanner
+import com.engboost.monitoringdevices.feature.wifi.impl.domain.interactor.WifiScanInteractor
+import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiNetworkUi
+import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiUiState
+import com.engboost.monitoringdevices.feature.wifi.impl.presentation.reducer.WifiUiStateReducer
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 
-class WifiViewModel(
-    private val scanner: WifiScanner
+internal class WifiViewModel(
+    private val scanInteractor: WifiScanInteractor,
+    private val uiStateReducer: WifiUiStateReducer
 ) : ViewModel() {
     private var scanJob: Job? = null
 
     var uiState by mutableStateOf(
         WifiUiState(
             statusText = "Stopped",
-            permissionText = scanner.requiredPermissions.joinToString(),
-            signalText = "No data",
-            detectedCount = 0,
+            permissionText = scanInteractor.requiredPermissions.joinToString(),
+            networks = emptyList(),
+            selectedNetwork = null,
             isScanning = false,
             permissionRequest = null
         )
@@ -36,23 +37,23 @@ class WifiViewModel(
 
         uiState = uiState.copy(
             statusText = "Starting Wi-Fi scan",
-            signalText = "Waiting for access points",
             isScanning = true,
             permissionRequest = null
         )
 
         scanJob = viewModelScope.launch {
-            scanner.scan()
-                .catch { error ->
+            scanInteractor.scan()
+                .catch {
                     uiState = uiState.copy(
                         statusText = "Wi-Fi scan error",
-                        signalText = error.toDisplayMessage(),
                         isScanning = false,
                         permissionRequest = null
                     )
                 }
                 .onCompletion { scanJob = null }
-                .collect { event -> handleScanEvent(event) }
+                .collect { result ->
+                    uiState = uiStateReducer.reduce(uiState, result)
+                }
         }
     }
 
@@ -61,7 +62,7 @@ class WifiViewModel(
         scanJob = null
         uiState = uiState.copy(
             statusText = "Stopped",
-            signalText = "No data",
+            selectedNetwork = null,
             isScanning = false,
             permissionRequest = null
         )
@@ -78,96 +79,17 @@ class WifiViewModel(
         } else {
             uiState = uiState.copy(
                 statusText = "Permissions denied",
-                signalText = deniedPermissions
-                    .takeIf { permissions -> permissions.isNotEmpty() }
-                    ?.joinToString()
-                    ?: "Permission request cancelled",
                 isScanning = false,
                 permissionRequest = null
             )
         }
     }
 
-    private fun handleScanEvent(event: WifiScanEvent) {
-        when (event) {
-            WifiScanEvent.Scanning -> uiState = uiState.copy(
-                statusText = "Wi-Fi scan running",
-                isScanning = true,
-                permissionRequest = null
-            )
-
-            is WifiScanEvent.Networks -> uiState = uiState.copy(
-                statusText = "Wi-Fi data received",
-                signalText = event.networks.bestSignalText(),
-                detectedCount = event.networks.size,
-                isScanning = true,
-                permissionRequest = null
-            )
-
-            is WifiScanEvent.PermissionRequired -> uiState = uiState.copy(
-                statusText = "Permissions required",
-                signalText = event.permissions.joinToString(),
-                isScanning = false,
-                permissionRequest = event.permissions.toPermissionRequest()
-            )
-
-            is WifiScanEvent.Unavailable -> uiState = uiState.copy(
-                statusText = "Wi-Fi unavailable",
-                signalText = event.reason,
-                detectedCount = 0,
-                isScanning = false,
-                permissionRequest = null
-            )
-
-            is WifiScanEvent.Error -> uiState = uiState.copy(
-                statusText = "Wi-Fi scan error",
-                signalText = event.cause
-                    ?.let { cause -> "${event.message}: ${cause.toDisplayMessage()}" }
-                    ?: event.message,
-                isScanning = false,
-                permissionRequest = null
-            )
-        }
+    fun onNetworkClick(network: WifiNetworkUi) {
+        uiState = uiState.copy(selectedNetwork = network)
     }
 
-    private fun List<WifiNetwork>.bestSignalText(): String {
-        val network = maxByOrNull { it.rssiDbm } ?: return "No networks found"
-        val ssid = network.ssid ?: network.bssid
-        return "$ssid / ${network.rssiDbm} dBm / ${network.frequencyMhz} MHz"
-    }
-
-    private fun Set<String>.toPermissionRequest(): PermissionRequestUi {
-        return PermissionRequestUi(
-            id = uiState.permissionRequest.nextId(),
-            permissions = toList()
-        )
-    }
-
-    private fun PermissionRequestUi?.nextId(): Int = (this?.id ?: 0) + 1
-
-    private fun Throwable.toDisplayMessage(): String {
-        val details = message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
-        return details
-    }
-
-}
-
-@Immutable
-data class WifiUiState(
-    val statusText: String,
-    val permissionText: String,
-    val signalText: String,
-    val detectedCount: Int,
-    val isScanning: Boolean,
-    val permissionRequest: PermissionRequestUi?
-)
-
-@Immutable
-data class PermissionRequestUi(
-    val id: Int,
-    val permissions: List<String>
-) {
-    fun asArray(): Array<String> {
-        return permissions.toTypedArray()
+    fun onNetworkDetailsDismiss() {
+        uiState = uiState.copy(selectedNetwork = null)
     }
 }

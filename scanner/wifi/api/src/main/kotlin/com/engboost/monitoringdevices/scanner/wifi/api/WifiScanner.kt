@@ -9,8 +9,15 @@ interface WifiScanner {
 }
 
 data class WifiScanConfig(
-    val mode: WifiScanMode = WifiScanMode.ACTIVE
-)
+    val mode: WifiScanMode = WifiScanMode.ACTIVE,
+    val refreshIntervalMillis: Long? = null
+) {
+    init {
+        require(refreshIntervalMillis == null || refreshIntervalMillis > 0) {
+            "refreshIntervalMillis must be positive"
+        }
+    }
+}
 
 enum class WifiScanMode {
     ACTIVE,

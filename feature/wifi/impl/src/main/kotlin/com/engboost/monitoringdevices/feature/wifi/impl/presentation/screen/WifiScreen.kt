@@ -1,7 +1,5 @@
-package com.engboost.monitoringdevices.feature.wifi.impl.presentation
+package com.engboost.monitoringdevices.feature.wifi.impl.presentation.screen
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,51 +8,36 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.koin.compose.viewmodel.koinViewModel
+import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiNetworkUi
+import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiUiState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WifiRoute(
-    modifier: Modifier = Modifier,
-    viewModel: WifiViewModel = koinViewModel()
-) {
-    val state = viewModel.uiState
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = viewModel::onPermissionResult
-    )
-
-    LaunchedEffect(state.permissionRequest?.id) {
-        val request = state.permissionRequest ?: return@LaunchedEffect
-        val permissions = request.asArray()
-        if (permissions.isNotEmpty()) {
-            permissionLauncher.launch(permissions)
-        }
-    }
-
-    WifiScreen(
-        state = state,
-        onStartClick = viewModel::onStartClick,
-        onStopClick = viewModel::onStopClick,
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun WifiScreen(
+internal fun WifiScreen(
     state: WifiUiState,
     onStartClick: () -> Unit,
     onStopClick: () -> Unit,
+    onNetworkClick: (WifiNetworkUi) -> Unit,
+    onNetworkDetailsDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    state.selectedNetwork?.let { network ->
+        ModalBottomSheet(onDismissRequest = onNetworkDetailsDismiss) {
+            WifiNetworkDetailsSheet(network = network)
+        }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -70,10 +53,7 @@ private fun WifiScreen(
             StatusCard(title = "Permissions", value = state.permissionText)
         }
         item {
-            StatusCard(title = "Best signal", value = state.signalText)
-        }
-        item {
-            StatusCard(title = "Found", value = state.detectedCount.toString())
+            StatusCard(title = "Found networks", value = state.networks.size.toString())
         }
         item {
             Row(
@@ -94,6 +74,21 @@ private fun WifiScreen(
                 ) {
                     Text(text = "Stop")
                 }
+            }
+        }
+        if (state.networks.isEmpty()) {
+            item {
+                StatusCard(title = "Networks", value = "No networks found")
+            }
+        } else {
+            items(
+                items = state.networks,
+                key = { network -> network.bssid }
+            ) { network ->
+                WifiNetworkCard(
+                    network = network,
+                    onClick = { onNetworkClick(network) }
+                )
             }
         }
     }

@@ -99,7 +99,7 @@ Screen -> callback -> ViewModel
 ```text
 scanner:wifi:api
   WifiScanner.scan(WifiScanConfig): Flow<WifiScanEvent>
-  modes: ACTIVE, CACHED_ONLY
+  modes: ACTIVE, CACHED_ONLY; optional refresh interval for repeated active scans
   data: SSID, BSSID, RSSI, frequency, capabilities
 
 scanner:bluetooth:api
