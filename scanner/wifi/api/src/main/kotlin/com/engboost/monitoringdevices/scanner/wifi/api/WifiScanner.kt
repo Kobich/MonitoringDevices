@@ -4,9 +4,14 @@ import kotlinx.coroutines.flow.Flow
 
 interface WifiScanner {
     val requiredPermissions: Set<String>
+    val scanThrottlingStatus: WifiScanThrottlingStatus
 
     fun scan(config: WifiScanConfig = WifiScanConfig()): Flow<WifiScanEvent>
 }
+
+data class WifiScanThrottlingStatus(
+    val isEnabled: Boolean?
+)
 
 data class WifiScanConfig(
     val mode: WifiScanMode = WifiScanMode.ACTIVE,

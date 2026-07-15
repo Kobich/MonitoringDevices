@@ -10,6 +10,7 @@ import android.os.Build
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanConfig
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanEvent
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanMode
+import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanThrottlingStatus
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanner
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.awaitClose
@@ -25,8 +26,11 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
     private val diagnostics = WifiScanDiagnostics(appContext, wifiManager)
     private val permissions = WifiScanPermissions(appContext)
     private val resultReader = WifiScanResultReader(wifiManager)
+    private val throttlingStatusReader = WifiScanThrottlingStatusReader(appContext)
 
     override val requiredPermissions: Set<String> = permissions.requiredPermissions
+    override val scanThrottlingStatus: WifiScanThrottlingStatus
+        get() = throttlingStatusReader.readStatus()
 
     override fun scan(config: WifiScanConfig): Flow<WifiScanEvent> {
         return when (config.mode) {

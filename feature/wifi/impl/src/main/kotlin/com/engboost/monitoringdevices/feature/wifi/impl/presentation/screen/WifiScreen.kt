@@ -12,14 +12,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiNetworkUi
+import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiScanThrottlingHintUi
 import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,12 +33,22 @@ internal fun WifiScreen(
     onStopClick: () -> Unit,
     onNetworkClick: (WifiNetworkUi) -> Unit,
     onNetworkDetailsDismiss: () -> Unit,
+    onOpenDeveloperOptionsClick: () -> Unit,
+    onScanThrottlingDialogDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     state.selectedNetwork?.let { network ->
         ModalBottomSheet(onDismissRequest = onNetworkDetailsDismiss) {
             WifiNetworkDetailsSheet(network = network)
         }
+    }
+
+    state.scanThrottlingDialog?.let { hint ->
+        WifiScanThrottlingDialog(
+            hint = hint,
+            onOpenDeveloperOptionsClick = onOpenDeveloperOptionsClick,
+            onDismiss = onScanThrottlingDialogDismiss
+        )
     }
 
     LazyColumn(
@@ -48,9 +61,6 @@ internal fun WifiScreen(
         }
         item {
             StatusCard(title = "Status", value = state.statusText)
-        }
-        item {
-            StatusCard(title = "Permissions", value = state.permissionText)
         }
         item {
             StatusCard(title = "Found networks", value = state.networks.size.toString())
@@ -92,6 +102,31 @@ internal fun WifiScreen(
             }
         }
     }
+}
+
+@Composable
+private fun WifiScanThrottlingDialog(
+    hint: WifiScanThrottlingHintUi,
+    onOpenDeveloperOptionsClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = hint.title) },
+        text = { Text(text = hint.message) },
+        confirmButton = {
+            hint.actionText?.let { actionText ->
+                TextButton(onClick = onOpenDeveloperOptionsClick) {
+                    Text(text = actionText)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "OK")
+            }
+        }
+    )
 }
 
 @Composable
