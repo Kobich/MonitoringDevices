@@ -30,7 +30,9 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
 
     override val requiredPermissions: Set<String> = permissions.requiredPermissions
     override val scanThrottlingStatus: WifiScanThrottlingStatus
-        get() = throttlingStatusReader.readStatus()
+        get() = WifiScanThrottlingStatus(
+            isEnabled = throttlingStatusReader.readThrottleStatus()
+        )
 
     override fun scan(config: WifiScanConfig): Flow<WifiScanEvent> {
         return when (config.mode) {

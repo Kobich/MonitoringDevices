@@ -22,7 +22,7 @@ internal class WifiScanInteractor(
     }
 
     private fun refreshIntervalMillis(): Long {
-        return if (scanThrottling.isEnabled == false) {
+        return if (!scanThrottling.isEnabled) {
             UNTHROTTLED_REFRESH_INTERVAL_MILLIS
         } else {
             THROTTLED_REFRESH_INTERVAL_MILLIS

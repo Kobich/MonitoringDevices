@@ -10,7 +10,7 @@ interface WifiScanner {
 }
 
 data class WifiScanThrottlingStatus(
-    val isEnabled: Boolean?
+    val isEnabled: Boolean
 )
 
 data class WifiScanConfig(

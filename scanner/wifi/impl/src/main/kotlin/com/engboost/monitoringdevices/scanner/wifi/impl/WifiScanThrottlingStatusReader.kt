@@ -1,26 +1,18 @@
 package com.engboost.monitoringdevices.scanner.wifi.impl
 
 import android.content.Context
+import android.net.wifi.WifiManager
+import android.os.Build
 import android.provider.Settings
-import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanThrottlingStatus
 
 internal class WifiScanThrottlingStatusReader(
     private val appContext: Context
 ) {
-    fun readStatus(): WifiScanThrottlingStatus {
-        val isEnabled = runCatching {
-            Settings.Global.getInt(
-                appContext.contentResolver,
-                WIFI_SCAN_THROTTLE_ENABLED,
-                WIFI_SCAN_THROTTLE_ENABLED_VALUE
-            ) == WIFI_SCAN_THROTTLE_ENABLED_VALUE
-        }.getOrNull()
-
-        return WifiScanThrottlingStatus(isEnabled = isEnabled)
-    }
-
-    private companion object {
-        const val WIFI_SCAN_THROTTLE_ENABLED = "wifi_scan_throttle_enabled"
-        const val WIFI_SCAN_THROTTLE_ENABLED_VALUE = 1
+    fun readThrottleStatus(): Boolean {
+        val wifi = appContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager ?: return true
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return wifi.isScanThrottleEnabled
+        return try {
+            Settings.Global.getInt(appContext.contentResolver, "wifi_scan_throttle_enabled") == 1
+        } catch (_: Exception) { true }
     }
 }

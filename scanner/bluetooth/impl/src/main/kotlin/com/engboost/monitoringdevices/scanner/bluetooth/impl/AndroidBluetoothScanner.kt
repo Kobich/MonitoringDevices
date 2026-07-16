@@ -69,6 +69,28 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
             trySend(BluetoothScanEvent.Devices(devices.values.toList()))
         }
 
+        fun readDeviceInfo(
+            device: BluetoothDevice,
+            rssiDbm: Int?
+        ): BluetoothDeviceInfo? {
+            return try {
+                device.toBluetoothDeviceInfo(rssiDbm)
+            } catch (error: SecurityException) {
+                val missingPermissions = missingPermissions()
+                if (missingPermissions.isNotEmpty()) {
+                    trySend(BluetoothScanEvent.PermissionRequired(missingPermissions))
+                } else {
+                    trySend(BluetoothScanEvent.Error("Bluetooth permission check failed", error))
+                }
+                close()
+                null
+            } catch (error: Exception) {
+                trySend(BluetoothScanEvent.Error("Failed to read Bluetooth device", error))
+                close()
+                null
+            }
+        }
+
         trySend(BluetoothScanEvent.Scanning)
 
         val classicReceiver = object : BroadcastReceiver() {
@@ -86,7 +108,7 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
                     ?.toInt()
 
                 if (device != null) {
-                    val info = device.toBluetoothDeviceInfo(rssi)
+                    val info = readDeviceInfo(device, rssi) ?: return
                     devices[info.address] = info
                     emitDevices()
                 }
@@ -95,14 +117,14 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
 
         val bleCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                val info = result.device.toBluetoothDeviceInfo(result.rssi)
+                val info = readDeviceInfo(result.device, result.rssi) ?: return
                 devices[info.address] = info
                 emitDevices()
             }
 
             override fun onBatchScanResults(results: MutableList<ScanResult>) {
-                results.forEach { result ->
-                    val info = result.device.toBluetoothDeviceInfo(result.rssi)
+                for (result in results) {
+                    val info = readDeviceInfo(result.device, result.rssi) ?: return
                     devices[info.address] = info
                 }
                 emitDevices()
@@ -110,13 +132,16 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
 
             override fun onScanFailed(errorCode: Int) {
                 trySend(BluetoothScanEvent.Error("Bluetooth LE scan failed: $errorCode"))
+                close()
             }
         }
+
+        var startupFailed = false
 
         if (config.mode == BluetoothScanMode.CLASSIC || config.mode == BluetoothScanMode.ALL) {
             val filter = IntentFilter(BluetoothDevice.ACTION_FOUND)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                appContext.registerReceiver(classicReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+                appContext.registerReceiver(classicReceiver, filter, Context.RECEIVER_EXPORTED)
             } else {
                 appContext.registerReceiver(classicReceiver, filter)
             }
@@ -124,14 +149,29 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
                 .onSuccess { isStarted ->
                     if (!isStarted) {
                         trySend(BluetoothScanEvent.Unavailable(diagnostics.classicDiscoveryRejectedReason()))
+                        startupFailed = true
+                        close()
                     }
                 }
-                .onFailure { trySend(BluetoothScanEvent.Error("Failed to start classic Bluetooth discovery", it)) }
+                .onFailure { error ->
+                    trySend(BluetoothScanEvent.Error("Failed to start classic Bluetooth discovery", error))
+                    startupFailed = true
+                    close()
+                }
         }
 
-        if (config.mode == BluetoothScanMode.BLE || config.mode == BluetoothScanMode.ALL) {
-            runCatching { adapter.bluetoothLeScanner?.startScan(bleCallback) }
-                .onFailure { trySend(BluetoothScanEvent.Error("Failed to start BLE scan", it)) }
+        if (!startupFailed && (config.mode == BluetoothScanMode.BLE || config.mode == BluetoothScanMode.ALL)) {
+            val bleScanner = adapter.bluetoothLeScanner
+            if (bleScanner == null) {
+                trySend(BluetoothScanEvent.Unavailable("Bluetooth LE scanner is not available"))
+                close()
+            } else {
+                runCatching { bleScanner.startScan(bleCallback) }
+                    .onFailure { error ->
+                        trySend(BluetoothScanEvent.Error("Failed to start BLE scan", error))
+                        close()
+                    }
+            }
         }
 
         awaitClose {

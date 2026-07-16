@@ -1,7 +1,5 @@
-package com.engboost.monitoringdevices.feature.bluetooth.impl.presentation
+package com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.screen
 
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -10,51 +8,36 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import org.koin.compose.viewmodel.koinViewModel
+import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothDeviceUi
+import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothUiState
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BluetoothRoute(
-    modifier: Modifier = Modifier,
-    viewModel: BluetoothViewModel = koinViewModel()
-) {
-    val state = viewModel.uiState
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = viewModel::onPermissionResult
-    )
-
-    LaunchedEffect(state.permissionRequest?.id) {
-        val request = state.permissionRequest ?: return@LaunchedEffect
-        val permissions = request.asArray()
-        if (permissions.isNotEmpty()) {
-            permissionLauncher.launch(permissions)
-        }
-    }
-
-    BluetoothScreen(
-        state = state,
-        onStartClick = viewModel::onStartClick,
-        onStopClick = viewModel::onStopClick,
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun BluetoothScreen(
+internal fun BluetoothScreen(
     state: BluetoothUiState,
     onStartClick: () -> Unit,
     onStopClick: () -> Unit,
+    onDeviceClick: (BluetoothDeviceUi) -> Unit,
+    onDeviceDetailsDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    state.selectedDevice?.let { device ->
+        ModalBottomSheet(onDismissRequest = onDeviceDetailsDismiss) {
+            BluetoothDeviceDetailsSheet(device = device)
+        }
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
@@ -67,13 +50,7 @@ private fun BluetoothScreen(
             StatusCard(title = "Status", value = state.statusText)
         }
         item {
-            StatusCard(title = "Permissions", value = state.permissionText)
-        }
-        item {
-            StatusCard(title = "Best signal", value = state.signalText)
-        }
-        item {
-            StatusCard(title = "Found", value = state.detectedCount.toString())
+            StatusCard(title = "Found devices", value = state.devices.size.toString())
         }
         item {
             Row(
@@ -94,6 +71,21 @@ private fun BluetoothScreen(
                 ) {
                     Text(text = "Stop")
                 }
+            }
+        }
+        if (state.devices.isEmpty()) {
+            item {
+                StatusCard(title = "Devices", value = "No devices found")
+            }
+        } else {
+            items(
+                items = state.devices,
+                key = { device -> device.address }
+            ) { device ->
+                BluetoothDeviceCard(
+                    device = device,
+                    onClick = { onDeviceClick(device) }
+                )
             }
         }
     }
