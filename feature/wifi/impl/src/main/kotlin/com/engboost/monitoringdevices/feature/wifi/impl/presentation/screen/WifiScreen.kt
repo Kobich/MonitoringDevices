@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiNetworkUi
-import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiScanThrottlingHintUi
 import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,9 +42,8 @@ internal fun WifiScreen(
         }
     }
 
-    state.scanThrottlingDialog?.let { hint ->
+    if (state.isScanThrottlingDialogVisible) {
         WifiScanThrottlingDialog(
-            hint = hint,
             onOpenDeveloperOptionsClick = onOpenDeveloperOptionsClick,
             onDismiss = onScanThrottlingDialogDismiss
         )
@@ -106,19 +104,20 @@ internal fun WifiScreen(
 
 @Composable
 private fun WifiScanThrottlingDialog(
-    hint: WifiScanThrottlingHintUi,
     onOpenDeveloperOptionsClick: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = hint.title) },
-        text = { Text(text = hint.message) },
+        title = { Text(text = "Wi-Fi scan throttling is enabled") },
+        text = {
+            Text(
+                text = "Android limits Wi-Fi scan frequency. Current refresh interval is 30 seconds. For local testing you can disable Wi-Fi scan throttling in Developer options."
+            )
+        },
         confirmButton = {
-            hint.actionText?.let { actionText ->
-                TextButton(onClick = onOpenDeveloperOptionsClick) {
-                    Text(text = actionText)
-                }
+            TextButton(onClick = onOpenDeveloperOptionsClick) {
+                Text(text = "Open Developer options")
             }
         },
         dismissButton = {

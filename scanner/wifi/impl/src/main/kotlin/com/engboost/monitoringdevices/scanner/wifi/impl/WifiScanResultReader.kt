@@ -11,17 +11,15 @@ internal class WifiScanResultReader(
 ) {
     @SuppressLint("MissingPermission")
     fun readScanResults(): List<WifiNetwork> {
-        return runCatching {
-            wifiManager.scanResults.map { result ->
-                WifiNetwork(
-                    ssid = result.readSsid(),
-                    bssid = result.BSSID,
-                    rssiDbm = result.level,
-                    frequencyMhz = result.frequency,
-                    capabilities = result.capabilities
-                )
-            }
-        }.getOrDefault(emptyList())
+        return wifiManager.scanResults.map { result ->
+            WifiNetwork(
+                ssid = result.readSsid(),
+                bssid = result.BSSID,
+                rssiDbm = result.level,
+                frequencyMhz = result.frequency,
+                capabilities = result.capabilities
+            )
+        }
     }
 
     private fun ScanResult.readSsid(): String? {

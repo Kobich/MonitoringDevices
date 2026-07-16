@@ -4,7 +4,7 @@ data class WifiUiState(
     val statusText: String,
     val networks: List<WifiNetworkUi>,
     val selectedNetwork: WifiNetworkUi?,
-    val scanThrottlingDialog: WifiScanThrottlingHintUi?,
+    val isScanThrottlingDialogVisible: Boolean,
     val isScanning: Boolean,
     val permissionRequest: PermissionRequestUi?
 )
@@ -17,14 +17,7 @@ data class WifiNetworkUi(
     val capabilities: String
 )
 
-data class WifiScanThrottlingHintUi(
-    val title: String,
-    val message: String,
-    val actionText: String?
-)
-
 data class PermissionRequestUi(
-    val id: Int,
     val permissions: List<String>
 ) {
     fun asArray(): Array<String> {

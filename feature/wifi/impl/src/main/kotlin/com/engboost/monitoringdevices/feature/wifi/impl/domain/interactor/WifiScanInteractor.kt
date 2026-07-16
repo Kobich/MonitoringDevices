@@ -1,48 +1,25 @@
 package com.engboost.monitoringdevices.feature.wifi.impl.domain.interactor
 
-import com.engboost.monitoringdevices.feature.wifi.impl.domain.model.WifiScanResult
-import com.engboost.monitoringdevices.feature.wifi.impl.domain.model.WifiScanThrottling
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanConfig
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanEvent
-import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanThrottlingStatus
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanner
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 
 internal class WifiScanInteractor(
     private val scanner: WifiScanner
 ) {
-    val requiredPermissions: Set<String> = scanner.requiredPermissions
-    val scanThrottling: WifiScanThrottling
-        get() = scanner.scanThrottlingStatus.toDomain()
+    val isScanThrottlingEnabled: Boolean
+        get() = scanner.isScanThrottlingEnabled
 
-    fun scan(): Flow<WifiScanResult> {
+    fun scan(): Flow<WifiScanEvent> {
         return scanner.scan(WifiScanConfig(refreshIntervalMillis = refreshIntervalMillis()))
-            .map { event -> event.toResult() }
     }
 
     private fun refreshIntervalMillis(): Long {
-        return if (!scanThrottling.isEnabled) {
+        return if (!isScanThrottlingEnabled) {
             UNTHROTTLED_REFRESH_INTERVAL_MILLIS
         } else {
             THROTTLED_REFRESH_INTERVAL_MILLIS
-        }
-    }
-
-    private fun WifiScanThrottlingStatus.toDomain(): WifiScanThrottling {
-        return WifiScanThrottling(isEnabled = isEnabled)
-    }
-
-    private fun WifiScanEvent.toResult(): WifiScanResult {
-        return when (this) {
-            WifiScanEvent.Scanning -> WifiScanResult.Scanning
-            is WifiScanEvent.Networks -> WifiScanResult.Networks(networks)
-            is WifiScanEvent.PermissionRequired -> WifiScanResult.PermissionRequired(permissions)
-            is WifiScanEvent.Unavailable -> WifiScanResult.Unavailable(reason)
-            is WifiScanEvent.Error -> WifiScanResult.Error(
-                message = message,
-                cause = cause
-            )
         }
     }
 

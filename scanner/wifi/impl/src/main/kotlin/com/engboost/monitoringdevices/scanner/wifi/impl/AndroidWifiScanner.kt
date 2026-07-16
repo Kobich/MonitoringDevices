@@ -10,8 +10,8 @@ import android.os.Build
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanConfig
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanEvent
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanMode
-import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanThrottlingStatus
 import com.engboost.monitoringdevices.scanner.wifi.api.WifiScanner
+import com.engboost.monitoringdevices.scanner.wifi.api.WifiNetwork
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.ProducerScope
@@ -29,10 +29,8 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
     private val throttlingStatusReader = WifiScanThrottlingStatusReader(appContext)
 
     override val requiredPermissions: Set<String> = permissions.requiredPermissions
-    override val scanThrottlingStatus: WifiScanThrottlingStatus
-        get() = WifiScanThrottlingStatus(
-            isEnabled = throttlingStatusReader.readThrottleStatus()
-        )
+    override val isScanThrottlingEnabled: Boolean
+        get() = throttlingStatusReader.readThrottleStatus()
 
     override fun scan(config: WifiScanConfig): Flow<WifiScanEvent> {
         return when (config.mode) {
@@ -53,7 +51,14 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
             return@flow
         }
 
-        emit(WifiScanEvent.Networks(resultReader.readScanResults()))
+        val networks = try {
+            resultReader.readScanResults()
+        } catch (error: Exception) {
+            emit(error.toScanFailureEvent("Failed to read Wi-Fi scan results"))
+            return@flow
+        }
+
+        emit(WifiScanEvent.Networks(networks))
     }
 
     @SuppressLint("MissingPermission")
@@ -72,11 +77,13 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
         }
 
         trySend(WifiScanEvent.Scanning)
-        sendCurrentNetworks()
+        if (!sendCurrentNetworks()) return@callbackFlow
 
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                trySend(WifiScanEvent.Networks(resultReader.readScanResults()))
+                if (intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false)) {
+                    sendCurrentNetworks()
+                }
             }
         }
 
@@ -89,7 +96,7 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
 
         val activeScanJob = launch {
             while (true) {
-                requestActiveScan(closeWhenRejectedWithoutCache = config.refreshIntervalMillis == null)
+                requestActiveScan()
 
                 val refreshIntervalMillis = config.refreshIntervalMillis ?: break
                 delay(refreshIntervalMillis)
@@ -103,35 +110,54 @@ class AndroidWifiScanner(context: Context) : WifiScanner {
     }
 
     @SuppressLint("MissingPermission")
-    private fun ProducerScope<WifiScanEvent>.requestActiveScan(closeWhenRejectedWithoutCache: Boolean) {
+    private fun ProducerScope<WifiScanEvent>.requestActiveScan() {
         @Suppress("DEPRECATION")
         val startResult = runCatching { wifiManager.startScan() }
 
         startResult
             .onSuccess { isStarted ->
                 if (!isStarted) {
-                    val hasCachedResults = resultReader.readScanResults().isNotEmpty()
-                    trySend(WifiScanEvent.Unavailable(diagnostics.activeScanRejectedReason(hasCachedResults)))
-                    if (!hasCachedResults && closeWhenRejectedWithoutCache) close()
+                    val cachedNetworks = readCurrentNetworks() ?: return@onSuccess
+                    if (cachedNetworks.isNotEmpty()) {
+                        trySend(WifiScanEvent.Networks(cachedNetworks))
+                    } else {
+                        trySend(WifiScanEvent.Unavailable(diagnostics.activeScanRejectedReason()))
+                        close()
+                    }
                 }
             }
             .onFailure { error ->
-                trySend(
-                    WifiScanEvent.Error(
-                        message = error.toWifiScanMessage(),
-                        cause = error
-                    )
-                )
-                close(error)
+                trySend(error.toScanFailureEvent("Failed to start Wi-Fi scan"))
+                close()
             }
     }
 
-    private fun ProducerScope<WifiScanEvent>.sendCurrentNetworks() {
-        trySend(WifiScanEvent.Networks(resultReader.readScanResults()))
+    private fun ProducerScope<WifiScanEvent>.sendCurrentNetworks(): Boolean {
+        val networks = readCurrentNetworks() ?: return false
+        trySend(WifiScanEvent.Networks(networks))
+        return true
     }
 
-    private fun Throwable.toWifiScanMessage(): String {
+    private fun ProducerScope<WifiScanEvent>.readCurrentNetworks(): List<WifiNetwork>? {
+        return try {
+            resultReader.readScanResults()
+        } catch (error: Exception) {
+            trySend(error.toScanFailureEvent("Failed to read Wi-Fi scan results"))
+            close()
+            null
+        }
+    }
+
+    private fun Throwable.toScanFailureEvent(action: String): WifiScanEvent {
+        val missingPermissions = permissions.missingPermissions()
+        if (this is SecurityException && missingPermissions.isNotEmpty()) {
+            return WifiScanEvent.PermissionRequired(missingPermissions)
+        }
+
         val details = message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
-        return "Failed to start Wi-Fi scan: $details"
+        return WifiScanEvent.Error(
+            message = "$action: $details",
+            cause = this
+        )
     }
 }

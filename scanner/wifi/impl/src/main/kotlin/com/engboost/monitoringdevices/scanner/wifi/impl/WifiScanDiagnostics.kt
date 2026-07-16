@@ -17,12 +17,8 @@ internal class WifiScanDiagnostics(
         }
     }
 
-    fun activeScanRejectedReason(hasCachedResults: Boolean): String {
-        return if (hasCachedResults) {
-            "Active Wi-Fi scan was throttled by Android. Showing cached results."
-        } else {
-            "Wi-Fi scan was not started by Android. Check Wi-Fi, Location Services and scan throttling."
-        }
+    fun activeScanRejectedReason(): String {
+        return "Wi-Fi scan was not started by Android. Check Wi-Fi, Location Services and scan throttling."
     }
 
     private fun isLocationEnabled(): Boolean {

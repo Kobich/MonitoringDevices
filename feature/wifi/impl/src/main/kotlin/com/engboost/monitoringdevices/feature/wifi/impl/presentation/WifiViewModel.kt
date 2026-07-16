@@ -6,11 +6,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.feature.wifi.impl.domain.interactor.WifiScanInteractor
-import com.engboost.monitoringdevices.feature.wifi.impl.domain.model.WifiScanThrottling
-import com.engboost.monitoringdevices.feature.wifi.impl.presentation.mapper.WifiScanThrottlingUiMapper
 import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiNetworkUi
 import com.engboost.monitoringdevices.feature.wifi.impl.presentation.model.WifiUiState
-import com.engboost.monitoringdevices.feature.wifi.impl.presentation.reducer.WifiUiStateReducer
+import com.engboost.monitoringdevices.feature.wifi.impl.presentation.reducer.reduce
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
@@ -18,19 +16,17 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 
 internal class WifiViewModel(
-    private val scanInteractor: WifiScanInteractor,
-    private val uiStateReducer: WifiUiStateReducer,
-    private val scanThrottlingUiMapper: WifiScanThrottlingUiMapper
+    private val scanInteractor: WifiScanInteractor
 ) : ViewModel() {
     private var scanJob: Job? = null
-    private var scanThrottling: WifiScanThrottling = scanInteractor.scanThrottling
+    private var isScanThrottlingEnabled = scanInteractor.isScanThrottlingEnabled
 
     var uiState by mutableStateOf(
         WifiUiState(
             statusText = "Stopped",
             networks = emptyList(),
             selectedNetwork = null,
-            scanThrottlingDialog = null,
+            isScanThrottlingDialogVisible = false,
             isScanning = false,
             permissionRequest = null
         )
@@ -67,7 +63,7 @@ internal class WifiViewModel(
                     }
                 }
                 .collect { result ->
-                    uiState = uiStateReducer.reduce(uiState, result)
+                    uiState = uiState.reduce(result)
                 }
         }
         scanJob = job
@@ -111,30 +107,22 @@ internal class WifiViewModel(
     }
 
     fun onScanThrottlingDialogDismiss() {
-        uiState = uiState.copy(scanThrottlingDialog = null)
+        uiState = uiState.copy(isScanThrottlingDialogVisible = false)
     }
 
     fun refreshThrottlingStatus(showDialog: Boolean = false) {
-        val previousStatus = scanThrottling
-        val currentStatus = scanInteractor.scanThrottling
+        val previousStatus = isScanThrottlingEnabled
+        val currentStatus = scanInteractor.isScanThrottlingEnabled
 
-        scanThrottling = currentStatus
+        isScanThrottlingEnabled = currentStatus
         uiState = uiState.copy(
-            scanThrottlingDialog = scanThrottlingDialog(showDialog, currentStatus)
+            isScanThrottlingDialogVisible = currentStatus &&
+                (showDialog || uiState.isScanThrottlingDialogVisible)
         )
 
-        if (previousStatus.isEnabled != currentStatus.isEnabled && scanJob?.isActive == true) {
+        if (previousStatus != currentStatus && scanJob?.isActive == true) {
             restartScan()
         }
-    }
-
-    private fun scanThrottlingDialog(
-        showDialog: Boolean,
-        currentStatus: WifiScanThrottling
-    ) = when {
-        showDialog -> scanThrottlingUiMapper.mapDialog(currentStatus)
-        currentStatus.isEnabled == false -> null
-        else -> uiState.scanThrottlingDialog
     }
 
     private fun restartScan() {

@@ -39,7 +39,7 @@ internal fun WifiFeatureScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(state.permissionRequest?.id) {
+    LaunchedEffect(state.permissionRequest) {
         val request = state.permissionRequest ?: return@LaunchedEffect
         val permissions = request.asArray()
         if (permissions.isNotEmpty()) {
