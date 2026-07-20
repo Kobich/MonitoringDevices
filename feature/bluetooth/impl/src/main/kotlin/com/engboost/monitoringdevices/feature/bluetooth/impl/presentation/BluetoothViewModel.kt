@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.feature.bluetooth.impl.domain.interactor.BluetoothScanInteractor
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothDeviceUi
+import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothSortMode
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothUiState
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.reducer.BluetoothUiStateReducer
 import kotlinx.coroutines.CoroutineStart
@@ -26,11 +27,18 @@ internal class BluetoothViewModel(
             statusText = "Stopped",
             devices = emptyList(),
             selectedDevice = null,
+            sortMode = BluetoothSortMode.STABLE,
             isScanning = false,
             permissionRequest = null
         )
     )
         private set
+
+    init {
+        if (scanInteractor.isMonitoringActive) {
+            onStartClick()
+        }
+    }
 
     fun onStartClick() {
         if (scanJob?.isActive == true) return
@@ -54,6 +62,13 @@ internal class BluetoothViewModel(
                 .onCompletion {
                     if (scanJob === job) {
                         scanJob = null
+                        if (uiState.isScanning) {
+                            uiState = uiState.copy(
+                                statusText = "Stopped",
+                                isScanning = false,
+                                permissionRequest = null
+                            )
+                        }
                     }
                 }
                 .collect { result ->
@@ -65,6 +80,7 @@ internal class BluetoothViewModel(
     }
 
     fun onStopClick() {
+        scanInteractor.stopMonitoring()
         scanJob?.cancel()
         scanJob = null
         uiState = uiState.copy(
@@ -98,6 +114,10 @@ internal class BluetoothViewModel(
 
     fun onDeviceDetailsDismiss() {
         uiState = uiState.copy(selectedDevice = null)
+    }
+
+    fun onSortModeChange(sortMode: BluetoothSortMode) {
+        uiState = uiStateReducer.changeSortMode(uiState, sortMode)
     }
 
     private fun Throwable.toDisplayMessage(): String {

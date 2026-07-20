@@ -2,6 +2,7 @@ package com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.reduc
 
 import com.engboost.monitoringdevices.feature.bluetooth.impl.domain.model.BluetoothScanResult
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.mapper.BluetoothDeviceUiMapper
+import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothSortMode
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothUiState
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.PermissionRequestUi
 
@@ -20,7 +21,11 @@ internal class BluetoothUiStateReducer(
             )
 
             is BluetoothScanResult.Devices -> {
-                val devices = deviceUiMapper.map(result.devices)
+                val devices = deviceUiMapper.map(
+                    devices = result.devices,
+                    sortMode = state.sortMode,
+                    currentDevices = state.devices
+                )
                 state.copy(
                     statusText = "Bluetooth data received",
                     devices = devices,
@@ -54,6 +59,16 @@ internal class BluetoothUiStateReducer(
                 permissionRequest = null
             )
         }
+    }
+
+    fun changeSortMode(
+        state: BluetoothUiState,
+        sortMode: BluetoothSortMode
+    ): BluetoothUiState {
+        return state.copy(
+            sortMode = sortMode,
+            devices = deviceUiMapper.sort(state.devices, sortMode)
+        )
     }
 
     private fun Set<String>.toPermissionRequest(currentRequest: PermissionRequestUi?): PermissionRequestUi {

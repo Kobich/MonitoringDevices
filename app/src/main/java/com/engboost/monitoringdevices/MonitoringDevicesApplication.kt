@@ -7,6 +7,7 @@ import com.engboost.monitoringdevices.feature.wifi.impl.di.wifiFeatureModule
 import com.engboost.monitoringdevices.scanner.bluetooth.impl.di.bluetoothScannerModule
 import com.engboost.monitoringdevices.scanner.radio.impl.di.radioScannerModule
 import com.engboost.monitoringdevices.scanner.wifi.impl.di.wifiScannerModule
+import com.engboost.monitoringdevices.service.monitoring.impl.di.monitoringServiceModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -22,6 +23,7 @@ class MonitoringDevicesApplication : Application() {
                 wifiScannerModule,
                 bluetoothScannerModule,
                 radioScannerModule,
+                monitoringServiceModule,
                 wifiFeatureModule,
                 bluetoothFeatureModule,
                 radioFeatureModule

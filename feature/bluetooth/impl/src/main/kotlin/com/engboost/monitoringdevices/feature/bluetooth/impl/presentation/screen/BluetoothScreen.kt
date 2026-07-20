@@ -1,6 +1,7 @@
 package com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.screen
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -11,15 +12,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothDeviceUi
+import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothSortMode
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model.BluetoothUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -28,6 +36,7 @@ internal fun BluetoothScreen(
     state: BluetoothUiState,
     onStartClick: () -> Unit,
     onStopClick: () -> Unit,
+    onSortModeChange: (BluetoothSortMode) -> Unit,
     onDeviceClick: (BluetoothDeviceUi) -> Unit,
     onDeviceDetailsDismiss: () -> Unit,
     modifier: Modifier = Modifier
@@ -51,6 +60,12 @@ internal fun BluetoothScreen(
         }
         item {
             StatusCard(title = "Found devices", value = state.devices.size.toString())
+        }
+        item {
+            SortModeMenu(
+                selectedMode = state.sortMode,
+                onModeChange = onSortModeChange
+            )
         }
         item {
             Row(
@@ -88,6 +103,46 @@ internal fun BluetoothScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun SortModeMenu(
+    selectedMode: BluetoothSortMode,
+    onModeChange: (BluetoothSortMode) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Box(modifier = modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { isExpanded = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(text = "Sort: ${selectedMode.toDisplayName()}")
+        }
+        DropdownMenu(
+            expanded = isExpanded,
+            onDismissRequest = { isExpanded = false }
+        ) {
+            BluetoothSortMode.entries.forEach { mode ->
+                DropdownMenuItem(
+                    text = { Text(mode.toDisplayName()) },
+                    onClick = {
+                        isExpanded = false
+                        onModeChange(mode)
+                    }
+                )
+            }
+        }
+    }
+}
+
+private fun BluetoothSortMode.toDisplayName(): String {
+    return when (this) {
+        BluetoothSortMode.STABLE -> "Stable"
+        BluetoothSortMode.SIGNAL -> "Signal strength"
+        BluetoothSortMode.NAME -> "Name"
     }
 }
 

@@ -3,7 +3,6 @@ package com.engboost.monitoringdevices.feature.bluetooth.impl.presentation
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.screen.BluetoothScreen
@@ -20,10 +19,6 @@ internal fun BluetoothFeatureScreen(
         onResult = viewModel::onPermissionResult
     )
 
-    DisposableEffect(viewModel) {
-        onDispose { viewModel.onStopClick() }
-    }
-
     LaunchedEffect(state.permissionRequest?.id) {
         val request = state.permissionRequest ?: return@LaunchedEffect
         val permissions = request.asArray()
@@ -36,6 +31,7 @@ internal fun BluetoothFeatureScreen(
         state = state,
         onStartClick = viewModel::onStartClick,
         onStopClick = viewModel::onStopClick,
+        onSortModeChange = viewModel::onSortModeChange,
         onDeviceClick = viewModel::onDeviceClick,
         onDeviceDetailsDismiss = viewModel::onDeviceDetailsDismiss,
         modifier = modifier

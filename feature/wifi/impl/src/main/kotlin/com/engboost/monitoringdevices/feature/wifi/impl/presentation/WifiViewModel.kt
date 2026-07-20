@@ -33,6 +33,12 @@ internal class WifiViewModel(
     )
         private set
 
+    init {
+        if (scanInteractor.isMonitoringActive) {
+            onStartClick()
+        }
+    }
+
     fun onStartClick() {
         if (scanJob?.isActive == true) return
 
@@ -60,6 +66,13 @@ internal class WifiViewModel(
                 .onCompletion {
                     if (scanJob === job) {
                         scanJob = null
+                        if (uiState.isScanning) {
+                            uiState = uiState.copy(
+                                statusText = "Stopped",
+                                isScanning = false,
+                                permissionRequest = null
+                            )
+                        }
                     }
                 }
                 .collect { result ->
@@ -71,6 +84,7 @@ internal class WifiViewModel(
     }
 
     fun onStopClick() {
+        scanInteractor.stopMonitoring()
         scanJob?.cancel()
         scanJob = null
         uiState = uiState.copy(

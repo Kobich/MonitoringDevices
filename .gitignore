@@ -27,3 +27,5 @@ local.properties
 /scanner/radio/impl/build/
 /scanner/wifi/api/build/
 /scanner/wifi/impl/build/
+/service/monitoring/api/build/
+/service/monitoring/impl/build/

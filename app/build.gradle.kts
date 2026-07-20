@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":feature:wifi:impl"))
     implementation(project(":feature:bluetooth:impl"))
     implementation(project(":feature:radio:impl"))
+    implementation(project(":service:monitoring:impl"))
     implementation(project(":scanner:wifi:impl"))
     implementation(project(":scanner:bluetooth:impl"))
     implementation(project(":scanner:radio:impl"))

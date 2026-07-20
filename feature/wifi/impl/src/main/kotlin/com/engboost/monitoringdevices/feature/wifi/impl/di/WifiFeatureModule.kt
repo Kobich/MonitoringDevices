@@ -9,6 +9,6 @@ import org.koin.dsl.module
 
 val wifiFeatureModule = module {
     single<WifiFeatureApi> { WifiFeatureImpl() }
-    factory { WifiScanInteractor(get()) }
+    factory { WifiScanInteractor(get(), get()) }
     viewModel { WifiViewModel(get()) }
 }

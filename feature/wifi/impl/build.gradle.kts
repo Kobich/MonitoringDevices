@@ -27,6 +27,7 @@ android {
 
 dependencies {
     api(project(":feature:wifi:api"))
+    implementation(project(":service:monitoring:api"))
     implementation(project(":scanner:wifi:api"))
 
     implementation(platform(libs.androidx.compose.bom))

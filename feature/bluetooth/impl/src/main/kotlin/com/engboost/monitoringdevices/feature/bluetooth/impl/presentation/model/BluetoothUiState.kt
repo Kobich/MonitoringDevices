@@ -4,9 +4,16 @@ data class BluetoothUiState(
     val statusText: String,
     val devices: List<BluetoothDeviceUi>,
     val selectedDevice: BluetoothDeviceUi?,
+    val sortMode: BluetoothSortMode,
     val isScanning: Boolean,
     val permissionRequest: PermissionRequestUi?
 )
+
+enum class BluetoothSortMode {
+    STABLE,
+    SIGNAL,
+    NAME
+}
 
 data class BluetoothDeviceUi(
     val name: String,
