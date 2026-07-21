@@ -30,6 +30,10 @@
             <option value="$PROJECT_DIR$/scanner/wifi" />
             <option value="$PROJECT_DIR$/scanner/wifi/api" />
             <option value="$PROJECT_DIR$/scanner/wifi/impl" />
+            <option value="$PROJECT_DIR$/service" />
+            <option value="$PROJECT_DIR$/service/monitoring" />
+            <option value="$PROJECT_DIR$/service/monitoring/api" />
+            <option value="$PROJECT_DIR$/service/monitoring/impl" />
           </set>
         </option>
       </GradleProjectSettings>

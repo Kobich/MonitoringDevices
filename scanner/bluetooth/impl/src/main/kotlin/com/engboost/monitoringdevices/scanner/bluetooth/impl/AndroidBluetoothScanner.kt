@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.SystemClock
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothBondState
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothDeviceInfo
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothDeviceType
@@ -21,8 +22,13 @@ import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothScanEvent
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothScanMode
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothScanner
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
+
+private const val DEVICE_AGE_REFRESH_INTERVAL_MILLIS = 5_000L
+private const val DEVICE_RETENTION_MILLIS = 120_000L
 
 class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
     private val appContext = context.applicationContext
@@ -63,10 +69,30 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
             return@callbackFlow
         }
 
+        val devicesLock = Any()
         val devices = linkedMapOf<String, BluetoothDeviceInfo>()
+        val bleLastSeen = mutableMapOf<String, Long>()
 
-        fun emitDevices() {
-            trySend(BluetoothScanEvent.Devices(devices.values.toList()))
+        fun updateDevice(info: BluetoothDeviceInfo, observedViaBle: Boolean) {
+            synchronized(devicesLock) {
+                devices[info.address] = info
+                if (observedViaBle) {
+                    bleLastSeen[info.address] = SystemClock.elapsedRealtime()
+                }
+            }
+        }
+
+        fun emitDevices(nowMillis: Long = SystemClock.elapsedRealtime()) {
+            val snapshot = synchronized(devicesLock) {
+                devices.map { (address, device) ->
+                    device.copy(
+                        lastSeenAgoMillis = bleLastSeen[address]?.let { lastSeenMillis ->
+                            (nowMillis - lastSeenMillis).coerceAtLeast(0L)
+                        }
+                    )
+                }
+            }
+            trySend(BluetoothScanEvent.Devices(snapshot))
         }
 
         fun readDeviceInfo(
@@ -92,6 +118,30 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
         }
 
         trySend(BluetoothScanEvent.Scanning)
+        val agingJob = if (config.mode != BluetoothScanMode.CLASSIC) {
+            launch {
+                while (true) {
+                    delay(DEVICE_AGE_REFRESH_INTERVAL_MILLIS)
+                    val nowMillis = SystemClock.elapsedRealtime()
+                    val shouldEmit = synchronized(devicesLock) {
+                        val hadBleDevices = bleLastSeen.isNotEmpty()
+                        val expiredAddresses = bleLastSeen
+                            .filterValues { lastSeenMillis ->
+                                nowMillis - lastSeenMillis >= DEVICE_RETENTION_MILLIS
+                            }
+                            .keys
+                        expiredAddresses.forEach { address ->
+                            bleLastSeen.remove(address)
+                            devices.remove(address)
+                        }
+                        hadBleDevices
+                    }
+                    if (shouldEmit) emitDevices(nowMillis)
+                }
+            }
+        } else {
+            null
+        }
 
         val classicReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
@@ -109,7 +159,7 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
 
                 if (device != null) {
                     val info = readDeviceInfo(device, rssi) ?: return
-                    devices[info.address] = info
+                    updateDevice(info, observedViaBle = false)
                     emitDevices()
                 }
             }
@@ -118,14 +168,14 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
         val bleCallback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 val info = readDeviceInfo(result.device, result.rssi) ?: return
-                devices[info.address] = info
+                updateDevice(info, observedViaBle = true)
                 emitDevices()
             }
 
             override fun onBatchScanResults(results: MutableList<ScanResult>) {
                 for (result in results) {
                     val info = readDeviceInfo(result.device, result.rssi) ?: return
-                    devices[info.address] = info
+                    updateDevice(info, observedViaBle = true)
                 }
                 emitDevices()
             }
@@ -175,6 +225,7 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
         }
 
         awaitClose {
+            agingJob?.cancel()
             if (config.mode == BluetoothScanMode.CLASSIC || config.mode == BluetoothScanMode.ALL) {
                 runCatching { adapter.cancelDiscovery() }
                 runCatching { appContext.unregisterReceiver(classicReceiver) }
@@ -200,7 +251,8 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
             address = runCatching { address }.getOrDefault("unknown"),
             rssiDbm = rssiDbm,
             type = type.toBluetoothDeviceType(),
-            bondState = bondState.toBluetoothBondState()
+            bondState = bondState.toBluetoothBondState(),
+            lastSeenAgoMillis = null
         )
     }
 

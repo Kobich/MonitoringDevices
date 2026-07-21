@@ -44,7 +44,8 @@ data class BluetoothDeviceInfo(
     val address: String,
     val rssiDbm: Int?,
     val type: BluetoothDeviceType,
-    val bondState: BluetoothBondState
+    val bondState: BluetoothBondState,
+    val lastSeenAgoMillis: Long? = null
 )
 
 enum class BluetoothDeviceType {

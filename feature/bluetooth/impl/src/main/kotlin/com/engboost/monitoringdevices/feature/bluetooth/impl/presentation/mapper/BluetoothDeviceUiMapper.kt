@@ -18,7 +18,8 @@ internal class BluetoothDeviceUiMapper {
                 address = device.address,
                 rssiDbm = device.rssiDbm,
                 type = device.type.toDisplayName(),
-                bondState = device.bondState.toDisplayName()
+                bondState = device.bondState.toDisplayName(),
+                lastSeenAgoMillis = device.lastSeenAgoMillis
             )
         }
 
