@@ -25,8 +25,10 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+private const val DEVICE_SNAPSHOT_INTERVAL_MILLIS = 750L
 private const val DEVICE_AGE_REFRESH_INTERVAL_MILLIS = 5_000L
 private const val DEVICE_RETENTION_MILLIS = 120_000L
 
@@ -72,6 +74,7 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
         val devicesLock = Any()
         val devices = linkedMapOf<String, BluetoothDeviceInfo>()
         val bleLastSeen = mutableMapOf<String, Long>()
+        var devicesChanged = false
 
         fun updateDevice(info: BluetoothDeviceInfo, observedViaBle: Boolean) {
             synchronized(devicesLock) {
@@ -79,11 +82,17 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
                 if (observedViaBle) {
                     bleLastSeen[info.address] = SystemClock.elapsedRealtime()
                 }
+                devicesChanged = true
             }
         }
 
-        fun emitDevices(nowMillis: Long = SystemClock.elapsedRealtime()) {
+        fun emitDevices(
+            nowMillis: Long = SystemClock.elapsedRealtime(),
+            force: Boolean = false
+        ) {
             val snapshot = synchronized(devicesLock) {
+                if (!force && !devicesChanged) return
+                devicesChanged = false
                 devices.map { (address, device) ->
                     device.copy(
                         lastSeenAgoMillis = bleLastSeen[address]?.let { lastSeenMillis ->
@@ -118,9 +127,15 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
         }
 
         trySend(BluetoothScanEvent.Scanning)
+        val snapshotJob = launch {
+            while (isActive) {
+                delay(DEVICE_SNAPSHOT_INTERVAL_MILLIS)
+                emitDevices()
+            }
+        }
         val agingJob = if (config.mode != BluetoothScanMode.CLASSIC) {
             launch {
-                while (true) {
+                while (isActive) {
                     delay(DEVICE_AGE_REFRESH_INTERVAL_MILLIS)
                     val nowMillis = SystemClock.elapsedRealtime()
                     val shouldEmit = synchronized(devicesLock) {
@@ -136,7 +151,7 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
                         }
                         hadBleDevices
                     }
-                    if (shouldEmit) emitDevices(nowMillis)
+                    if (shouldEmit) emitDevices(nowMillis, force = true)
                 }
             }
         } else {
@@ -160,7 +175,6 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
                 if (device != null) {
                     val info = readDeviceInfo(device, rssi) ?: return
                     updateDevice(info, observedViaBle = false)
-                    emitDevices()
                 }
             }
         }
@@ -169,7 +183,6 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
                 val info = readDeviceInfo(result.device, result.rssi) ?: return
                 updateDevice(info, observedViaBle = true)
-                emitDevices()
             }
 
             override fun onBatchScanResults(results: MutableList<ScanResult>) {
@@ -177,7 +190,6 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
                     val info = readDeviceInfo(result.device, result.rssi) ?: return
                     updateDevice(info, observedViaBle = true)
                 }
-                emitDevices()
             }
 
             override fun onScanFailed(errorCode: Int) {
@@ -225,6 +237,7 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
         }
 
         awaitClose {
+            snapshotJob.cancel()
             agingJob?.cancel()
             if (config.mode == BluetoothScanMode.CLASSIC || config.mode == BluetoothScanMode.ALL) {
                 runCatching { adapter.cancelDiscovery() }

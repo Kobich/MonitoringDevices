@@ -6,21 +6,29 @@ import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothBondState
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothDeviceInfo
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothDeviceType
 
+private const val DEVICE_STALE_AFTER_MILLIS = 30_000L
+
 internal class BluetoothDeviceUiMapper {
     fun map(
         devices: List<BluetoothDeviceInfo>,
         sortMode: BluetoothSortMode,
         currentDevices: List<BluetoothDeviceUi>
     ): List<BluetoothDeviceUi> {
+        val currentDevicesByAddress = currentDevices.associateBy { device -> device.address }
         val mappedDevices = devices.map { device ->
-            BluetoothDeviceUi(
+            val mappedDevice = BluetoothDeviceUi(
                 name = device.name?.takeIf { name -> name.isNotBlank() } ?: "Unknown device",
                 address = device.address,
                 rssiDbm = device.rssiDbm,
                 type = device.type.toDisplayName(),
                 bondState = device.bondState.toDisplayName(),
-                lastSeenAgoMillis = device.lastSeenAgoMillis
+                isStale = device.lastSeenAgoMillis?.let { ageMillis ->
+                    ageMillis >= DEVICE_STALE_AFTER_MILLIS
+                } == true
             )
+            currentDevicesByAddress[device.address]
+                ?.takeIf { currentDevice -> currentDevice == mappedDevice }
+                ?: mappedDevice
         }
 
         return sort(mappedDevices, sortMode, currentDevices)

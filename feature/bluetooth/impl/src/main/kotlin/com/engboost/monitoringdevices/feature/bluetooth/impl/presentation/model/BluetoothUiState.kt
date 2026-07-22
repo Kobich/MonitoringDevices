@@ -1,7 +1,5 @@
 package com.engboost.monitoringdevices.feature.bluetooth.impl.presentation.model
 
-private const val DEVICE_STALE_AFTER_MILLIS = 30_000L
-
 data class BluetoothUiState(
     val statusText: String,
     val devices: List<BluetoothDeviceUi>,
@@ -23,13 +21,8 @@ data class BluetoothDeviceUi(
     val rssiDbm: Int?,
     val type: String,
     val bondState: String,
-    val lastSeenAgoMillis: Long?
-) {
     val isStale: Boolean
-        get() = lastSeenAgoMillis?.let { ageMillis ->
-            ageMillis >= DEVICE_STALE_AFTER_MILLIS
-        } == true
-}
+)
 
 data class PermissionRequestUi(
     val id: Int,
