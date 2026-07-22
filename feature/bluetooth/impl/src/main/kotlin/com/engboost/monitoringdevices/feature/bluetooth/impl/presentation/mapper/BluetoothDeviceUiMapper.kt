@@ -7,6 +7,7 @@ import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothDeviceInfo
 import com.engboost.monitoringdevices.scanner.bluetooth.api.BluetoothDeviceType
 
 private const val DEVICE_STALE_AFTER_MILLIS = 30_000L
+private const val SIGNAL_SORT_BUCKET_DBM = 5
 
 internal class BluetoothDeviceUiMapper {
     fun map(
@@ -49,8 +50,20 @@ internal class BluetoothDeviceUiMapper {
                     devices.filterNot { device -> device.address in currentAddresses }
             }
 
-            BluetoothSortMode.SIGNAL -> devices.sortedByDescending { device ->
-                device.rssiDbm ?: Int.MIN_VALUE
+            BluetoothSortMode.SIGNAL -> {
+                val currentOrder = currentDevices
+                    .withIndex()
+                    .associate { (index, device) -> device.address to index }
+
+                devices.sortedWith(
+                    compareByDescending<BluetoothDeviceUi> { device ->
+                        device.rssiDbm?.div(SIGNAL_SORT_BUCKET_DBM) ?: Int.MIN_VALUE
+                    }.thenBy { device ->
+                        currentOrder[device.address] ?: Int.MAX_VALUE
+                    }.thenBy { device ->
+                        device.address
+                    }
+                )
             }
 
             BluetoothSortMode.NAME -> devices.sortedWith(

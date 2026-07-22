@@ -27,10 +27,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val DEVICE_SNAPSHOT_INTERVAL_MILLIS = 750L
 private const val DEVICE_AGE_REFRESH_INTERVAL_MILLIS = 5_000L
+private const val DEVICE_STALE_AFTER_MILLIS = 30_000L
 private const val DEVICE_RETENTION_MILLIS = 120_000L
+private const val RSSI_SMOOTHING_FACTOR = 0.25
+private const val MIN_RSSI_CHANGE_DBM = 3
 
 class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
     private val appContext = context.applicationContext
@@ -74,15 +79,38 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
         val devicesLock = Any()
         val devices = linkedMapOf<String, BluetoothDeviceInfo>()
         val bleLastSeen = mutableMapOf<String, Long>()
+        val smoothedBleRssi = mutableMapOf<String, Double>()
         var devicesChanged = false
 
         fun updateDevice(info: BluetoothDeviceInfo, observedViaBle: Boolean) {
             synchronized(devicesLock) {
-                devices[info.address] = info
-                if (observedViaBle) {
-                    bleLastSeen[info.address] = SystemClock.elapsedRealtime()
+                val currentDevice = devices[info.address]
+                val nowMillis = SystemClock.elapsedRealtime()
+                val wasStale = observedViaBle && bleLastSeen[info.address]?.let { lastSeenMillis ->
+                    nowMillis - lastSeenMillis >= DEVICE_STALE_AFTER_MILLIS
+                } == true
+                val updatedInfo = if (observedViaBle && info.rssiDbm != null) {
+                    val smoothedRssi = smoothedBleRssi[info.address]?.let { previousRssi ->
+                        previousRssi + RSSI_SMOOTHING_FACTOR * (info.rssiDbm - previousRssi)
+                    } ?: info.rssiDbm.toDouble()
+                    smoothedBleRssi[info.address] = smoothedRssi
+                    val roundedRssi = smoothedRssi.roundToInt()
+                    info.copy(
+                        rssiDbm = currentDevice?.rssiDbm
+                            ?.takeIf { currentRssi ->
+                                abs(currentRssi - roundedRssi) < MIN_RSSI_CHANGE_DBM
+                            }
+                            ?: roundedRssi
+                    )
+                } else {
+                    info
                 }
-                devicesChanged = true
+
+                devices[info.address] = updatedInfo
+                if (observedViaBle) {
+                    bleLastSeen[info.address] = nowMillis
+                }
+                devicesChanged = devicesChanged || currentDevice != updatedInfo || wasStale
             }
         }
 
@@ -147,6 +175,7 @@ class AndroidBluetoothScanner(context: Context) : BluetoothScanner {
                             .keys
                         expiredAddresses.forEach { address ->
                             bleLastSeen.remove(address)
+                            smoothedBleRssi.remove(address)
                             devices.remove(address)
                         }
                         hadBleDevices
