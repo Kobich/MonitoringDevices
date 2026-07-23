@@ -1,189 +1,88 @@
-# Архитектура приложения мониторинга устройств
+# Архитектура MonitoringDevices
 
-## Цель
+## Назначение
 
-Приложение состоит из трёх независимых пользовательских фич:
+Приложение показывает беспроводное окружение Android-устройства в трёх независимых разделах: Wi-Fi, Bluetooth и Radio. Пользовательские экраны находятся в `feature:*`, работа с Android API изолирована в `scanner:*`, а продолжительное Wi-Fi/Bluetooth-сканирование координирует `service:monitoring`.
 
-- Wi-Fi мониторинг;
-- Bluetooth мониторинг;
-- Radio мониторинг.
-
-Каждая фича оформлена отдельной парой Gradle-модулей `api/impl`. Низкоуровневая работа с Android API находится в `scanner:*`, а продолжительное Wi-Fi/Bluetooth-сканирование координирует тонкий foreground service-слой `service:monitoring`.
-
-## Модули
-
-```text
-:app
-  Точка входа, DI-сборка и нижняя навигация между фичами.
-
-:feature:wifi:api / :feature:wifi:impl
-  UI-контракт, экран, ViewModel и представление Wi-Fi данных.
-
-:feature:bluetooth:api / :feature:bluetooth:impl
-  UI-контракт, экран, ViewModel и представление Bluetooth данных.
-
-:feature:radio:api / :feature:radio:impl
-  UI-контракт, экран, ViewModel и представление Radio данных.
-
-:service:monitoring:api
-  Контракт запуска и остановки Wi-Fi/Bluetooth мониторинга,
-  состояние активных сканов и потоки их событий.
-
-:service:monitoring:impl
-  Один foreground service, две независимые scan job,
-  уведомление и восстановление активных типов после пересоздания процесса.
-
-:scanner:wifi:api / :scanner:wifi:impl
-  Низкоуровневый Wi-Fi scanner.
-
-:scanner:bluetooth:api / :scanner:bluetooth:impl
-  Низкоуровневый Bluetooth scanner.
-
-:scanner:radio:api / :scanner:radio:impl
-  Низкоуровневый Radio scanner.
-```
-
-## Зависимости
+## Слои
 
 ```text
 app
-  -> feature:wifi:impl
-  -> feature:bluetooth:impl
-  -> feature:radio:impl
+  -> feature:*:impl
+  -> scanner:*:impl
   -> service:monitoring:impl
-  -> scanner:wifi:impl
-  -> scanner:bluetooth:impl
-  -> scanner:radio:impl
 
-feature:wifi:impl
-  -> feature:wifi:api
-  -> scanner:wifi:api
-  -> service:monitoring:api
+feature:wifi:impl ---------> service:monitoring:api -> scanner:wifi:api
+feature:bluetooth:impl ----> service:monitoring:api -> scanner:bluetooth:api
+feature:radio:impl ---------------------------------> scanner:radio:api
 
-feature:bluetooth:impl
-  -> feature:bluetooth:api
-  -> scanner:bluetooth:api
-  -> service:monitoring:api
-
-feature:radio:impl
-  -> feature:radio:api
-  -> scanner:radio:api
-
-service:monitoring:api
-  -> scanner:wifi:api
-  -> scanner:bluetooth:api
-
-service:monitoring:impl
-  -> service:monitoring:api
-
-scanner:*:impl
-  -> scanner:*:api
+scanner:*:impl -> scanner:*:api
+service:monitoring:impl -> service:monitoring:api
 ```
 
-`feature:wifi` и `feature:bluetooth` остаются владельцами пользовательского поведения и отображения данных. `service:monitoring` не является объединённой фичей и не содержит экранов: это только процессная прослойка над scanner-модулями.
+`api`-модуль содержит внешний контракт и переносимые модели. `impl`-модуль содержит Android-зависимую реализацию, UI или инфраструктуру. Такое разделение не позволяет `app` и соседним фичам зависеть от внутренних классов реализации.
 
-## Foreground Monitoring
+## Пользовательские фичи
 
-Запуск выполняется по требованию фичи:
-
-1. `WifiScanInteractor` или `BluetoothScanInteractor` вызывает `MonitoringController.startMonitoring(type)`.
-2. Controller проверяет runtime permissions, сохраняет активный тип и запускает `DeviceMonitoringService`.
-3. Service поднимается в foreground и создаёт отдельную coroutine job для каждого активного типа.
-4. События scanner-а публикуются через controller обратно в соответствующую фичу.
-5. Явный Stop останавливает только выбранный тип. Service завершается, когда активных типов не осталось.
-
-Wi-Fi и Bluetooth работают независимо внутри одного service:
+Каждая фича публикует один Compose-контракт через `feature:*:api`. Реализация строится по однонаправленной схеме:
 
 ```text
-active = WIFI                -> Wi-Fi job
-active = BLUETOOTH           -> Bluetooth job
-active = WIFI + BLUETOOTH    -> Wi-Fi job + Bluetooth job
-active = empty               -> service stops
+FeatureApi -> Route -> Screen
+                  -> ViewModel -> UiState
+                  -> пользовательское действие -> ViewModel
 ```
 
-Переход на другую вкладку или уничтожение ViewModel не останавливает активное сканирование. При возврате экран подключается к текущему потоку. Явная кнопка Stop или действие `Stop all` в уведомлении меняет состояние мониторинга.
+Wi-Fi и Bluetooth запускают мониторинг через `MonitoringController`. Их ViewModel подписываются на события controller, но не владеют scanner job. Поэтому уничтожение экрана или переход на другую вкладку не должно само по себе останавливать уже запущенный мониторинг. Radio является коротким запросом текущего состояния модема и работает напрямую через `RadioScanner`.
 
-Активные типы сохраняются в `SharedPreferences`. `START_STICKY` позволяет Android пересоздать service после уничтожения процесса; после пересоздания запускаются только ранее активные scan job. Это не гарантирует непрерывность при принудительной остановке приложения пользователем или ограничениях производителя устройства.
+## Scanner-слой
 
-Тип foreground service формируется из активных сканов:
+Scanner начинает работу при collection возвращённого `Flow`. Внешний код получает типизированные события: запуск, данные, отсутствие разрешений, недоступность capability или ошибку платформы.
 
-- Wi-Fi использует `location`;
-- Bluetooth использует `connectedDevice`;
-- при совместной работе используются оба типа.
+- `scanner:wifi` читает cache Wi-Fi и при активном режиме вызывает `WifiManager.startScan()`.
+- `scanner:bluetooth` объединяет BLE callback и Bluetooth Classic discovery в общую модель устройств.
+- `scanner:radio` один раз читает `TelephonyManager.allCellInfo` и завершает Flow.
 
-## UI и UDF
+Scanner не знает об экранах, навигации и foreground service. Освобождение receiver и Bluetooth callback привязано к отмене collection.
 
-Внутри каждого feature `impl` используется схема:
+## Foreground monitoring
+
+`service:monitoring` обслуживает только Wi-Fi и Bluetooth. Один `DeviceMonitoringService` содержит независимые jobs для активных типов:
 
 ```text
-Route -> Screen(state, callbacks)
-ViewModel -> UiState -> Screen
-Screen -> callback -> ViewModel
+WIFI                 -> Wi-Fi job
+BLUETOOTH            -> Bluetooth job
+WIFI + BLUETOOTH     -> две независимые jobs
+пустой набор         -> остановка service
 ```
 
-Правила:
+`DefaultMonitoringController` хранит активные типы, последние события и количество результатов. Активные типы сохраняются в `SharedPreferences`. `DeviceMonitoringService` наблюдает это состояние, синхронизирует jobs и обновляет постоянное уведомление. Wi-Fi использует foreground service type `location`, Bluetooth — `connectedDevice`.
 
-- `Screen` не получает `ViewModel` и не создаёт state;
-- `UiState` immutable и помечен `@Immutable`;
-- навигация между Wi-Fi/Bluetooth/Radio находится в `app`;
-- ViewModel подписывается на события monitoring-слоя, но не владеет lifecycle scan job;
-- отмена UI collection не равна остановке мониторинга.
+## Движение данных
+
+```text
+Start в UI
+  -> Interactor
+  -> MonitoringController.startMonitoring(type)
+  -> DeviceMonitoringService
+  -> Scanner.scan()
+  -> Scanner event
+  -> MonitoringController
+  -> Interactor
+  -> ViewModel / reducer
+  -> UiState
+  -> Screen
+```
+
+Stop удаляет только выбранный тип. Сервис завершается после удаления последнего типа. Действие `Stop all` в уведомлении очищает оба типа.
 
 ## Границы ответственности
 
-- `app` собирает DI-граф, фичи и навигацию;
-- `feature:*:api` содержит внешний UI-контракт;
-- `feature:*:impl` владеет экраном, UI state и пользовательскими командами Start/Stop;
-- `service:monitoring:api` связывает фичи с процессным мониторингом;
-- `service:monitoring:impl` владеет foreground service, scan job и notification lifecycle;
-- `scanner:*` владеет Android framework API и не знает про UI или service lifecycle.
+- `app` собирает DI-граф, тему и навигацию.
+- `feature:*:api` задаёт внешний Compose-контракт.
+- `feature:*:impl` владеет пользовательским состоянием и отображением.
+- `scanner:*:api` задаёт scanner-контракт, события и модели результатов.
+- `scanner:*:impl` работает с Android framework API и разрешениями.
+- `service:monitoring:api` связывает Wi-Fi/Bluetooth фичи с долгоживущим мониторингом.
+- `service:monitoring:impl` владеет foreground service, уведомлением и scan jobs.
 
-## Scanner API
-
-Каждый scanner отдаёт данные через `Flow`. Сбор данных начинается при collection и останавливается при отмене collection.
-
-```text
-scanner:wifi:api
-  WifiScanner.scan(WifiScanConfig): Flow<WifiScanEvent>
-  modes: ACTIVE, CACHED_ONLY; optional refresh interval; scan throttling status
-  data: SSID, BSSID, RSSI, frequency, capabilities
-
-scanner:bluetooth:api
-  BluetoothScanner.scan(BluetoothScanConfig): Flow<BluetoothScanEvent>
-  modes: BLE, CLASSIC, ALL
-  data: name, address, RSSI, type, bond state
-
-scanner:radio:api
-  RadioScanner.scan(RadioScanConfig): Flow<RadioScanEvent>
-  modes: REGISTERED_ONLY, ALL_AVAILABLE
-  data: network type, registration state, signal strength, operator
-```
-
-Общая форма scanner events:
-
-- `Scanning` — scanner запущен;
-- `PermissionRequired` — caller должен запросить runtime permissions;
-- `Unavailable` — отсутствует capability или выключена системная настройка;
-- `Error` — platform API завершился ошибкой;
-- результат — `Networks`, `Devices` или `Cells`.
-
-## Диагностика Monitoring
-
-Основные теги Logcat:
-
-- `MonitoringController` — команды Start/Stop, permissions и изменения активных типов;
-- `MonitoringService` — lifecycle service, foreground-режим и lifecycle scan job.
-
-Фильтр через adb:
-
-```shell
-adb logcat -s MonitoringController MonitoringService
-```
-
-Ожидаемая проверка:
-
-1. Start Wi-Fi: активируется `WIFI`, создаётся service и Wi-Fi job.
-2. Переход на Bluetooth-вкладку: Wi-Fi job не останавливается.
-3. Start Bluetooth: active types становятся `[WIFI, BLUETOOTH]`, запускается Bluetooth job.
-4. Stop Wi-Fi: завершается только Wi-Fi job, Bluetooth продолжает работать.
-5. Stop Bluetooth: active types становятся пустыми, notification удаляется и service завершается.
+Детали классов находятся на [страницах модулей](README.md#модули). Платформенное поведение, которое архитектура не может отменить, вынесено в [ограничения](platform-limitations.md).
