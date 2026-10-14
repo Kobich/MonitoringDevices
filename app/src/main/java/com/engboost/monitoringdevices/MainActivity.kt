@@ -15,29 +15,33 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
-import com.engboost.monitoringdevices.monitoring.MonitoringSource
-import com.engboost.monitoringdevices.monitoring.ui.bluetooth.BluetoothMonitoringScreen
-import com.engboost.monitoringdevices.monitoring.ui.wifi.WifiMonitoringScreen
+import com.engboost.monitoringdevices.scanner.NearbyScanner
+import com.engboost.monitoringdevices.scanner.ui.bluetooth.BluetoothScanScreen
+import com.engboost.monitoringdevices.scanner.ui.wifi.WifiScanScreen
 import com.engboost.monitoringdevices.ui.theme.MonitoringDevicesTheme
+
+/** Tabs shown in the app; remove an entry to hide its scanner. */
+private val enabledTabs = listOf(AppTab.WIFI, AppTab.BLUETOOTH)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val monitoring = (application as MonitoringDevicesApplication).monitoring
+        val scanner = (application as MonitoringDevicesApplication).scanner
         enableEdgeToEdge()
         setContent {
             MonitoringDevicesTheme {
-                AppNavigation(monitoring = monitoring)
+                AppNavigation(scanner = scanner, tabs = enabledTabs)
             }
         }
     }
 }
 
 @Composable
-private fun AppNavigation(monitoring: DeviceMonitoring) {
-    val tabs = AppTab.entries.filter { tab -> tab.source in monitoring.config.enabledSources }
-    var selectedTab by rememberSaveable { mutableStateOf(tabs.firstOrNull()) }
+private fun AppNavigation(
+    scanner: NearbyScanner,
+    tabs: List<AppTab>
+) {
+    var selectedTab by rememberSaveable { mutableStateOf(tabs.first()) }
 
     Scaffold(
         bottomBar = {
@@ -58,18 +62,16 @@ private fun AppNavigation(monitoring: DeviceMonitoring) {
         val modifier = Modifier.padding(innerPadding)
 
         when (selectedTab) {
-            AppTab.WIFI -> WifiMonitoringScreen(monitoring = monitoring, modifier = modifier)
-            AppTab.BLUETOOTH -> BluetoothMonitoringScreen(monitoring = monitoring, modifier = modifier)
-            null -> Text(text = "No monitoring sources enabled", modifier = modifier)
+            AppTab.WIFI -> WifiScanScreen(scanner = scanner.wifi, modifier = modifier)
+            AppTab.BLUETOOTH -> BluetoothScanScreen(scanner = scanner.bluetooth, modifier = modifier)
         }
     }
 }
 
 private enum class AppTab(
-    val source: MonitoringSource,
     val title: String,
     val shortTitle: String
 ) {
-    WIFI(MonitoringSource.WIFI, "Wi-Fi", "Wi"),
-    BLUETOOTH(MonitoringSource.BLUETOOTH, "Bluetooth", "Bt")
+    WIFI("Wi-Fi", "Wi"),
+    BLUETOOTH("Bluetooth", "Bt")
 }

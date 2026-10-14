@@ -1,0 +1,120 @@
+package com.engboost.monitoringdevices.scanner.ui.wifi
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.engboost.monitoringdevices.scanner.ui.common.StartStopButtons
+import com.engboost.monitoringdevices.scanner.ui.common.StatusCard
+import com.engboost.monitoringdevices.scanner.ui.common.toText
+import com.engboost.monitoringdevices.scanner.wifi.WifiUnavailableReason
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun WifiScanContent(
+    state: WifiUiState,
+    onStartClick: () -> Unit,
+    onStopClick: () -> Unit,
+    onNetworkClick: (WifiNetworkUi) -> Unit,
+    onNetworkDetailsDismiss: () -> Unit,
+    onOpenDeveloperOptionsClick: () -> Unit,
+    onScanThrottlingDialogDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    state.selectedNetwork?.let { network ->
+        ModalBottomSheet(onDismissRequest = onNetworkDetailsDismiss) {
+            WifiNetworkDetailsSheet(network = network)
+        }
+    }
+
+    if (state.isScanThrottlingDialogVisible) {
+        WifiScanThrottlingDialog(
+            onOpenDeveloperOptionsClick = onOpenDeveloperOptionsClick,
+            onDismiss = onScanThrottlingDialogDismiss
+        )
+    }
+
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text(text = "Wi-Fi", style = MaterialTheme.typography.headlineMedium)
+        }
+        item {
+            StatusCard(title = "Status", value = state.status.toText { reason -> reason.toDisplayText() })
+        }
+        item {
+            StatusCard(title = "Found networks", value = state.networks.size.toString())
+        }
+        item {
+            StartStopButtons(
+                isRunning = state.isScanning,
+                onStartClick = onStartClick,
+                onStopClick = onStopClick
+            )
+        }
+        if (state.networks.isEmpty()) {
+            item {
+                StatusCard(title = "Networks", value = "No networks found")
+            }
+        } else {
+            items(
+                items = state.networks,
+                key = { network -> network.bssid }
+            ) { network ->
+                WifiNetworkCard(
+                    network = network,
+                    onClick = { onNetworkClick(network) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun WifiScanThrottlingDialog(
+    onOpenDeveloperOptionsClick: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = "Wi-Fi scan throttling is enabled") },
+        text = {
+            Text(
+                text = "Android limits Wi-Fi scan frequency. Scans are requested every 30 seconds by default. " +
+                    "For local testing you can disable Wi-Fi scan throttling in Developer options."
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onOpenDeveloperOptionsClick) {
+                Text(text = "Open Developer options")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "OK")
+            }
+        }
+    )
+}
+
+private fun WifiUnavailableReason.toDisplayText(): String {
+    return when (this) {
+        WifiUnavailableReason.WIFI_DISABLED -> "Wi-Fi is disabled"
+        WifiUnavailableReason.LOCATION_DISABLED -> "Location Services are disabled"
+        WifiUnavailableReason.SCAN_REJECTED ->
+            "Wi-Fi scan was not started by Android. Check Wi-Fi, Location Services and scan throttling."
+    }
+}

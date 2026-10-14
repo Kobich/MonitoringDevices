@@ -15,5 +15,5 @@
 local.properties
 
 # Project exclude paths
-/monitoring/build/
-/monitoring-ui/build/
+/scanner/build/
+/scanner-ui/build/
