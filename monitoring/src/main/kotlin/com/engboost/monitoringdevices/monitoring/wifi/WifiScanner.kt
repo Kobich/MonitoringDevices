@@ -30,6 +30,8 @@ internal class WifiScanner(context: Context) {
     val requiredPermissions: Set<String>
         get() = availability.requiredPermissions
 
+    fun missingPermissions(): Set<String> = availability.missingPermissions()
+
     val isScanThrottlingEnabled: Boolean
         get() = availability.isScanThrottlingEnabled
 

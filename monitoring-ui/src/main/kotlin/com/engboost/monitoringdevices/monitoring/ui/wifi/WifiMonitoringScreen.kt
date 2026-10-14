@@ -12,12 +12,13 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
 import com.engboost.monitoringdevices.monitoring.ui.common.PermissionRequestEffect
+import com.engboost.monitoringdevices.monitoring.ui.common.ScanWhileVisibleEffect
 
 /**
  * Test screen of Wi-Fi monitoring.
  *
- * Starts and stops monitoring through [monitoring], requests missing permissions, warns about
- * scan throttling and shows found networks with a details sheet.
+ * Scans through [monitoring] after Start while the screen is visible, requests missing permissions,
+ * warns about scan throttling and shows found networks with a details sheet.
  */
 @Composable
 fun WifiMonitoringScreen(
@@ -41,6 +42,7 @@ fun WifiMonitoringScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    ScanWhileVisibleEffect(scan = viewModel::scanWhileRequested)
     PermissionRequestEffect(
         request = state.permissionRequest,
         onResult = viewModel::onPermissionResult

@@ -1,6 +1,6 @@
 package com.engboost.monitoringdevices.monitoring.bluetooth
 
-/** Event of a Bluetooth monitoring session. */
+/** Event of a Bluetooth scan. */
 sealed interface BluetoothScanEvent {
     /** The scanner has started; results follow as [Devices]. */
     data object Scanning : BluetoothScanEvent
@@ -29,6 +29,8 @@ sealed interface BluetoothScanEvent {
 
 /** Reason why Bluetooth scanning is unavailable. */
 enum class BluetoothUnavailableReason {
+    /** Bluetooth is not listed in [com.engboost.monitoringdevices.monitoring.DeviceMonitoringConfig.enabledSources]. */
+    SOURCE_DISABLED,
     ADAPTER_UNAVAILABLE,
     BLUETOOTH_DISABLED,
     LE_SCANNER_UNAVAILABLE

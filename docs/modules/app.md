@@ -2,5 +2,5 @@
 
 Хост-приложение для проверки библиотеки на устройстве.
 
-- `MonitoringDevicesApplication` вызывает `DeviceMonitoring.initialize(...)`. Здесь в одном месте переключаются источники через `enabledSources`.
+- `MonitoringDevicesApplication` создаёт `DeviceMonitoring` и хранит его. Здесь в одном месте переключаются источники через `enabledSources`.
 - `MainActivity` показывает вкладку для каждого включённого источника. Если источник один, нижняя навигация скрыта.

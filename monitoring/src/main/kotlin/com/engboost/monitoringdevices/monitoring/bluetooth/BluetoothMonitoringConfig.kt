@@ -1,7 +1,7 @@
 package com.engboost.monitoringdevices.monitoring.bluetooth
 
 /**
- * Parameters of Bluetooth monitoring.
+ * Parameters of Bluetooth scanning.
  *
  * Advertisements arrive many times per second, so they are accumulated and published as
  * snapshots with smoothed RSSI.

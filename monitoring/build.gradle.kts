@@ -12,7 +12,6 @@ android {
 
     defaultConfig {
         minSdk = 24
-        consumerProguardFiles("consumer-rules.pro")
     }
 
     compileOptions {
@@ -22,9 +21,7 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.core.ktx)
     api(libs.kotlinx.coroutines.core)
-    implementation(libs.kotlinx.coroutines.android)
 
     testImplementation(libs.junit)
 }

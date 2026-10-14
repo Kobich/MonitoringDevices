@@ -4,50 +4,50 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
 import com.engboost.monitoringdevices.monitoring.MonitoringSource
-import com.engboost.monitoringdevices.monitoring.StartResult
 import com.engboost.monitoringdevices.monitoring.ui.common.isAllGranted
 import com.engboost.monitoringdevices.monitoring.ui.common.toDisplayMessage
-import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collectLatest
 
 internal class BluetoothViewModel(
     private val monitoring: DeviceMonitoring
 ) : ViewModel() {
-    private var eventsJob: Job? = null
+    /** Whether the user pressed Start; the scan itself runs only while the screen is visible. */
+    private val isScanRequested = MutableStateFlow(false)
 
     var uiState by mutableStateOf(BluetoothUiState())
         private set
 
-    init {
-        // Monitoring keeps running in the service while the screen is closed.
-        if (MonitoringSource.BLUETOOTH in monitoring.state.value.activeSources) {
-            observeEvents()
-        }
-    }
-
     fun onStartClick() {
-        if (eventsJob?.isActive == true) return
-
-        when (val result = monitoring.start(MonitoringSource.BLUETOOTH)) {
-            StartResult.Started -> observeEvents()
-            is StartResult.PermissionsRequired -> uiState = uiState.withPermissionRequest(result.permissions)
-            StartResult.SourceDisabled -> uiState = uiState.stopped("Bluetooth monitoring is disabled")
-            is StartResult.Failed -> uiState = uiState.stopped(
-                "Failed to start Bluetooth monitoring: ${result.cause.toDisplayMessage()}"
-            )
+        val missingPermissions = monitoring.missingPermissions(MonitoringSource.BLUETOOTH)
+        if (missingPermissions.isNotEmpty()) {
+            uiState = uiState.withPermissionRequest(missingPermissions)
+            return
         }
+
+        uiState = uiState.copy(statusText = "Starting Bluetooth scan", isScanning = true, permissionRequest = null)
+        isScanRequested.value = true
     }
 
     fun onStopClick() {
-        monitoring.stop(MonitoringSource.BLUETOOTH)
-        eventsJob?.cancel()
-        eventsJob = null
+        isScanRequested.value = false
         uiState = uiState.stopped("Stopped").copy(selectedDevice = null)
+    }
+
+    /** Scans while the user wants it; the caller cancels it when the screen is not visible. */
+    suspend fun scanWhileRequested() {
+        isScanRequested.collectLatest { isRequested ->
+            if (!isRequested) return@collectLatest
+
+            monitoring.scanBluetooth()
+                .catch { error -> uiState = uiState.stopped("Bluetooth scan error: ${error.toDisplayMessage()}") }
+                .collect { event -> uiState = uiState.reduce(event) }
+            // The flow completes only after a terminal event, which has already updated the state.
+            isScanRequested.value = false
+        }
     }
 
     fun onPermissionResult(result: Map<String, Boolean>) {
@@ -69,25 +69,5 @@ internal class BluetoothViewModel(
 
     fun onSortModeChange(sortMode: BluetoothSortMode) {
         uiState = uiState.withSortMode(sortMode)
-    }
-
-    private fun observeEvents() {
-        uiState = uiState.copy(statusText = "Starting Bluetooth scan", isScanning = true, permissionRequest = null)
-
-        // Started lazily: the flow may complete immediately, and the handler must see eventsJob set.
-        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
-            monitoring.bluetoothEvents()
-                .catch { error -> uiState = uiState.stopped("Bluetooth scan error: ${error.toDisplayMessage()}") }
-                .collect { event -> uiState = uiState.reduce(event) }
-        }
-        eventsJob = job
-        job.invokeOnCompletion {
-            // The session ended without a terminal event, e.g. stopped from the notification.
-            if (eventsJob === job) {
-                eventsJob = null
-                if (uiState.isScanning) uiState = uiState.stopped("Stopped")
-            }
-        }
-        job.start()
     }
 }

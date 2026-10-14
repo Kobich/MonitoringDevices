@@ -60,6 +60,7 @@ internal fun WifiUiState.stopped(statusText: String): WifiUiState {
 
 private fun WifiUnavailableReason.toDisplayText(): String {
     return when (this) {
+        WifiUnavailableReason.SOURCE_DISABLED -> "Wi-Fi scanning is disabled in the config"
         WifiUnavailableReason.WIFI_DISABLED -> "Wi-Fi is disabled"
         WifiUnavailableReason.LOCATION_DISABLED -> "Location Services are disabled"
         WifiUnavailableReason.SCAN_REJECTED ->

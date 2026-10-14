@@ -1,6 +1,6 @@
 # `:monitoring`
 
-Android library с полной логикой мониторинга Wi-Fi и Bluetooth. Зависит только от `androidx.core` и `kotlinx-coroutines`; Compose и DI-фреймворк не нужны.
+Android library со всей логикой сканирования Wi-Fi и Bluetooth. Зависит только от `kotlinx-coroutines`; Compose, androidx и DI-фреймворк не нужны. Фоновой работы нет: сканирование идёт, пока собирается Flow.
 
 Раскладка пакетов описана в [архитектуре](../architecture.md#как-ориентироваться-в-monitoring).
 
@@ -8,9 +8,9 @@ Android library с полной логикой мониторинга Wi-Fi и B
 
 | Тип | Пакет | Назначение |
 |---|---|---|
-| `DeviceMonitoring` | корень | Точка входа: `initialize`/`get`, `start`/`stop`/`stopAll`, `state`, `wifiEvents()`, `bluetoothEvents()`, разрешения |
-| `DeviceMonitoringConfig`, `MonitoringNotificationConfig` | корень | `enabledSources`, конфиги источников, иконка уведомления |
-| `MonitoringSource`, `MonitoringState`, `StartResult` | корень | Источники, текущее состояние, результат запуска |
+| `DeviceMonitoring`, `DeviceMonitoring(context, config)` | корень | Точка входа: `scanWifi()`, `scanBluetooth()`, разрешения, статус Wi-Fi throttling |
+| `DeviceMonitoringConfig` | корень | `enabledSources` и конфиги источников |
+| `MonitoringSource` | корень | `WIFI`, `BLUETOOTH` |
 | `WifiNetwork`, `WifiScanEvent`, `WifiUnavailableReason`, `WifiMonitoringConfig` | `wifi` | Модели, события и параметры Wi-Fi |
 | `BluetoothDeviceInfo`, `BluetoothScanEvent`, `BluetoothUnavailableReason`, `BluetoothMonitoringConfig` | `bluetooth` | Модели, события и параметры Bluetooth |
 
@@ -19,22 +19,20 @@ Android library с полной логикой мониторинга Wi-Fi и B
 ## Использование
 
 ```kotlin
-val monitoring = DeviceMonitoring.get(context)
+val monitoring = DeviceMonitoring(applicationContext)
 
-when (val result = monitoring.start(MonitoringSource.BLUETOOTH)) {
-    StartResult.Started -> scope.launch {
-        monitoring.bluetoothEvents().collect { event -> /* Scanning, Devices, ... */ }
+val missing = monitoring.missingPermissions(MonitoringSource.BLUETOOTH)
+if (missing.isNotEmpty()) {
+    requestPermissions(missing)
+} else {
+    lifecycleScope.launch {
+        repeatOnLifecycle(Lifecycle.State.STARTED) {
+            monitoring.scanBluetooth().collect { event -> /* Scanning, Devices, ... */ }
+        }
     }
-    is StartResult.PermissionsRequired -> requestPermissions(result.permissions)
-    StartResult.SourceDisabled -> Unit
-    is StartResult.Failed -> showError(result.cause)
 }
 ```
 
 ## Манифест
 
-Модуль объявляет разрешения обоих источников, foreground service-разрешения, `POST_NOTIFICATIONS` и сам сервис (`foregroundServiceType="connectedDevice|location"`). Если хост отключил источник, его разрешения можно убрать в манифесте приложения через `tools:node="remove"`.
-
-## Ресурсы
-
-Строки уведомления лежат в `res/values/strings.xml` с префиксом `device_monitoring_` и переопределяются в приложении. Иконку уведомления можно задать через `MonitoringNotificationConfig.smallIconRes`.
+Модуль объявляет только разрешения сканирования обоих источников. Если хост отключил источник, его разрешения можно убрать в манифесте приложения через `tools:node="remove"`.

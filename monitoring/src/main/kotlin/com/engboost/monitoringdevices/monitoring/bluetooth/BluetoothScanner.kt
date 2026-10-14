@@ -33,6 +33,8 @@ internal class BluetoothScanner(
     val requiredPermissions: Set<String>
         get() = availability.requiredPermissions
 
+    fun missingPermissions(): Set<String> = availability.missingPermissions()
+
     /** Returns a cold flow that scans until it is cancelled or a terminal event is sent. */
     @SuppressLint("MissingPermission")
     fun scan(): Flow<BluetoothScanEvent> = callbackFlow {

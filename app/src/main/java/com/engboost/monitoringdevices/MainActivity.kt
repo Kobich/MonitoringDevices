@@ -24,7 +24,7 @@ import com.engboost.monitoringdevices.ui.theme.MonitoringDevicesTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val monitoring = DeviceMonitoring.get(this)
+        val monitoring = (application as MonitoringDevicesApplication).monitoring
         enableEdgeToEdge()
         setContent {
             MonitoringDevicesTheme {

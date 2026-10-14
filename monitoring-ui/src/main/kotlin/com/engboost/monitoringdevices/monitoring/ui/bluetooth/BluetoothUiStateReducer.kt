@@ -72,6 +72,7 @@ internal fun BluetoothUiState.stopped(statusText: String): BluetoothUiState {
 
 private fun BluetoothUnavailableReason.toDisplayText(): String {
     return when (this) {
+        BluetoothUnavailableReason.SOURCE_DISABLED -> "Bluetooth scanning is disabled in the config"
         BluetoothUnavailableReason.ADAPTER_UNAVAILABLE -> "Bluetooth adapter is not available"
         BluetoothUnavailableReason.BLUETOOTH_DISABLED -> "Bluetooth is disabled"
         BluetoothUnavailableReason.LE_SCANNER_UNAVAILABLE -> "Bluetooth LE scanner is not available"

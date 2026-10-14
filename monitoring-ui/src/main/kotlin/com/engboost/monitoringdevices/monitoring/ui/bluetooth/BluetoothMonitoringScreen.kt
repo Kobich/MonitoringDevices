@@ -5,12 +5,13 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
 import com.engboost.monitoringdevices.monitoring.ui.common.PermissionRequestEffect
+import com.engboost.monitoringdevices.monitoring.ui.common.ScanWhileVisibleEffect
 
 /**
  * Test screen of Bluetooth monitoring.
  *
- * Starts and stops monitoring through [monitoring], requests missing permissions and shows found
- * devices with sorting and a details sheet.
+ * Scans through [monitoring] after Start while the screen is visible, requests missing permissions
+ * and shows found devices with sorting and a details sheet.
  */
 @Composable
 fun BluetoothMonitoringScreen(
@@ -20,6 +21,7 @@ fun BluetoothMonitoringScreen(
     val viewModel = viewModel { BluetoothViewModel(monitoring) }
     val state = viewModel.uiState
 
+    ScanWhileVisibleEffect(scan = viewModel::scanWhileRequested)
     PermissionRequestEffect(
         request = state.permissionRequest,
         onResult = viewModel::onPermissionResult

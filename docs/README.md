@@ -5,19 +5,19 @@
 ## Основные страницы
 
 - [Архитектура](architecture.md) — модули, раскладка пакетов, движение данных и переключение источников.
-- [Ограничения платформы](platform-limitations.md) — фактическое поведение Wi-Fi, Bluetooth и foreground service.
+- [Ограничения платформы](platform-limitations.md) — фактическое поведение Wi-Fi и Bluetooth.
 - [Исследование Android API](android-wireless-monitoring-research.md) — расширенный технический контекст и ссылки на внешние источники.
 
 ## Модули
 
-- [`:monitoring`](modules/monitoring.md) — библиотека: API, сканеры, foreground service.
+- [`:monitoring`](modules/monitoring.md) — библиотека: API и сканеры.
 - [`:monitoring-ui`](modules/monitoring-ui.md) — тестовые Compose-экраны поверх API.
 - [`:app`](modules/app.md) — хост-приложение для ручной проверки.
 
 ## Подключение в другой проект
 
 1. Подключить модуль `:monitoring` (и при необходимости `:monitoring-ui`).
-2. В `Application.onCreate` вызвать `DeviceMonitoring.initialize(context, config)` и указать нужные источники в `enabledSources`.
-3. Запрашивать runtime-разрешения из `requiredPermissions(source)`, затем вызывать `start(source)` и собирать `wifiEvents()` / `bluetoothEvents()`.
+2. Создать экземпляр `DeviceMonitoring(context, config)` и указать нужные источники в `enabledSources`.
+3. Запросить разрешения из `missingPermissions(source)`, затем собирать `scanWifi()` / `scanBluetooth()`, пока экран виден.
 
 Подробности — на странице [`:monitoring`](modules/monitoring.md).

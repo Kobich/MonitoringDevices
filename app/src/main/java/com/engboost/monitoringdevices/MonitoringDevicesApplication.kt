@@ -6,11 +6,9 @@ import com.engboost.monitoringdevices.monitoring.DeviceMonitoringConfig
 import com.engboost.monitoringdevices.monitoring.MonitoringSource
 
 class MonitoringDevicesApplication : Application() {
-    override fun onCreate() {
-        super.onCreate()
-
-        // The single place to switch sources, e.g. setOf(MonitoringSource.BLUETOOTH) for Bluetooth only.
-        DeviceMonitoring.initialize(
+    /** The single place to switch sources, e.g. `setOf(MonitoringSource.BLUETOOTH)` for Bluetooth only. */
+    val monitoring: DeviceMonitoring by lazy {
+        DeviceMonitoring(
             context = this,
             config = DeviceMonitoringConfig(
                 enabledSources = setOf(MonitoringSource.WIFI, MonitoringSource.BLUETOOTH)

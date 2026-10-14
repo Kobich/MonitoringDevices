@@ -2,7 +2,9 @@
 
 ## Цель
 
-Вся логика мониторинга Wi-Fi и Bluetooth собрана в одном Android library-модуле `:monitoring`, чтобы его можно было подключить в другое приложение без остальных частей проекта. UI вынесен в отдельный модуль `:monitoring-ui` и нужен для проверки библиотеки; приложение-хост `:app` только собирает их вместе.
+Вся логика сканирования Wi-Fi и Bluetooth собрана в одном Android library-модуле `:monitoring`, чтобы его можно было подключить в другое приложение без остальных частей проекта. UI вынесен в отдельный модуль `:monitoring-ui` и нужен для проверки библиотеки; приложение-хост `:app` только собирает их вместе.
+
+Сценарий использования — открыли приложение, посмотрели окружение, закрыли. Фоновой работы нет: сканирование идёт, пока экран открыт.
 
 Radio (сотовая сеть) и Bluetooth Classic не поддерживаются. Bluetooth сканируется через Bluetooth LE: такой скан находит и LE-, и dual-mode устройства.
 
@@ -17,35 +19,32 @@ Radio (сотовая сеть) и Bluetooth Classic не поддерживаю
 
 | Модуль | Тип | Содержимое |
 |---|---|---|
-| `:monitoring` | Android library, без Compose и DI | Публичный API, сканеры Wi-Fi и Bluetooth, foreground service, разрешения в манифесте, строки уведомления |
+| `:monitoring` | Android library, зависит только от `kotlinx-coroutines` | Публичный API, сканеры Wi-Fi и Bluetooth, разрешения в манифесте |
 | `:monitoring-ui` | Android library, Compose | Экраны `WifiMonitoringScreen` и `BluetoothMonitoringScreen` с ViewModel |
 | `:app` | Android application | Инициализация библиотеки и нижняя навигация по включённым источникам |
 
 ## Как ориентироваться в `:monitoring`
 
-Код разложен по источникам. Всё про Wi-Fi лежит в `wifi/`, всё про Bluetooth — в `bluetooth/`; в корне только точка входа, а в `service/` — foreground service. Что доступно потребителю библиотеки, определяет модификатор `internal`, а не папка: публичные классы и `internal`-реализация лежат рядом.
+Код разложен по источникам. Всё про Wi-Fi лежит в `wifi/`, всё про Bluetooth — в `bluetooth/`; в корне только точка входа. Что доступно потребителю библиотеки, определяет модификатор `internal`, а не папка: публичные классы и `internal`-реализация лежат рядом.
 
 ```text
 com.engboost.monitoringdevices.monitoring
-├── DeviceMonitoring.kt            public    Точка входа: start/stop, state, события, MonitoringSource, StartResult
-├── DeviceMonitoringConfig.kt      public    Корневая конфигурация: enabledSources, wifi, bluetooth, notification
-├── DefaultDeviceMonitoring.kt     internal  Реализация DeviceMonitoring и единственный экземпляр на процесс
+├── DeviceMonitoring.kt              public    Точка входа: scanWifi/scanBluetooth, разрешения, MonitoringSource
+├── DeviceMonitoringConfig.kt        public    Корневая конфигурация: enabledSources, wifi, bluetooth
+├── DefaultDeviceMonitoring.kt       internal  Реализация DeviceMonitoring
 ├── wifi/
-│   ├── WifiNetwork.kt             public    Найденная сеть
-│   ├── WifiScanEvent.kt           public    События сессии и WifiUnavailableReason
-│   ├── WifiMonitoringConfig.kt    public    Интервалы сканирования
-│   ├── WifiScanner.kt             internal  Запрос сканов и чтение результатов
-│   └── WifiScanAvailability.kt    internal  Разрешения, Wi-Fi/Location, scan throttling
-├── bluetooth/
-│   ├── BluetoothDeviceInfo.kt     public    Найденное устройство, тип и состояние сопряжения
-│   ├── BluetoothScanEvent.kt      public    События сессии и BluetoothUnavailableReason
-│   ├── BluetoothMonitoringConfig.kt public  Сглаживание RSSI, stale, удаление устройств
-│   ├── BluetoothScanner.kt        internal  Bluetooth LE scan
-│   ├── BluetoothScanAvailability.kt internal Разрешения и состояние адаптера
-│   └── BluetoothDeviceRegistry.kt internal  Накопление пакетов между snapshot, без Android-зависимостей
-└── service/
-    ├── DeviceMonitoringService.kt internal  Foreground service, по одной scan job на источник
-    └── MonitoringNotification.kt  internal  Канал и содержимое уведомления
+│   ├── WifiNetwork.kt               public    Найденная сеть
+│   ├── WifiScanEvent.kt             public    События скана и WifiUnavailableReason
+│   ├── WifiMonitoringConfig.kt      public    Интервалы сканирования
+│   ├── WifiScanner.kt               internal  Запрос сканов и чтение результатов
+│   └── WifiScanAvailability.kt      internal  Разрешения, Wi-Fi/Location, scan throttling
+└── bluetooth/
+    ├── BluetoothDeviceInfo.kt       public    Найденное устройство, тип и состояние сопряжения
+    ├── BluetoothScanEvent.kt        public    События скана и BluetoothUnavailableReason
+    ├── BluetoothMonitoringConfig.kt public    Сглаживание RSSI, stale, удаление устройств
+    ├── BluetoothScanner.kt          internal  Bluetooth LE scan
+    ├── BluetoothScanAvailability.kt internal  Разрешения и состояние адаптера
+    └── BluetoothDeviceRegistry.kt   internal  Накопление пакетов между snapshot, без Android-зависимостей
 ```
 
 Правило именования: в каждом пакете источника одинаковый набор файлов — модель, `*ScanEvent`, `*MonitoringConfig`, `*Scanner`, `*ScanAvailability`.
@@ -53,35 +52,31 @@ com.engboost.monitoringdevices.monitoring
 ## Переключение источников
 
 ```kotlin
-DeviceMonitoring.initialize(
-    context = this,
+val monitoring = DeviceMonitoring(
+    context = applicationContext,
     config = DeviceMonitoringConfig(
         enabledSources = setOf(MonitoringSource.WIFI, MonitoringSource.BLUETOOTH)
     )
 )
 ```
 
-- `enabledSources` определяет, какие источники вообще доступны. `start()` для выключенного источника возвращает `StartResult.SourceDisabled`, тестовое приложение показывает вкладки только для включённых источников.
-- Включённые источники запускаются и останавливаются независимо: `start(MonitoringSource.WIFI)`, `stop(MonitoringSource.BLUETOOTH)`, `stopAll()`.
+- `enabledSources` определяет, какие источники доступны. Скан выключенного источника сразу отдаёт `Unavailable(SOURCE_DISABLED)`, тестовое приложение показывает вкладки только для включённых источников.
+- Источники независимы: каждый скан — отдельный Flow.
 - Параметры источников задаются в `WifiMonitoringConfig` и `BluetoothMonitoringConfig`.
 
-Библиотека не зависит от DI-фреймворка. Экземпляр создаётся через `DeviceMonitoring.initialize(context, config)` и берётся через `DeviceMonitoring.get(context)`; хост может положить его в Koin, Hilt или передать вручную. `DeviceMonitoring` — интерфейс, поэтому для UI-тестов его можно заменить фейком.
+Библиотека не зависит от DI-фреймворка и не держит singleton. Хост создаёт экземпляр через `DeviceMonitoring(context, config)` и хранит его в `Application`, Koin, Hilt или передаёт вручную. `DeviceMonitoring` — интерфейс, поэтому для UI-тестов его можно заменить фейком.
 
 ## Движение данных
 
 ```text
-UI / потребитель
-  start(source) ─────────────────► DefaultDeviceMonitoring ── startForegroundService ──► DeviceMonitoringService
-                                     │  state: StateFlow<MonitoringState>                    │
-                                     │  последнее событие каждого источника                  │ scan job на источник
-  wifiEvents() / bluetoothEvents() ◄─┘◄───────────── publish*Event ◄──── WifiScanner / BluetoothScanner
+Экран (STARTED) ── collect ──► DeviceMonitoring.scanWifi()      ──► WifiScanner      ──► WifiManager
+                ── collect ──► DeviceMonitoring.scanBluetooth() ──► BluetoothScanner ──► BluetoothLeScanner
 ```
 
-1. `start(source)` проверяет `enabledSources` и разрешения, добавляет источник в активные и запускает foreground service.
-2. Сервис следит за `state.activeSources`, держит по одной scan job на источник и обновляет тип foreground service (`location` для Wi-Fi, `connectedDevice` для Bluetooth).
-3. Сканеры отдают события в `DefaultDeviceMonitoring`. Последнее событие каждого источника хранится и повторяется новым подписчикам.
-4. `wifiEvents()` / `bluetoothEvents()` завершаются, когда источник остановлен или пришло терминальное событие (`PermissionRequired`, `Unavailable`, `Error`).
-5. Активные источники сохраняются в `SharedPreferences`; если Android пересоздаёт процесс и сервис (`START_STICKY`), мониторинг продолжается.
+1. Перед сканом UI проверяет `missingPermissions(source)` и запрашивает недостающие разрешения.
+2. `scanWifi()` / `scanBluetooth()` возвращают холодный Flow: Android-скан запускается при начале сбора и останавливается при отмене.
+3. Flow завершается сам только после терминального события (`PermissionRequired`, `Unavailable`, `Error`).
+4. В тестовом UI ViewModel хранит, нажал ли пользователь Start, а экран собирает Flow через `repeatOnLifecycle(STARTED)`. При сворачивании приложения скан останавливается, при возврате — продолжается.
 
 ## Bluetooth: обработка результатов
 
@@ -95,7 +90,7 @@ UI / потребитель
 
 ## Wi-Fi: интервал сканирования
 
-Сервис передаёт сканеру интервал как функцию, которая вызывается перед каждым ожиданием: при включённом throttling используется `throttledRefreshIntervalMillis`, иначе `unthrottledRefreshIntervalMillis`. Если пользователь выключит throttling в Developer options во время работы, новый интервал применится со следующего цикла без перезапуска.
+`DefaultDeviceMonitoring` передаёт сканеру интервал как функцию, которая вызывается перед каждым ожиданием: при включённом throttling используется `throttledRefreshIntervalMillis`, иначе `unthrottledRefreshIntervalMillis`. Если пользователь выключит throttling в Developer options во время работы, новый интервал применится со следующего цикла без перезапуска.
 
 ## `:monitoring-ui`
 
@@ -103,13 +98,13 @@ UI / потребитель
 
 ```text
 com.engboost.monitoringdevices.monitoring.ui
-├── common/      PermissionRequestUi, PermissionRequestEffect, StatusCard, DetailRow, StartStopButtons, тексты ошибок
+├── common/      PermissionRequestUi, PermissionRequestEffect, ScanWhileVisibleEffect, StatusCard, DetailRow, StartStopButtons, тексты ошибок
 ├── wifi/        WifiMonitoringScreen (public) → WifiViewModel → WifiUiState + WifiUiStateReducer → WifiScreen
 └── bluetooth/   BluetoothMonitoringScreen (public) → BluetoothViewModel → BluetoothUiState + BluetoothUiStateReducer → BluetoothScreen
 ```
 
-- `*MonitoringScreen` — публичная точка входа: создаёт ViewModel и запрашивает разрешения.
-- `*ViewModel` — вызывает `DeviceMonitoring` и собирает события.
+- `*MonitoringScreen` — публичная точка входа: создаёт ViewModel, запрашивает разрешения и запускает скан, пока экран виден.
+- `*ViewModel` — хранит, запущен ли скан пользователем, и собирает события `DeviceMonitoring`.
 - `*UiStateReducer` — чистые функции «состояние + событие → состояние».
 - `*Screen`, `*Card`, `*DetailsSheet` — только отрисовка.
 

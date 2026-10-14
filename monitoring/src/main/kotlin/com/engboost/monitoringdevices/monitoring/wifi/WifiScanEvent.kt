@@ -1,6 +1,6 @@
 package com.engboost.monitoringdevices.monitoring.wifi
 
-/** Event of a Wi-Fi monitoring session. */
+/** Event of a Wi-Fi scan. */
 sealed interface WifiScanEvent {
     /** The scanner has started; results follow as [Networks]. */
     data object Scanning : WifiScanEvent
@@ -29,6 +29,8 @@ sealed interface WifiScanEvent {
 
 /** Reason why Wi-Fi scanning is unavailable. */
 enum class WifiUnavailableReason {
+    /** Wi-Fi is not listed in [com.engboost.monitoringdevices.monitoring.DeviceMonitoringConfig.enabledSources]. */
+    SOURCE_DISABLED,
     WIFI_DISABLED,
     LOCATION_DISABLED,
 

@@ -1,7 +1,7 @@
 package com.engboost.monitoringdevices.monitoring.wifi
 
 /**
- * Parameters of Wi-Fi monitoring.
+ * Parameters of Wi-Fi scanning.
  *
  * Android limits apps to four scans in two minutes while scan throttling is enabled,
  * so the interval depends on the throttling status. The status is re-read before every wait.
