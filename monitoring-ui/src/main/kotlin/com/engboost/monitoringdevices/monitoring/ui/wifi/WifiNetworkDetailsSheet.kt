@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.engboost.monitoringdevices.monitoring.ui.common.DetailRow
 
 @Composable
 internal fun WifiNetworkDetailsSheet(
@@ -27,20 +28,5 @@ internal fun WifiNetworkDetailsSheet(
         DetailRow(title = "RSSI", value = "${network.rssiDbm} dBm")
         DetailRow(title = "Frequency", value = "${network.frequencyMhz} MHz")
         DetailRow(title = "Capabilities", value = network.capabilities)
-    }
-}
-
-@Composable
-private fun DetailRow(
-    title: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(4.dp)
-    ) {
-        Text(text = title, style = MaterialTheme.typography.labelLarge)
-        Text(text = value, style = MaterialTheme.typography.bodyLarge)
     }
 }

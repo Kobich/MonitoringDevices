@@ -8,10 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
 import com.engboost.monitoringdevices.monitoring.MonitoringSource
 import com.engboost.monitoringdevices.monitoring.StartResult
+import com.engboost.monitoringdevices.monitoring.ui.common.isAllGranted
+import com.engboost.monitoringdevices.monitoring.ui.common.toDisplayMessage
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.launch
 
 internal class WifiViewModel(
@@ -19,21 +20,13 @@ internal class WifiViewModel(
 ) : ViewModel() {
     private var eventsJob: Job? = null
 
-    var uiState by mutableStateOf(
-        WifiUiState(
-            statusText = "Stopped",
-            networks = emptyList(),
-            selectedNetwork = null,
-            isScanThrottlingDialogVisible = false,
-            isScanning = false,
-            permissionRequest = null
-        )
-    )
+    var uiState by mutableStateOf(WifiUiState())
         private set
 
     init {
+        // Monitoring keeps running in the service while the screen is closed.
         if (MonitoringSource.WIFI in monitoring.state.value.activeSources) {
-            observeEvents("Wi-Fi scan running")
+            observeEvents()
         }
     }
 
@@ -42,85 +35,28 @@ internal class WifiViewModel(
 
         refreshThrottlingStatus(showDialog = true)
         when (val result = monitoring.start(MonitoringSource.WIFI)) {
-            StartResult.Started -> observeEvents("Starting Wi-Fi scan")
-            is StartResult.PermissionsRequired -> {
-                uiState = uiState.withPermissionRequest(result.permissions)
-            }
-            StartResult.SourceDisabled -> {
-                uiState = uiState.copy(statusText = "Wi-Fi monitoring is disabled", isScanning = false)
-            }
-            is StartResult.Failed -> {
-                uiState = uiState.copy(
-                    statusText = "Failed to start Wi-Fi monitoring: ${result.cause.toDisplayMessage()}",
-                    isScanning = false
-                )
-            }
+            StartResult.Started -> observeEvents()
+            is StartResult.PermissionsRequired -> uiState = uiState.withPermissionRequest(result.permissions)
+            StartResult.SourceDisabled -> uiState = uiState.stopped("Wi-Fi monitoring is disabled")
+            is StartResult.Failed -> uiState = uiState.stopped(
+                "Failed to start Wi-Fi monitoring: ${result.cause.toDisplayMessage()}"
+            )
         }
-    }
-
-    private fun observeEvents(statusText: String) {
-        uiState = uiState.copy(
-            statusText = statusText,
-            isScanning = true,
-            permissionRequest = null
-        )
-
-        lateinit var job: Job
-        job = viewModelScope.launch(start = CoroutineStart.LAZY) {
-            monitoring.wifiEvents()
-                .catch { error ->
-                    uiState = uiState.copy(
-                        statusText = "Wi-Fi scan error: ${error.toDisplayMessage()}",
-                        isScanning = false,
-                        permissionRequest = null
-                    )
-                }
-                .onCompletion {
-                    if (eventsJob === job) {
-                        eventsJob = null
-                        if (uiState.isScanning) {
-                            uiState = uiState.copy(
-                                statusText = "Stopped",
-                                isScanning = false,
-                                permissionRequest = null
-                            )
-                        }
-                    }
-                }
-                .collect { event ->
-                    uiState = uiState.reduce(event)
-                }
-        }
-        eventsJob = job
-        job.start()
     }
 
     fun onStopClick() {
         monitoring.stop(MonitoringSource.WIFI)
         eventsJob?.cancel()
         eventsJob = null
-        uiState = uiState.copy(
-            statusText = "Stopped",
-            selectedNetwork = null,
-            isScanning = false,
-            permissionRequest = null
-        )
+        uiState = uiState.stopped("Stopped").copy(selectedNetwork = null)
     }
 
     fun onPermissionResult(result: Map<String, Boolean>) {
-        val deniedPermissions = result
-            .filterValues { isGranted -> !isGranted }
-            .keys
-
-        if (result.isNotEmpty() && deniedPermissions.isEmpty()) {
+        if (isAllGranted(result)) {
             uiState = uiState.copy(permissionRequest = null)
             onStartClick()
         } else {
-            uiState = uiState.copy(
-                statusText = "Permissions denied",
-                isScanning = false,
-                permissionRequest = null
-            )
+            uiState = uiState.stopped("Permissions denied")
         }
     }
 
@@ -136,11 +72,35 @@ internal class WifiViewModel(
         uiState = uiState.copy(isScanThrottlingDialogVisible = false)
     }
 
-    /** The service re-reads throttling on every scan cycle, so only the dialog needs an update. */
+    /**
+     * Shows the throttling dialog if throttling is enabled and the dialog is requested or already visible.
+     *
+     * The scan interval itself is updated by the library on the next scan cycle.
+     */
     fun refreshThrottlingStatus(showDialog: Boolean = false) {
         uiState = uiState.copy(
             isScanThrottlingDialogVisible = monitoring.isWifiScanThrottlingEnabled &&
                 (showDialog || uiState.isScanThrottlingDialogVisible)
         )
+    }
+
+    private fun observeEvents() {
+        uiState = uiState.copy(statusText = "Starting Wi-Fi scan", isScanning = true, permissionRequest = null)
+
+        // Started lazily: the flow may complete immediately, and the handler must see eventsJob set.
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
+            monitoring.wifiEvents()
+                .catch { error -> uiState = uiState.stopped("Wi-Fi scan error: ${error.toDisplayMessage()}") }
+                .collect { event -> uiState = uiState.reduce(event) }
+        }
+        eventsJob = job
+        job.invokeOnCompletion {
+            // The session ended without a terminal event, e.g. stopped from the notification.
+            if (eventsJob === job) {
+                eventsJob = null
+                if (uiState.isScanning) uiState = uiState.stopped("Stopped")
+            }
+        }
+        job.start()
     }
 }

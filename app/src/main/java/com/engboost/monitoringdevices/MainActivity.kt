@@ -17,7 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
 import com.engboost.monitoringdevices.monitoring.MonitoringSource
-import com.engboost.monitoringdevices.monitoring.ui.ble.BleMonitoringScreen
+import com.engboost.monitoringdevices.monitoring.ui.bluetooth.BluetoothMonitoringScreen
 import com.engboost.monitoringdevices.monitoring.ui.wifi.WifiMonitoringScreen
 import com.engboost.monitoringdevices.ui.theme.MonitoringDevicesTheme
 
@@ -59,7 +59,7 @@ private fun AppNavigation(monitoring: DeviceMonitoring) {
 
         when (selectedTab) {
             AppTab.WIFI -> WifiMonitoringScreen(monitoring = monitoring, modifier = modifier)
-            AppTab.BLE -> BleMonitoringScreen(monitoring = monitoring, modifier = modifier)
+            AppTab.BLUETOOTH -> BluetoothMonitoringScreen(monitoring = monitoring, modifier = modifier)
             null -> Text(text = "No monitoring sources enabled", modifier = modifier)
         }
     }
@@ -71,5 +71,5 @@ private enum class AppTab(
     val shortTitle: String
 ) {
     WIFI(MonitoringSource.WIFI, "Wi-Fi", "Wi"),
-    BLE(MonitoringSource.BLE, "Bluetooth LE", "BLE")
+    BLUETOOTH(MonitoringSource.BLUETOOTH, "Bluetooth", "Bt")
 }

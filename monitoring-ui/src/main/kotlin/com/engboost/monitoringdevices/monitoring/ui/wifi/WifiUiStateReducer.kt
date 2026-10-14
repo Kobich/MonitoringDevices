@@ -1,9 +1,12 @@
 package com.engboost.monitoringdevices.monitoring.ui.wifi
 
+import com.engboost.monitoringdevices.monitoring.ui.common.errorText
+import com.engboost.monitoringdevices.monitoring.ui.common.nextPermissionRequest
 import com.engboost.monitoringdevices.monitoring.wifi.WifiNetwork
 import com.engboost.monitoringdevices.monitoring.wifi.WifiScanEvent
 import com.engboost.monitoringdevices.monitoring.wifi.WifiUnavailableReason
 
+/** Applies a scanner [event] to the screen state. */
 internal fun WifiUiState.reduce(event: WifiScanEvent): WifiUiState {
     return when (event) {
         WifiScanEvent.Scanning -> copy(
@@ -35,13 +38,7 @@ internal fun WifiUiState.reduce(event: WifiScanEvent): WifiUiState {
             permissionRequest = null
         )
 
-        is WifiScanEvent.Error -> copy(
-            statusText = event.cause
-                ?.let { cause -> "${event.message}: ${cause.toDisplayMessage()}" }
-                ?: event.message,
-            isScanning = false,
-            permissionRequest = null
-        )
+        is WifiScanEvent.Error -> stopped(errorText(event.message, event.cause))
     }
 }
 
@@ -49,10 +46,15 @@ internal fun WifiUiState.withPermissionRequest(permissions: Set<String>): WifiUi
     return copy(
         statusText = "Permissions required",
         isScanning = false,
-        permissionRequest = PermissionRequestUi(
-            id = (permissionRequest?.id ?: 0) + 1,
-            permissions = permissions.toList()
-        )
+        permissionRequest = nextPermissionRequest(permissionRequest, permissions)
+    )
+}
+
+internal fun WifiUiState.stopped(statusText: String): WifiUiState {
+    return copy(
+        statusText = statusText,
+        isScanning = false,
+        permissionRequest = null
     )
 }
 
@@ -69,15 +71,11 @@ private fun List<WifiNetwork>.toUiModels(): List<WifiNetworkUi> {
     return sortedByDescending { network -> network.rssiDbm }
         .map { network ->
             WifiNetworkUi(
-                ssid = network.ssid?.takeIf { ssid -> ssid.isNotBlank() } ?: "Hidden network",
+                ssid = network.ssid ?: "Hidden network",
                 bssid = network.bssid,
                 rssiDbm = network.rssiDbm,
                 frequencyMhz = network.frequencyMhz,
                 capabilities = network.capabilities
             )
         }
-}
-
-internal fun Throwable.toDisplayMessage(): String {
-    return message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
 }

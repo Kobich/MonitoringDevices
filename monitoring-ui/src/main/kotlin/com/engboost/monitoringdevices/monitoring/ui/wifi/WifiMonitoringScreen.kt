@@ -2,11 +2,8 @@ package com.engboost.monitoringdevices.monitoring.ui.wifi
 
 import android.content.Intent
 import android.provider.Settings
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
@@ -14,8 +11,14 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
+import com.engboost.monitoringdevices.monitoring.ui.common.PermissionRequestEffect
 
-/** Test screen for Wi-Fi monitoring: start/stop, permission requests and the network list. */
+/**
+ * Test screen of Wi-Fi monitoring.
+ *
+ * Starts and stops monitoring through [monitoring], requests missing permissions, warns about
+ * scan throttling and shows found networks with a details sheet.
+ */
 @Composable
 fun WifiMonitoringScreen(
     monitoring: DeviceMonitoring,
@@ -25,11 +28,8 @@ fun WifiMonitoringScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val state = viewModel.uiState
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions(),
-        onResult = viewModel::onPermissionResult
-    )
 
+    // Throttling can be toggled in Developer options while the app is in the background.
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
@@ -41,13 +41,10 @@ fun WifiMonitoringScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(state.permissionRequest?.id) {
-        val request = state.permissionRequest ?: return@LaunchedEffect
-        val permissions = request.asArray()
-        if (permissions.isNotEmpty()) {
-            permissionLauncher.launch(permissions)
-        }
-    }
+    PermissionRequestEffect(
+        request = state.permissionRequest,
+        onResult = viewModel::onPermissionResult
+    )
 
     WifiScreen(
         state = state,

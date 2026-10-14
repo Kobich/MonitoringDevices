@@ -9,11 +9,11 @@ class MonitoringDevicesApplication : Application() {
     override fun onCreate() {
         super.onCreate()
 
-        // Single place to switch sources: e.g. setOf(MonitoringSource.BLE) for BLE only.
+        // The single place to switch sources, e.g. setOf(MonitoringSource.BLUETOOTH) for Bluetooth only.
         DeviceMonitoring.initialize(
             context = this,
             config = DeviceMonitoringConfig(
-                enabledSources = setOf(MonitoringSource.WIFI, MonitoringSource.BLE)
+                enabledSources = setOf(MonitoringSource.WIFI, MonitoringSource.BLUETOOTH)
             )
         )
     }

@@ -10,7 +10,7 @@ Foreground service сохраняет процесс и зарегистриро
 
 Продолжить BLE-сканирование с выключенным экраном можно только с настоящими непустыми фильтрами по адресу, имени, service UUID или manufacturer data. Пустой `ScanFilter` не считается фильтром. Для универсального scanner, который должен видеть все устройства, подходящего широкого фильтра нет.
 
-## Нагрузка BLE scanner
+## Нагрузка Bluetooth scanner
 
 Каждый BLE advertising result немедленно обновляет внутреннюю map, но полный snapshot отправляется не чаще одного раза в `snapshotIntervalMillis` (750 мс). RSSI сглаживается, а изменения меньше `minRssiChangeDbm` (3 dBm) не обновляют отображаемое значение. Это ограничивает частоту Flow/UI-обновлений, но стоимость одного snapshot всё равно растёт вместе с числом найденных устройств.
 
@@ -39,8 +39,8 @@ Foreground service повышает вероятность сохранения 
 ## Разрешения
 
 - Wi-Fi требует Wi-Fi state permissions, location permissions и на Android 13+ `NEARBY_WIFI_DEVICES`.
-- BLE на Android 12+ требует `BLUETOOTH_SCAN` и `BLUETOOTH_CONNECT`; на старых версиях используются Bluetooth и location permissions.
-- Wi-Fi/BLE monitoring на Android 13+ дополнительно требует `POST_NOTIFICATIONS` для foreground service.
+- Bluetooth на Android 12+ требует `BLUETOOTH_SCAN` и `BLUETOOTH_CONNECT`; на старых версиях используются Bluetooth и location permissions.
+- Wi-Fi/Bluetooth monitoring на Android 13+ дополнительно требует `POST_NOTIFICATIONS` для foreground service.
 
 Наличие runtime permission не гарантирует доступность данных: системный Location toggle, состояние адаптера, AppOps и политика OEM проверяются отдельно.
 
