@@ -82,7 +82,9 @@ scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 - snapshot отправляется не чаще `snapshotIntervalMillis` и только если что-то изменилось;
 - раз в `ageRefreshIntervalMillis` обновляется возраст записей; устройство помечается `isStale` после `staleAfterMillis` и удаляется после `retentionMillis`.
 
-Имя устройства берётся из `BluetoothDevice.name`, а если оно недоступно — из advertising-пакета (`ScanRecord.deviceName`). Устройство, которое не удалось прочитать, пропускается; скан завершается только при `SecurityException`.
+Имя устройства берётся из `BluetoothDevice.name`, а если оно недоступно — из advertising-пакета (`ScanRecord.deviceName`). Устройства без имени, например датчики, которые транслируют только MAC-адрес, остаются в списке с `name = null`.
+
+Из пакета также передаются сырые данные: `manufacturerData` (идентификатор компании от Bluetooth SIG → payload в hex) и `serviceUuids`. Формат payload у каждого производителя свой, поэтому он не расшифровывается.
 
 ## Wi-Fi: интервал сканирования
 

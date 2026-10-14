@@ -1,5 +1,6 @@
 package com.engboost.monitoringdevices.scanner.bluetooth
 
+import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -9,7 +10,9 @@ internal data class BluetoothAdvertisement(
     val address: String,
     val rssiDbm: Int,
     val type: BluetoothDeviceType,
-    val bondState: BluetoothBondState
+    val bondState: BluetoothBondState,
+    val manufacturerData: Map<Int, String> = emptyMap(),
+    val serviceUuids: List<UUID> = emptyList()
 )
 
 /**
@@ -83,7 +86,9 @@ internal class BluetoothDeviceRegistry(
                 type = entry.advertisement.type,
                 bondState = entry.advertisement.bondState,
                 lastSeenAgoMillis = ageMillis,
-                isStale = ageMillis >= config.staleAfterMillis
+                isStale = ageMillis >= config.staleAfterMillis,
+                manufacturerData = entry.advertisement.manufacturerData,
+                serviceUuids = entry.advertisement.serviceUuids
             )
         }
     }

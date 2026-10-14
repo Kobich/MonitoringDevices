@@ -28,5 +28,8 @@ internal data class BluetoothDeviceUi(
     val rssiDbm: Int,
     val type: String,
     val bondState: String,
-    val isStale: Boolean
+    val isStale: Boolean,
+    /** Lines like `0x004C: 0215...`: company identifier and raw payload. */
+    val manufacturerData: List<String> = emptyList(),
+    val serviceUuids: List<String> = emptyList()
 )

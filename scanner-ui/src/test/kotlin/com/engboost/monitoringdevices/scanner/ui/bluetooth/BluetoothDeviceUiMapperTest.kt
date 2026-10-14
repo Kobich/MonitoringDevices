@@ -66,6 +66,15 @@ class BluetoothDeviceUiMapperTest {
     }
 
     @Test
+    fun `manufacturer data is formatted with the company identifier`() {
+        val device = device("A").copy(manufacturerData = mapOf(0x004C to "0215", 0x0006 to ""))
+
+        val mapped = mapper.map(listOf(device), BluetoothSortMode.STABLE, emptyList()).single()
+
+        assertEquals(listOf("0x004C: 0215", "0x0006: (empty)"), mapped.manufacturerData)
+    }
+
+    @Test
     fun `unchanged device keeps the same instance`() {
         val current = mapper.map(listOf(device("A")), BluetoothSortMode.STABLE, emptyList())
 

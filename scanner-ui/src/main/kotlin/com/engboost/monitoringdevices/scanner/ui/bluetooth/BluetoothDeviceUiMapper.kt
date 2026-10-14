@@ -26,7 +26,11 @@ internal class BluetoothDeviceUiMapper {
                 rssiDbm = device.rssiDbm,
                 type = device.type.toDisplayName(),
                 bondState = device.bondState.toDisplayName(),
-                isStale = device.isStale
+                isStale = device.isStale,
+                manufacturerData = device.manufacturerData.map { (companyId, payload) ->
+                    "0x%04X: %s".format(companyId, payload.ifEmpty { "(empty)" })
+                },
+                serviceUuids = device.serviceUuids.map { uuid -> uuid.toString() }
             )
             currentDevicesByAddress[device.address]
                 ?.takeIf { currentDevice -> currentDevice == mappedDevice }

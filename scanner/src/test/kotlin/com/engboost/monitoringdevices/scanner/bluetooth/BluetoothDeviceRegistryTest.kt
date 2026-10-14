@@ -86,6 +86,16 @@ class BluetoothDeviceRegistryTest {
     }
 
     @Test
+    fun `advertisement data is reported and its changes are published`() {
+        registry.onAdvertisement(advertisement(manufacturerData = mapOf(0x004C to "0215")), nowMillis = 0L)
+        assertEquals(mapOf(0x004C to "0215"), registry.snapshot(nowMillis = 0L)!!.single().manufacturerData)
+
+        registry.onAdvertisement(advertisement(manufacturerData = mapOf(0x004C to "0216")), nowMillis = 10L)
+
+        assertEquals(mapOf(0x004C to "0216"), registry.snapshot(nowMillis = 10L)!!.single().manufacturerData)
+    }
+
+    @Test
     fun `empty registry does not request age refresh`() {
         assertFalse(registry.removeExpired(nowMillis = 0L))
     }
@@ -93,12 +103,14 @@ class BluetoothDeviceRegistryTest {
     private fun advertisement(
         address: String = "00:11:22:33:44:55",
         name: String? = "Device",
-        rssi: Int = -60
+        rssi: Int = -60,
+        manufacturerData: Map<Int, String> = emptyMap()
     ) = BluetoothAdvertisement(
         name = name,
         address = address,
         rssiDbm = rssi,
         type = BluetoothDeviceType.LE,
-        bondState = BluetoothBondState.NONE
+        bondState = BluetoothBondState.NONE,
+        manufacturerData = manufacturerData
     )
 }

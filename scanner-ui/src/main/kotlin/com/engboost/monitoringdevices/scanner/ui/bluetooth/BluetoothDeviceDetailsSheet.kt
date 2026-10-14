@@ -28,5 +28,11 @@ internal fun BluetoothDeviceDetailsSheet(
         DetailRow(title = "RSSI", value = "${device.rssiDbm} dBm")
         DetailRow(title = "Type", value = device.type)
         DetailRow(title = "Bond state", value = device.bondState)
+        if (device.manufacturerData.isNotEmpty()) {
+            DetailRow(title = "Manufacturer data", value = device.manufacturerData.joinToString(separator = "\n"))
+        }
+        if (device.serviceUuids.isNotEmpty()) {
+            DetailRow(title = "Service UUIDs", value = device.serviceUuids.joinToString(separator = "\n"))
+        }
     }
 }

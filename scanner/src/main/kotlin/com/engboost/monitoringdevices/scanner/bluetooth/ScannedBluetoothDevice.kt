@@ -1,5 +1,7 @@
 package com.engboost.monitoringdevices.scanner.bluetooth
 
+import java.util.UUID
+
 /**
  * Bluetooth device found by a Bluetooth LE scan.
  *
@@ -10,6 +12,10 @@ package com.engboost.monitoringdevices.scanner.bluetooth
  * @property bondState pairing state with this phone.
  * @property lastSeenAgoMillis time since the last advertisement from the device.
  * @property isStale whether the device has not been seen for [BluetoothScanConfig.staleAfterMillis].
+ * @property manufacturerData manufacturer-specific data from the last advertisement: a company identifier
+ * assigned by the Bluetooth SIG mapped to the payload as an uppercase hex string. The payload format is
+ * defined by each manufacturer, so it is not decoded.
+ * @property serviceUuids service UUIDs listed in the last advertisement.
  */
 data class ScannedBluetoothDevice(
     val name: String?,
@@ -18,7 +24,9 @@ data class ScannedBluetoothDevice(
     val type: BluetoothDeviceType,
     val bondState: BluetoothBondState,
     val lastSeenAgoMillis: Long,
-    val isStale: Boolean
+    val isStale: Boolean,
+    val manufacturerData: Map<Int, String> = emptyMap(),
+    val serviceUuids: List<UUID> = emptyList()
 )
 
 /** Device type reported by the Bluetooth stack. Dual-mode devices are found by an LE scan too. */

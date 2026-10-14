@@ -7,7 +7,7 @@ import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
 import android.content.Context
 import android.os.SystemClock
-import kotlinx.coroutines.channels.ProducerScope
+import android.util.SparseArray
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -63,14 +63,11 @@ internal class AndroidBluetoothScanner(
 
         val callback = object : ScanCallback() {
             override fun onScanResult(callbackType: Int, result: ScanResult) {
-                val advertisement = readAdvertisement(result) ?: return
-                registry.onAdvertisement(advertisement, SystemClock.elapsedRealtime())
-            }
-
-            override fun onBatchScanResults(results: MutableList<ScanResult>) {
-                for (result in results) {
-                    val advertisement = readAdvertisement(result) ?: continue
-                    registry.onAdvertisement(advertisement, SystemClock.elapsedRealtime())
+                try {
+                    registry.onAdvertisement(result.toAdvertisement(), SystemClock.elapsedRealtime())
+                } catch (error: SecurityException) {
+                    trySend(error.toScanFailureEvent("Failed to read Bluetooth device"))
+                    close()
                 }
             }
 
@@ -108,26 +105,6 @@ internal class AndroidBluetoothScanner(
         }
     }
 
-    /**
-     * Reads [result], or returns `null` if it cannot be read.
-     *
-     * A [SecurityException] means permissions were revoked, so the scan ends with a terminal event;
-     * any other failure skips only this device.
-     */
-    private fun ProducerScope<BluetoothScanEvent>.readAdvertisement(
-        result: ScanResult
-    ): BluetoothAdvertisement? {
-        return try {
-            result.toAdvertisement()
-        } catch (error: SecurityException) {
-            trySend(error.toScanFailureEvent("Failed to read Bluetooth device"))
-            close()
-            null
-        } catch (_: Exception) {
-            null
-        }
-    }
-
     private fun Throwable.toScanFailureEvent(action: String): BluetoothScanEvent {
         val missingPermissions = availability.missingPermissions()
         if (this is SecurityException && missingPermissions.isNotEmpty()) {
@@ -145,8 +122,16 @@ internal class AndroidBluetoothScanner(
             address = device.address,
             rssiDbm = rssi,
             type = device.type.toBluetoothDeviceType(),
-            bondState = device.bondState.toBluetoothBondState()
+            bondState = device.bondState.toBluetoothBondState(),
+            manufacturerData = scanRecord?.manufacturerSpecificData?.toHexMap().orEmpty(),
+            serviceUuids = scanRecord?.serviceUuids.orEmpty().map { parcelUuid -> parcelUuid.uuid }
         )
+    }
+
+    private fun SparseArray<ByteArray>.toHexMap(): Map<Int, String> {
+        return (0 until size()).associate { index ->
+            keyAt(index) to valueAt(index).joinToString(separator = "") { byte -> "%02X".format(byte) }
+        }
     }
 
     private fun Int.toBluetoothDeviceType(): BluetoothDeviceType {
