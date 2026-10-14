@@ -10,30 +10,8 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
-            <option value="$PROJECT_DIR$/feature" />
-            <option value="$PROJECT_DIR$/feature/bluetooth" />
-            <option value="$PROJECT_DIR$/feature/bluetooth/api" />
-            <option value="$PROJECT_DIR$/feature/bluetooth/impl" />
-            <option value="$PROJECT_DIR$/feature/radio" />
-            <option value="$PROJECT_DIR$/feature/radio/api" />
-            <option value="$PROJECT_DIR$/feature/radio/impl" />
-            <option value="$PROJECT_DIR$/feature/wifi" />
-            <option value="$PROJECT_DIR$/feature/wifi/api" />
-            <option value="$PROJECT_DIR$/feature/wifi/impl" />
-            <option value="$PROJECT_DIR$/scanner" />
-            <option value="$PROJECT_DIR$/scanner/bluetooth" />
-            <option value="$PROJECT_DIR$/scanner/bluetooth/api" />
-            <option value="$PROJECT_DIR$/scanner/bluetooth/impl" />
-            <option value="$PROJECT_DIR$/scanner/radio" />
-            <option value="$PROJECT_DIR$/scanner/radio/api" />
-            <option value="$PROJECT_DIR$/scanner/radio/impl" />
-            <option value="$PROJECT_DIR$/scanner/wifi" />
-            <option value="$PROJECT_DIR$/scanner/wifi/api" />
-            <option value="$PROJECT_DIR$/scanner/wifi/impl" />
-            <option value="$PROJECT_DIR$/service" />
-            <option value="$PROJECT_DIR$/service/monitoring" />
-            <option value="$PROJECT_DIR$/service/monitoring/api" />
-            <option value="$PROJECT_DIR$/service/monitoring/impl" />
+            <option value="$PROJECT_DIR$/monitoring" />
+            <option value="$PROJECT_DIR$/monitoring-ui" />
           </set>
         </option>
       </GradleProjectSettings>

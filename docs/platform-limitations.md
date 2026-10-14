@@ -6,19 +6,13 @@
 
 Текущая реализация вызывает `BluetoothLeScanner.startScan(callback)` без `ScanFilter`. Android считает такой scan нефильтрованным, при выключении экрана переводит его в suspended и возобновляет после включения экрана. Разблокировка телефона не требуется: достаточно состояния Display On.
 
-Foreground service сохраняет процесс и зарегистрированный callback, но не отменяет это ограничение Bluetooth stack. Пока экран выключен, новые BLE-пакеты не поступают, aging продолжает увеличивать возраст записей, после 30 секунд UI считает их устаревшими, после 120 секунд scanner удаляет их.
+Foreground service сохраняет процесс и зарегистрированный callback, но не отменяет это ограничение Bluetooth stack. Пока экран выключен, новые BLE-пакеты не поступают, aging продолжает увеличивать возраст записей: после `staleAfterMillis` (по умолчанию 30 секунд) устройство помечается `isStale`, после `retentionMillis` (120 секунд) удаляется.
 
 Продолжить BLE-сканирование с выключенным экраном можно только с настоящими непустыми фильтрами по адресу, имени, service UUID или manufacturer data. Пустой `ScanFilter` не считается фильтром. Для универсального scanner, который должен видеть все устройства, подходящего широкого фильтра нет.
 
-## Bluetooth Classic и режим `ALL`
+## Нагрузка BLE scanner
 
-Режим по умолчанию `ALL` запускает Classic discovery и BLE scan в одной сессии. Android официально не гарантирует одновременное сканирование Classic и BLE. На разных устройствах это может приводить к пропущенным результатам, отказу запуска или нестабильности Bluetooth stack.
-
-Classic discovery запускается один раз. После системного завершения discovery новый цикл автоматически не начинается. Classic-записи не имеют `lastSeenAgoMillis`, поэтому aging применяется только к BLE-устройствам.
-
-## Нагрузка Bluetooth scanner
-
-Каждый BLE advertising result немедленно обновляет внутреннюю map, но полный snapshot отправляется не чаще одного раза в 750 мс. RSSI сглаживается, а изменения меньше 3 dBm не обновляют отображаемое значение. Это ограничивает частоту Flow/UI-обновлений, но стоимость одного snapshot всё равно растёт вместе с числом найденных устройств.
+Каждый BLE advertising result немедленно обновляет внутреннюю map, но полный snapshot отправляется не чаще одного раза в `snapshotIntervalMillis` (750 мс). RSSI сглаживается, а изменения меньше `minRssiChangeDbm` (3 dBm) не обновляют отображаемое значение. Это ограничивает частоту Flow/UI-обновлений, но стоимость одного snapshot всё равно растёт вместе с числом найденных устройств.
 
 Непрерывный нефильтрованный scan также расходует радио и батарею. Android может понижать режим долгого scan, применять квоты к частым повторным запускам и ограничивать приложение по политике энергопотребления. Foreground service делает работу видимой пользователю, но не даёт исключения из Bluetooth-квот.
 
@@ -34,13 +28,7 @@ Classic discovery запускается один раз. После систе�
 
 Активный Wi-Fi scan зависит от включённых Wi-Fi и Location Services, runtime permissions и scan throttling. `WifiManager.startScan()` может вернуть `false`, а broadcast может содержать старый cache. Приложение в таком случае читает доступные cached results и не должно считать каждый event новым физическим сканированием.
 
-При включённом throttling сервис запрашивает scan раз в 30 секунд, при выключенном — раз в 5 секунд. Эти интервалы являются политикой приложения, но Android всё равно может отклонить запрос. Фоновое поведение и частота обновления отличаются между версиями Android и прошивками производителей.
-
-## Radio
-
-Radio scanner не ведёт непрерывный мониторинг. Один вызов читает `TelephonyManager.allCellInfo`, фильтрует результат и завершает Flow. Данные могут быть cached, пустыми или неполными в зависимости от модема, SIM, оператора, версии Android и разрешений. RSSI соседних cells и 5G NR доступны не на каждом устройстве.
-
-Radio не обслуживается `DeviceMonitoringService` и прекращает работу вместе с job ViewModel.
+При включённом throttling сервис запрашивает scan раз в `throttledRefreshIntervalMillis` (30 секунд), при выключенном — раз в `unthrottledRefreshIntervalMillis` (5 секунд). Статус throttling перечитывается перед каждым ожиданием. Эти интервалы являются политикой приложения, но Android всё равно может отклонить запрос. Фоновое поведение и частота обновления отличаются между версиями Android и прошивками производителей.
 
 ## Foreground service и процесс
 
@@ -51,9 +39,8 @@ Foreground service повышает вероятность сохранения 
 ## Разрешения
 
 - Wi-Fi требует Wi-Fi state permissions, location permissions и на Android 13+ `NEARBY_WIFI_DEVICES`.
-- Bluetooth на Android 12+ требует `BLUETOOTH_SCAN` и `BLUETOOTH_CONNECT`; на старых версиях используются Bluetooth и location permissions.
-- Radio требует location permissions и `READ_PHONE_STATE`.
-- Wi-Fi/Bluetooth monitoring на Android 13+ дополнительно требует `POST_NOTIFICATIONS` для foreground service.
+- BLE на Android 12+ требует `BLUETOOTH_SCAN` и `BLUETOOTH_CONNECT`; на старых версиях используются Bluetooth и location permissions.
+- Wi-Fi/BLE monitoring на Android 13+ дополнительно требует `POST_NOTIFICATIONS` для foreground service.
 
 Наличие runtime permission не гарантирует доступность данных: системный Location toggle, состояние адаптера, AppOps и политика OEM проверяются отдельно.
 

@@ -15,51 +15,42 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import com.engboost.monitoringdevices.feature.bluetooth.api.BluetoothFeatureApi
-import com.engboost.monitoringdevices.feature.radio.api.RadioFeatureApi
-import com.engboost.monitoringdevices.feature.wifi.api.WifiFeatureApi
+import com.engboost.monitoringdevices.monitoring.DeviceMonitoring
+import com.engboost.monitoringdevices.monitoring.MonitoringSource
+import com.engboost.monitoringdevices.monitoring.ui.ble.BleMonitoringScreen
+import com.engboost.monitoringdevices.monitoring.ui.wifi.WifiMonitoringScreen
 import com.engboost.monitoringdevices.ui.theme.MonitoringDevicesTheme
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-class MainActivity : ComponentActivity(), KoinComponent {
-    private val wifiFeature: WifiFeatureApi by inject()
-    private val bluetoothFeature: BluetoothFeatureApi by inject()
-    private val radioFeature: RadioFeatureApi by inject()
-
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val monitoring = DeviceMonitoring.get(this)
         enableEdgeToEdge()
         setContent {
             MonitoringDevicesTheme {
-                AppNavigation(
-                    wifiFeature = wifiFeature,
-                    bluetoothFeature = bluetoothFeature,
-                    radioFeature = radioFeature
-                )
+                AppNavigation(monitoring = monitoring)
             }
         }
     }
 }
 
 @Composable
-private fun AppNavigation(
-    wifiFeature: WifiFeatureApi,
-    bluetoothFeature: BluetoothFeatureApi,
-    radioFeature: RadioFeatureApi
-) {
-    var selectedTab by rememberSaveable { mutableStateOf(AppTab.WIFI) }
+private fun AppNavigation(monitoring: DeviceMonitoring) {
+    val tabs = AppTab.entries.filter { tab -> tab.source in monitoring.config.enabledSources }
+    var selectedTab by rememberSaveable { mutableStateOf(tabs.firstOrNull()) }
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
-                AppTab.entries.forEach { tab ->
-                    NavigationBarItem(
-                        selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
-                        label = { Text(text = tab.title) },
-                        icon = { Text(text = tab.shortTitle) }
-                    )
+            if (tabs.size > 1) {
+                NavigationBar {
+                    tabs.forEach { tab ->
+                        NavigationBarItem(
+                            selected = selectedTab == tab,
+                            onClick = { selectedTab = tab },
+                            label = { Text(text = tab.title) },
+                            icon = { Text(text = tab.shortTitle) }
+                        )
+                    }
                 }
             }
         }
@@ -67,18 +58,18 @@ private fun AppNavigation(
         val modifier = Modifier.padding(innerPadding)
 
         when (selectedTab) {
-            AppTab.WIFI -> wifiFeature.WifiScreen(modifier = modifier)
-            AppTab.BLUETOOTH -> bluetoothFeature.BluetoothScreen(modifier = modifier)
-            AppTab.RADIO -> radioFeature.RadioScreen(modifier = modifier)
+            AppTab.WIFI -> WifiMonitoringScreen(monitoring = monitoring, modifier = modifier)
+            AppTab.BLE -> BleMonitoringScreen(monitoring = monitoring, modifier = modifier)
+            null -> Text(text = "No monitoring sources enabled", modifier = modifier)
         }
     }
 }
 
 private enum class AppTab(
+    val source: MonitoringSource,
     val title: String,
     val shortTitle: String
 ) {
-    WIFI("Wi-Fi", "Wi"),
-    BLUETOOTH("Bluetooth", "Bt"),
-    RADIO("Radio", "Ra")
+    WIFI(MonitoringSource.WIFI, "Wi-Fi", "Wi"),
+    BLE(MonitoringSource.BLE, "Bluetooth LE", "BLE")
 }

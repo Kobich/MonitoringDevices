@@ -24,18 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "MonitoringDevices"
 include(":app")
-include(":feature:wifi:api")
-include(":feature:wifi:impl")
-include(":feature:bluetooth:api")
-include(":feature:bluetooth:impl")
-include(":feature:radio:api")
-include(":feature:radio:impl")
-include(":service:monitoring:api")
-include(":service:monitoring:impl")
-include(":scanner:wifi:api")
-include(":scanner:wifi:impl")
-include(":scanner:bluetooth:api")
-include(":scanner:bluetooth:impl")
-include(":scanner:radio:api")
-include(":scanner:radio:impl")
- 
+include(":monitoring")
+include(":monitoring-ui")

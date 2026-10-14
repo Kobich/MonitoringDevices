@@ -1,0 +1,9 @@
+<resources>
+    <string name="device_monitoring_notification_channel_name">Device monitoring</string>
+    <string name="device_monitoring_notification_title_wifi">Wi-Fi monitoring active</string>
+    <string name="device_monitoring_notification_title_ble">Bluetooth LE monitoring active</string>
+    <string name="device_monitoring_notification_title_all">Device monitoring active</string>
+    <string name="device_monitoring_notification_text_wifi">Wi-Fi: %1$d networks</string>
+    <string name="device_monitoring_notification_text_ble">BLE: %1$d devices</string>
+    <string name="device_monitoring_notification_action_stop_all">Stop all</string>
+</resources>
