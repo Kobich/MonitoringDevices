@@ -5,7 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScanner
+import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScannerApi
 import com.engboost.monitoringdevices.scanner.ui.common.PermissionRequestEffect
 import com.engboost.monitoringdevices.scanner.ui.common.ScanWhileVisibleEffect
 
@@ -17,7 +17,7 @@ import com.engboost.monitoringdevices.scanner.ui.common.ScanWhileVisibleEffect
  */
 @Composable
 fun BluetoothScanScreen(
-    scanner: BluetoothScanner,
+    scanner: BluetoothScannerApi,
     modifier: Modifier = Modifier
 ) {
     val viewModel = viewModel { BluetoothViewModel(scanner) }

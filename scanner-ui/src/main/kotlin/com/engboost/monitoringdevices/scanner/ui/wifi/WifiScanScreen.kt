@@ -12,7 +12,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.engboost.monitoringdevices.scanner.ui.common.PermissionRequestEffect
 import com.engboost.monitoringdevices.scanner.ui.common.ScanWhileVisibleEffect
-import com.engboost.monitoringdevices.scanner.wifi.WifiScanner
+import com.engboost.monitoringdevices.scanner.wifi.WifiScannerApi
 
 /**
  * Test screen of the Wi-Fi scanner.
@@ -22,7 +22,7 @@ import com.engboost.monitoringdevices.scanner.wifi.WifiScanner
  */
 @Composable
 fun WifiScanScreen(
-    scanner: WifiScanner,
+    scanner: WifiScannerApi,
     modifier: Modifier = Modifier
 ) {
     val viewModel = viewModel { WifiViewModel(scanner) }

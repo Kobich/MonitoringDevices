@@ -4,7 +4,7 @@ import android.content.Context
 import kotlinx.coroutines.flow.Flow
 
 /** Scanner of nearby Wi-Fi networks. */
-interface WifiScanner {
+interface WifiScannerApi {
     /** Runtime permissions required to scan. */
     val requiredPermissions: Set<String>
 
@@ -28,8 +28,8 @@ interface WifiScanner {
     fun scan(): Flow<WifiScanEvent>
 }
 
-/** Creates a [WifiScanner] backed by `WifiManager`. */
-fun WifiScanner(
+/** Creates a [WifiScannerApi] backed by `WifiManager`. */
+fun WifiScannerApi(
     context: Context,
     config: WifiScanConfig = WifiScanConfig()
-): WifiScanner = AndroidWifiScanner(context, config)
+): WifiScannerApi = WifiScannerImpl(context, config)

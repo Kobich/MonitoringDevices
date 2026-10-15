@@ -1,8 +1,8 @@
 package com.engboost.monitoringdevices.scanner
 
 import android.content.Context
-import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScanner
-import com.engboost.monitoringdevices.scanner.wifi.WifiScanner
+import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScannerApi
+import com.engboost.monitoringdevices.scanner.wifi.WifiScannerApi
 
 /**
  * Entry point of the feature: scanners of nearby Wi-Fi networks and Bluetooth devices.
@@ -13,15 +13,15 @@ import com.engboost.monitoringdevices.scanner.wifi.WifiScanner
  * Pass fake scanners to the primary constructor in tests.
  */
 class NearbyScanner(
-    val wifi: WifiScanner,
-    val bluetooth: BluetoothScanner
+    val wifi: WifiScannerApi,
+    val bluetooth: BluetoothScannerApi
 ) {
     /** Creates scanners backed by Android APIs with parameters from [config]. */
     constructor(
         context: Context,
         config: NearbyScannerConfig = NearbyScannerConfig()
     ) : this(
-        wifi = WifiScanner(context, config.wifi),
-        bluetooth = BluetoothScanner(context, config.bluetooth)
+        wifi = WifiScannerApi(context, config.wifi),
+        bluetooth = BluetoothScannerApi(context, config.bluetooth)
     )
 }

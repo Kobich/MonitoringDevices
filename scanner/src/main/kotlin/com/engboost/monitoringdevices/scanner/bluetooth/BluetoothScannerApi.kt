@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.Flow
  *
  * Uses a Bluetooth LE scan, which finds both LE and dual-mode devices.
  */
-interface BluetoothScanner {
+interface BluetoothScannerApi {
     /** Runtime permissions required to scan. */
     val requiredPermissions: Set<String>
 
@@ -24,8 +24,8 @@ interface BluetoothScanner {
     fun scan(): Flow<BluetoothScanEvent>
 }
 
-/** Creates a [BluetoothScanner] backed by `BluetoothLeScanner`. */
-fun BluetoothScanner(
+/** Creates a [BluetoothScannerApi] backed by `BluetoothLeScanner`. */
+fun BluetoothScannerApi(
     context: Context,
     config: BluetoothScanConfig = BluetoothScanConfig()
-): BluetoothScanner = AndroidBluetoothScanner(context, config)
+): BluetoothScannerApi = BluetoothScannerImpl(context, config)

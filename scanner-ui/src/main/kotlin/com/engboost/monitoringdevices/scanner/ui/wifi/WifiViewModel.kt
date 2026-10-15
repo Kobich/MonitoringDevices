@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import com.engboost.monitoringdevices.scanner.ui.common.ScanStatus
 import com.engboost.monitoringdevices.scanner.ui.common.isAllGranted
 import com.engboost.monitoringdevices.scanner.ui.common.toDisplayMessage
-import com.engboost.monitoringdevices.scanner.wifi.WifiScanner
+import com.engboost.monitoringdevices.scanner.wifi.WifiScannerApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 internal class WifiViewModel(
-    private val scanner: WifiScanner
+    private val scanner: WifiScannerApi
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(WifiUiState())
     val uiState: StateFlow<WifiUiState> = mutableUiState.asStateFlow()

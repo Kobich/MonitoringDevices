@@ -9,8 +9,8 @@ Android library со всей логикой сканирования Wi-Fi и B
 | Тип | Пакет | Назначение |
 |---|---|---|
 | `NearbyScanner`, `NearbyScannerConfig` | корень | API фичи: объединяет оба сканера и их конфигурацию |
-| `WifiScanner`, `ScannedWifiNetwork`, `WifiScanEvent`, `WifiUnavailableReason`, `WifiScanConfig` | `wifi` | Сканер Wi-Fi, его модели, события и параметры |
-| `BluetoothScanner`, `ScannedBluetoothDevice`, `BluetoothScanEvent`, `BluetoothUnavailableReason`, `BluetoothScanConfig` | `bluetooth` | Сканер Bluetooth, его модели, события и параметры |
+| `WifiScannerApi`, `ScannedWifiNetwork`, `WifiScanEvent`, `WifiUnavailableReason`, `WifiScanConfig` | `wifi` | Сканер Wi-Fi, его модели, события и параметры |
+| `BluetoothScannerApi`, `ScannedBluetoothDevice`, `BluetoothScanEvent`, `BluetoothUnavailableReason`, `BluetoothScanConfig` | `bluetooth` | Сканер Bluetooth, его модели, события и параметры |
 
 Причины недоступности — enum, тексты для пользователя формирует UI.
 

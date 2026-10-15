@@ -5,8 +5,8 @@ Compose-экраны для ручной проверки библиотеки. 
 ## Публичный API
 
 ```kotlin
-@Composable fun WifiScanScreen(scanner: WifiScanner, modifier: Modifier = Modifier)
-@Composable fun BluetoothScanScreen(scanner: BluetoothScanner, modifier: Modifier = Modifier)
+@Composable fun WifiScanScreen(scanner: WifiScannerApi, modifier: Modifier = Modifier)
+@Composable fun BluetoothScanScreen(scanner: BluetoothScannerApi, modifier: Modifier = Modifier)
 ```
 
 Экран сам создаёт ViewModel через `viewModel { ... }`, запрашивает runtime-разрешения и сканирует после нажатия Start, пока экран виден. Всё остальное в модуле — `internal`.

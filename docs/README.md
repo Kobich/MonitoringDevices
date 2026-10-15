@@ -17,7 +17,7 @@
 ## Подключение в другой проект
 
 1. Подключить модуль `:scanner` (и при необходимости `:scanner-ui`).
-2. Создать `NearbyScanner(context)` или только нужный сканер: `WifiScanner(context)`, `BluetoothScanner(context)`.
+2. Создать `NearbyScanner(context)` или только нужный сканер: `WifiScannerApi(context)`, `BluetoothScannerApi(context)`.
 3. Запросить разрешения из `missingPermissions()`, затем собирать `scan()`, пока экран виден.
 
 Подробности — на странице [`:scanner`](modules/scanner.md).

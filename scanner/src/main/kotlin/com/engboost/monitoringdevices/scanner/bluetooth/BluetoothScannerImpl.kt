@@ -16,15 +16,15 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * [BluetoothScanner] backed by an unfiltered Bluetooth LE scan.
+ * [BluetoothScannerApi] backed by an unfiltered Bluetooth LE scan.
  *
  * Bluetooth Classic discovery is not used: an LE scan also finds dual-mode devices.
  * Android suspends unfiltered scans while the screen is off.
  */
-internal class AndroidBluetoothScanner(
+internal class BluetoothScannerImpl(
     context: Context,
     private val config: BluetoothScanConfig
-) : BluetoothScanner {
+) : BluetoothScannerApi {
     private val adapter = context.applicationContext
         .getSystemService(BluetoothManager::class.java)
         ?.adapter

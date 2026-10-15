@@ -25,30 +25,30 @@ Radio (сотовая сеть) и Bluetooth Classic не поддерживаю
 
 ## Как ориентироваться в `:scanner`
 
-Каждый сканер — самостоятельный пакет: публичный интерфейс, его модели, события и конфигурация лежат рядом, а Android-реализация — `internal`-класс с префиксом `Android`. В корне только `NearbyScanner`, который объединяет оба сканера.
+Каждый сканер — самостоятельный пакет: публичный интерфейс `*ScannerApi`, его модели, события и конфигурация лежат рядом, а реализация — `internal`-класс `*ScannerImpl`. В корне только `NearbyScanner`, который объединяет оба сканера.
 
 ```text
 com.engboost.monitoringdevices.scanner
 ├── NearbyScanner.kt                 public    API фичи: wifi + bluetooth
 ├── NearbyScannerConfig.kt           public    Конфигурация обоих сканеров
 ├── wifi/
-│   ├── WifiScanner.kt               public    API сканера и фабрика WifiScanner(context, config)
+│   ├── WifiScannerApi.kt            public    API сканера и фабрика WifiScannerApi(context, config)
 │   ├── ScannedWifiNetwork.kt        public    Найденная сеть
 │   ├── WifiScanEvent.kt             public    События скана и WifiUnavailableReason
 │   ├── WifiScanConfig.kt            public    Интервалы сканирования
-│   ├── AndroidWifiScanner.kt        internal  Реализация на WifiManager
+│   ├── WifiScannerImpl.kt           internal  Реализация на WifiManager
 │   └── WifiScanAvailability.kt      internal  Разрешения, scan throttling, состояние Wi-Fi и Location
 └── bluetooth/
-    ├── BluetoothScanner.kt          public    API сканера и фабрика BluetoothScanner(context, config)
+    ├── BluetoothScannerApi.kt       public    API сканера и фабрика BluetoothScannerApi(context, config)
     ├── ScannedBluetoothDevice.kt    public    Найденное устройство, тип и состояние сопряжения
     ├── BluetoothScanEvent.kt        public    События скана и BluetoothUnavailableReason
     ├── BluetoothScanConfig.kt       public    Сглаживание RSSI, stale, удаление устройств
-    ├── AndroidBluetoothScanner.kt   internal  Реализация на BluetoothLeScanner
+    ├── BluetoothScannerImpl.kt      internal  Реализация на BluetoothLeScanner
     ├── BluetoothScanAvailability.kt internal  Разрешения и состояние адаптера
     └── BluetoothDeviceRegistry.kt   internal  Накопление пакетов между snapshot, без Android-зависимостей
 ```
 
-Правило именования: `<Source>Scanner` — API, `Scanned<Entity>` — найденная сущность, `<Source>ScanEvent`, `<Source>ScanConfig`, `Android<Source>Scanner` — реализация, `<Source>ScanAvailability` — что нужно для запуска скана.
+Правило именования: `<Source>ScannerApi` — API, `<Source>ScannerImpl` — реализация, `Scanned<Entity>` — найденная сущность, `<Source>ScanEvent`, `<Source>ScanConfig`, `<Source>ScanAvailability` — что нужно для запуска скана.
 
 ## Использование и переключение
 
@@ -59,15 +59,15 @@ scanner.wifi.scan()       // Flow<WifiScanEvent>
 scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 ```
 
-- Сканеры независимы. Если приложению нужен только один, оно использует только его: `WifiScanner(context)` или `BluetoothScanner(context)`.
+- Сканеры независимы. Если приложению нужен только один, оно использует только его: `WifiScannerApi(context)` или `BluetoothScannerApi(context)`.
 - В тестовом приложении вкладки перечислены в `enabledTabs` в `MainActivity`.
-- Библиотека не зависит от DI-фреймворка и не держит singleton. Хост создаёт экземпляры и хранит их в `Application`, Koin, Hilt или передаёт вручную. Для тестов в `NearbyScanner` передаются фейковые реализации `WifiScanner` и `BluetoothScanner`.
+- Библиотека не зависит от DI-фреймворка и не держит singleton. Хост создаёт экземпляры и хранит их в `Application`, Koin, Hilt или передаёт вручную. Для тестов в `NearbyScanner` передаются фейковые реализации `WifiScannerApi` и `BluetoothScannerApi`.
 
 ## Движение данных
 
 ```text
-Экран (STARTED) ── collect ──► WifiScanner.scan()      ──► WifiManager
-                ── collect ──► BluetoothScanner.scan() ──► BluetoothLeScanner
+Экран (STARTED) ── collect ──► WifiScannerApi.scan()      ──► WifiManager
+                ── collect ──► BluetoothScannerApi.scan() ──► BluetoothLeScanner
 ```
 
 1. Перед сканом UI проверяет `missingPermissions()` и запрашивает недостающие разрешения.
@@ -76,7 +76,7 @@ scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 
 ## Bluetooth: обработка результатов
 
-`AndroidBluetoothScanner` запускает нефильтрованный `BluetoothLeScanner.startScan`. Каждый advertising-пакет попадает в `BluetoothDeviceRegistry`:
+`BluetoothScannerImpl` запускает нефильтрованный `BluetoothLeScanner.startScan`. Каждый advertising-пакет попадает в `BluetoothDeviceRegistry`:
 
 - RSSI сглаживается экспоненциально (`rssiSmoothingFactor`), изменения меньше `minRssiChangeDbm` не публикуются;
 - snapshot отправляется не чаще `snapshotIntervalMillis` и только если что-то изменилось;
@@ -88,7 +88,7 @@ scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 
 ## Wi-Fi: интервал сканирования
 
-Перед каждым ожиданием `AndroidWifiScanner` перечитывает `isScanThrottlingEnabled`: при включённом throttling используется `throttledRefreshIntervalMillis`, иначе `unthrottledRefreshIntervalMillis`. Если пользователь выключит throttling в Developer options во время работы, новый интервал применится со следующего цикла.
+Перед каждым ожиданием `WifiScannerImpl` перечитывает `isScanThrottlingEnabled`: при включённом throttling используется `throttledRefreshIntervalMillis`, иначе `unthrottledRefreshIntervalMillis`. Если пользователь выключит throttling в Developer options во время работы, новый интервал применится со следующего цикла.
 
 ## `:scanner-ui`
 

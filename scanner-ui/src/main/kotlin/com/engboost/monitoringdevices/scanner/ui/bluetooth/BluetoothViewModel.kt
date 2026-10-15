@@ -1,7 +1,7 @@
 package com.engboost.monitoringdevices.scanner.ui.bluetooth
 
 import androidx.lifecycle.ViewModel
-import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScanner
+import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScannerApi
 import com.engboost.monitoringdevices.scanner.ui.common.ScanStatus
 import com.engboost.monitoringdevices.scanner.ui.common.isAllGranted
 import com.engboost.monitoringdevices.scanner.ui.common.toDisplayMessage
@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 
 internal class BluetoothViewModel(
-    private val scanner: BluetoothScanner
+    private val scanner: BluetoothScannerApi
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(BluetoothUiState())
     val uiState: StateFlow<BluetoothUiState> = mutableUiState.asStateFlow()

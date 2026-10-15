@@ -4,7 +4,7 @@ package com.engboost.monitoringdevices.scanner.wifi
  * Parameters of Wi-Fi scanning.
  *
  * Android limits apps to four scans in two minutes while scan throttling is enabled,
- * so the interval depends on [WifiScanner.isScanThrottlingEnabled], which is re-read before every wait.
+ * so the interval depends on [WifiScannerApi.isScanThrottlingEnabled], which is re-read before every wait.
  *
  * @property throttledRefreshIntervalMillis interval between scan requests while scan throttling is enabled.
  * @property unthrottledRefreshIntervalMillis interval between scan requests while scan throttling is disabled.
