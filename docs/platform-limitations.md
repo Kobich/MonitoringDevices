@@ -12,7 +12,7 @@
 
 ## Нагрузка Bluetooth scanner
 
-Сканирование нефильтрованное: `BluetoothLeScanner.startScan(callback)` без `ScanFilter`. Каждый advertising result немедленно обновляет внутреннюю map, но полный snapshot отправляется не чаще одного раза в `snapshotIntervalMillis` (750 мс). RSSI сглаживается, а изменения меньше `minRssiChangeDbm` (3 dBm) не обновляют отображаемое значение. Это ограничивает частоту Flow/UI-обновлений, но стоимость одного snapshot растёт вместе с числом найденных устройств.
+Сканирование нефильтрованное (без `ScanFilter`), в режиме `scanMode` из `BluetoothScanConfig` — по умолчанию `LOW_LATENCY`, радио слушает непрерывно. Каждый advertising result немедленно обновляет внутреннюю map, но полный snapshot отправляется не чаще одного раза в `snapshotIntervalMillis` (750 мс). RSSI сглаживается, а изменения меньше `minRssiChangeDbm` (3 dBm) не обновляют отображаемое значение. Это ограничивает частоту Flow/UI-обновлений, но стоимость одного snapshot растёт вместе с числом найденных устройств.
 
 Android применяет квоты к частым повторным запускам BLE scan: если много раз подряд сворачивать и разворачивать приложение, возможен `SCAN_FAILED_SCANNING_TOO_FREQUENTLY` (около 5 запусков за 30 секунд).
 
@@ -24,8 +24,10 @@ Android применяет квоты к частым повторным зап�
 
 ## Разрешения
 
-- Wi-Fi требует Wi-Fi state permissions, location permissions и на Android 13+ `NEARBY_WIFI_DEVICES`.
-- Bluetooth на Android 12+ требует `BLUETOOTH_SCAN` и `BLUETOOTH_CONNECT`; на старых версиях используются Bluetooth и location permissions.
+Поддерживается только Android 16 (API 36).
+
+- Wi-Fi: `ACCESS_WIFI_STATE`, `CHANGE_WIFI_STATE`, `NEARBY_WIFI_DEVICES` и location permissions.
+- Bluetooth: `BLUETOOTH_SCAN` и `BLUETOOTH_CONNECT`.
 
 Наличие runtime permission не гарантирует доступность данных: системный Location toggle, состояние адаптера, AppOps и политика OEM проверяются отдельно.
 

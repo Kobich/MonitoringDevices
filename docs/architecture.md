@@ -73,7 +73,7 @@ scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 
 ## Bluetooth: обработка результатов
 
-`BluetoothScannerImpl` запускает нефильтрованный `BluetoothLeScanner.startScan`. Каждый advertising-пакет попадает в `BluetoothDeviceRegistry`:
+`BluetoothScannerImpl` запускает нефильтрованный `BluetoothLeScanner.startScan` в режиме `BluetoothScanConfig.scanMode` (по умолчанию `LOW_LATENCY`). Каждый advertising-пакет попадает в `BluetoothDeviceRegistry`:
 
 - RSSI сглаживается экспоненциально (`rssiSmoothingFactor`), изменения меньше `minRssiChangeDbm` не публикуются;
 - snapshot отправляется не чаще `snapshotIntervalMillis` и только если что-то изменилось;

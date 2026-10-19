@@ -5,33 +5,21 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.net.wifi.WifiManager
-import android.os.Build
-import android.provider.Settings
 
 internal class WifiScanAvailability(
     private val context: Context,
     private val wifiManager: WifiManager
 ) {
-    val requiredPermissions: Set<String> = buildSet {
-        add(Manifest.permission.ACCESS_WIFI_STATE)
-        add(Manifest.permission.CHANGE_WIFI_STATE)
-        add(Manifest.permission.ACCESS_COARSE_LOCATION)
-        add(Manifest.permission.ACCESS_FINE_LOCATION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            add(Manifest.permission.NEARBY_WIFI_DEVICES)
-        }
-    }
+    val requiredPermissions: Set<String> = setOf(
+        Manifest.permission.ACCESS_WIFI_STATE,
+        Manifest.permission.CHANGE_WIFI_STATE,
+        Manifest.permission.NEARBY_WIFI_DEVICES,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
 
-    /** Assumes `true` when the status cannot be read. */
     val isScanThrottlingEnabled: Boolean
-        get() {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return wifiManager.isScanThrottleEnabled
-            return try {
-                Settings.Global.getInt(context.contentResolver, "wifi_scan_throttle_enabled") == 1
-            } catch (_: Exception) {
-                true
-            }
-        }
+        get() = wifiManager.isScanThrottleEnabled
 
     fun missingPermissions(): Set<String> {
         return requiredPermissions.filterTo(linkedSetOf()) { permission ->
@@ -42,18 +30,9 @@ internal class WifiScanAvailability(
     fun unavailableReason(): WifiUnavailableReason? {
         return when {
             !wifiManager.isWifiEnabled -> WifiUnavailableReason.WIFI_DISABLED
-            !isLocationEnabled() -> WifiUnavailableReason.LOCATION_DISABLED
+            context.getSystemService(LocationManager::class.java)?.isLocationEnabled != true ->
+                WifiUnavailableReason.LOCATION_DISABLED
             else -> null
-        }
-    }
-
-    private fun isLocationEnabled(): Boolean {
-        val locationManager = context.getSystemService(LocationManager::class.java)
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            locationManager?.isLocationEnabled == true
-        } else {
-            locationManager?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true ||
-                locationManager?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
         }
     }
 }

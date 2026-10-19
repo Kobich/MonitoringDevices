@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
-import android.os.Build
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
@@ -63,11 +62,7 @@ internal class WifiScannerImpl(
         }
 
         val filter = IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            appContext.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            appContext.registerReceiver(receiver, filter)
-        }
+        appContext.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
 
         val scanRequestJob = launch {
             while (isActive) {
@@ -132,15 +127,10 @@ internal class WifiScannerImpl(
         )
     }
 
-    @Suppress("DEPRECATION")
     private fun ScanResult.readSsid(): String? {
-        val ssid = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // WifiSsid.toString() wraps a UTF-8 name in quotes, unlike the deprecated SSID field.
-            wifiSsid?.toString()?.removeSurrounding("\"")
-        } else {
-            SSID
-        }
-        return ssid?.takeIf { it.isNotBlank() }
+        // The getter is called explicitly: the property syntax resolves to the deprecated field.
+        // WifiSsid.toString() wraps a UTF-8 name in quotes.
+        return getWifiSsid()?.toString()?.removeSurrounding("\"")?.takeIf { it.isNotBlank() }
     }
 
     private fun Throwable.toScanFailureEvent(action: String): WifiScanEvent {

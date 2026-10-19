@@ -3,6 +3,7 @@ package com.engboost.monitoringdevices.scanner.bluetooth
 /**
  * Advertisements arrive many times per second, so they are accumulated and published as snapshots.
  *
+ * @property scanMode the default [BluetoothScanMode.LOW_LATENCY] fits a screen that is open for a short time.
  * @property snapshotIntervalMillis a snapshot is sent at most this often and only if something changed.
  * @property ageRefreshIntervalMillis how often device ages are refreshed and expired devices are removed.
  * @property retentionMillis a device not seen for this long is removed from the list.
@@ -10,6 +11,7 @@ package com.engboost.monitoringdevices.scanner.bluetooth
  * @property minRssiChangeDbm smoothed RSSI changes smaller than this are not reported.
  */
 data class BluetoothScanConfig(
+    val scanMode: BluetoothScanMode = BluetoothScanMode.LOW_LATENCY,
     val snapshotIntervalMillis: Long = 750L,
     val ageRefreshIntervalMillis: Long = 5_000L,
     val staleAfterMillis: Long = 30_000L,
@@ -26,4 +28,14 @@ data class BluetoothScanConfig(
         }
         require(minRssiChangeDbm >= 0) { "minRssiChangeDbm must not be negative" }
     }
+}
+
+/** Radio duty cycle of the Bluetooth LE scan, see `ScanSettings.SCAN_MODE_*`. */
+enum class BluetoothScanMode {
+    /** Listens about 0.5 s every 5 s; devices that advertise rarely may be missed. */
+    LOW_POWER,
+    BALANCED,
+
+    /** Listens continuously. */
+    LOW_LATENCY
 }
