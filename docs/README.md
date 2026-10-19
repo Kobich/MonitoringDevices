@@ -1,6 +1,6 @@
 # Документация проекта MonitoringDevices
 
-Проект — переиспользуемая Android-библиотека сканирования Wi-Fi и Bluetooth и тестовое приложение к ней.
+Проект — переиспользуемая фича сканирования Wi-Fi и Bluetooth (модуль `:scanner`) и приложение-хост для её проверки.
 
 ## Основные страницы
 
@@ -10,14 +10,13 @@
 
 ## Модули
 
-- [`:scanner`](modules/scanner.md) — библиотека: API и реализация сканеров.
-- [`:scanner-ui`](modules/scanner-ui.md) — тестовые Compose-экраны поверх API.
+- [`:scanner`](modules/scanner.md) — фича: API, реализация сканеров и экраны.
 - [`:app`](modules/app.md) — хост-приложение для ручной проверки.
 
 ## Подключение в другой проект
 
-1. Подключить модуль `:scanner` (и при необходимости `:scanner-ui`).
+1. Подключить модуль `:scanner`.
 2. Создать `NearbyScanner(context)` или только нужный сканер: `WifiScannerApi(context)`, `BluetoothScannerApi(context)`.
-3. Запросить разрешения из `missingPermissions()`, затем собирать `scan()`, пока экран виден.
+3. Открыть `NearbyScanScreen(scanner)` или работать со сканерами напрямую: запросить разрешения из `missingPermissions()` и собирать `scan()`, пока экран виден.
 
 Подробности — на странице [`:scanner`](modules/scanner.md).

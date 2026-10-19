@@ -1,16 +1,11 @@
 package com.engboost.monitoringdevices.scanner.ui.common
 
-/**
- * Runtime permissions to request from the user.
- *
- * @property id increases with every new request, so equal permission sets are requested again.
- */
+/** @property id increases with every request, so the same permissions can be requested again. */
 internal data class PermissionRequestUi(
     val id: Int,
     val permissions: List<String>
 )
 
-/** Returns a request for [permissions] that follows [previous]. */
 internal fun nextPermissionRequest(
     previous: PermissionRequestUi?,
     permissions: Set<String>
@@ -21,7 +16,7 @@ internal fun nextPermissionRequest(
     )
 }
 
-/** Returns `true` if [result] is not empty and every permission in it is granted. */
+/** An empty [result] means the dialog was dismissed, so it counts as denied. */
 internal fun isAllGranted(result: Map<String, Boolean>): Boolean {
     return result.isNotEmpty() && result.values.all { isGranted -> isGranted }
 }

@@ -16,4 +16,3 @@ local.properties
 
 # Project exclude paths
 /scanner/build/
-/scanner-ui/build/

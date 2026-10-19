@@ -3,19 +3,12 @@ package com.engboost.monitoringdevices.scanner.bluetooth
 import java.util.UUID
 
 /**
- * Bluetooth device found by a Bluetooth LE scan.
- *
- * @property name device name, or `null` if it is neither cached by Android nor advertised.
- * @property address MAC address of the device.
- * @property rssiDbm smoothed signal level in dBm, see [BluetoothScanConfig.rssiSmoothingFactor].
- * @property type device type reported by the Bluetooth stack.
- * @property bondState pairing state with this phone.
- * @property lastSeenAgoMillis time since the last advertisement from the device.
- * @property isStale whether the device has not been seen for [BluetoothScanConfig.staleAfterMillis].
- * @property manufacturerData manufacturer-specific data from the last advertisement: a company identifier
- * assigned by the Bluetooth SIG mapped to the payload as an uppercase hex string. The payload format is
- * defined by each manufacturer, so it is not decoded.
- * @property serviceUuids service UUIDs listed in the last advertisement.
+ * @property name `null` for devices that neither advertise a name nor have one cached by Android,
+ * e.g. sensors that broadcast only their address.
+ * @property rssiDbm smoothed, see [BluetoothScanConfig.rssiSmoothingFactor].
+ * @property isStale the device has not been seen for [BluetoothScanConfig.staleAfterMillis].
+ * @property manufacturerData company identifier assigned by the Bluetooth SIG mapped to the raw payload
+ * as an uppercase hex string. The payload format is vendor-specific, so it is not decoded.
  */
 data class ScannedBluetoothDevice(
     val name: String?,
@@ -29,7 +22,6 @@ data class ScannedBluetoothDevice(
     val serviceUuids: List<UUID> = emptyList()
 )
 
-/** Device type reported by the Bluetooth stack. Dual-mode devices are found by an LE scan too. */
 enum class BluetoothDeviceType {
     LE,
     DUAL,
@@ -37,7 +29,6 @@ enum class BluetoothDeviceType {
     UNKNOWN
 }
 
-/** Pairing state of a device with this phone. */
 enum class BluetoothBondState {
     NONE,
     BONDING,

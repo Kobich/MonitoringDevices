@@ -9,12 +9,7 @@ import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScannerApi
 import com.engboost.monitoringdevices.scanner.ui.common.PermissionRequestEffect
 import com.engboost.monitoringdevices.scanner.ui.common.ScanWhileVisibleEffect
 
-/**
- * Test screen of the Bluetooth scanner.
- *
- * Scans with [scanner] after Start while the screen is visible, requests missing permissions
- * and shows found devices with sorting and a details sheet.
- */
+/** Scans only after Start and only while the screen is visible. */
 @Composable
 fun BluetoothScanScreen(
     scanner: BluetoothScannerApi,

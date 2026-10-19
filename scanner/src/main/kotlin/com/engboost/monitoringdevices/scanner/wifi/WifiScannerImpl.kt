@@ -17,8 +17,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * [WifiScannerApi] that periodically requests scans from `WifiManager`.
- *
  * Results come from `SCAN_RESULTS_AVAILABLE_ACTION`, which since Android 10 also fires for scans
  * requested by the system or other apps. When Android rejects a request, cached results are reported.
  */

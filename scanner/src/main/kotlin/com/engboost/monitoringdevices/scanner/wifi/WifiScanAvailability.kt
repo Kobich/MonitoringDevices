@@ -8,7 +8,6 @@ import android.net.wifi.WifiManager
 import android.os.Build
 import android.provider.Settings
 
-/** Checks permissions and device state required for Wi-Fi scanning. */
 internal class WifiScanAvailability(
     private val context: Context,
     private val wifiManager: WifiManager
@@ -23,7 +22,7 @@ internal class WifiScanAvailability(
         }
     }
 
-    /** Whether Android scan throttling is enabled; assumes `true` when the status is unknown. */
+    /** Assumes `true` when the status cannot be read. */
     val isScanThrottlingEnabled: Boolean
         get() {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return wifiManager.isScanThrottleEnabled
@@ -40,7 +39,6 @@ internal class WifiScanAvailability(
         }
     }
 
-    /** Returns why scanning is impossible right now, or `null` if it can start. */
     fun unavailableReason(): WifiUnavailableReason? {
         return when {
             !wifiManager.isWifiEnabled -> WifiUnavailableReason.WIFI_DISABLED

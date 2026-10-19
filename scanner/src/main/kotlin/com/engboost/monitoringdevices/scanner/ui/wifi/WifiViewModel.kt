@@ -84,11 +84,7 @@ internal class WifiViewModel(
         mutableUiState.update { state -> state.copy(isScanThrottlingDialogVisible = false) }
     }
 
-    /**
-     * Shows the throttling dialog if throttling is enabled and the dialog is requested or already visible.
-     *
-     * The scan interval itself is updated by the scanner on the next scan cycle.
-     */
+    /** Only updates the dialog: the scanner picks up the new interval on its next cycle. */
     fun refreshThrottlingStatus(showDialog: Boolean = false) {
         val isThrottlingEnabled = scanner.isScanThrottlingEnabled
         mutableUiState.update { state ->

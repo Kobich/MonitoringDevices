@@ -1,33 +1,30 @@
 package com.engboost.monitoringdevices.scanner.bluetooth
 
-/** Event of a Bluetooth scan. */
 sealed interface BluetoothScanEvent {
-    /** The scanner has started; results follow as [Devices]. */
     data object Scanning : BluetoothScanEvent
 
-    /** All devices seen within [BluetoothScanConfig.retentionMillis]. */
+    /** The full list of devices seen within [BluetoothScanConfig.retentionMillis], not a delta. */
     data class Devices(
         val devices: List<ScannedBluetoothDevice>
     ) : BluetoothScanEvent
 
-    /** Terminal event: [permissions] must be granted to continue. */
+    /** Terminal event. */
     data class PermissionRequired(
         val permissions: Set<String>
     ) : BluetoothScanEvent
 
-    /** Terminal event: scanning is impossible in the current device state. */
+    /** Terminal event. */
     data class Unavailable(
         val reason: BluetoothUnavailableReason
     ) : BluetoothScanEvent
 
-    /** Terminal event: scanning failed with [message] and an optional [cause]. */
+    /** Terminal event. */
     data class Error(
         val message: String,
         val cause: Throwable? = null
     ) : BluetoothScanEvent
 }
 
-/** Reason why Bluetooth scanning is unavailable. */
 enum class BluetoothUnavailableReason {
     ADAPTER_UNAVAILABLE,
     BLUETOOTH_DISABLED,

@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 
-/** Checks permissions and adapter state required for Bluetooth LE scanning. */
 internal class BluetoothScanAvailability(
     private val context: Context,
     private val adapter: BluetoothAdapter?
@@ -29,7 +28,6 @@ internal class BluetoothScanAvailability(
         }
     }
 
-    /** Returns why scanning is impossible right now, or `null` if it can start. */
     fun unavailableReason(): BluetoothUnavailableReason? {
         return when {
             adapter == null -> BluetoothUnavailableReason.ADAPTER_UNAVAILABLE

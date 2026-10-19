@@ -14,7 +14,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/** Card with a [title] and a single [value], used for status lines on scan screens. */
 @Composable
 internal fun StatusCard(
     title: String,
@@ -32,7 +31,6 @@ internal fun StatusCard(
     }
 }
 
-/** Row of a details sheet: a [title] label above its [value]. */
 @Composable
 internal fun DetailRow(
     title: String,
@@ -48,7 +46,6 @@ internal fun DetailRow(
     }
 }
 
-/** Start and Stop buttons; only the one matching [isRunning] is enabled. */
 @Composable
 internal fun StartStopButtons(
     isRunning: Boolean,

@@ -4,7 +4,6 @@ import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** Single advertisement as read from the Bluetooth stack. */
 internal data class BluetoothAdvertisement(
     val name: String?,
     val address: String,
@@ -60,11 +59,7 @@ internal class BluetoothDeviceRegistry(
         entry.lastSeenMillis = nowMillis
     }
 
-    /**
-     * Removes devices not seen for [BluetoothScanConfig.retentionMillis].
-     *
-     * Returns `true` if the registry had devices, so their ages have to be published again.
-     */
+    /** Returns `true` if the registry had devices, so their ages have to be published again. */
     @Synchronized
     fun removeExpired(nowMillis: Long): Boolean {
         val hadDevices = entries.isNotEmpty()
@@ -72,7 +67,7 @@ internal class BluetoothDeviceRegistry(
         return hadDevices
     }
 
-    /** Returns all devices if something changed since the previous snapshot or [force] is set, otherwise `null`. */
+    /** Returns `null` if nothing changed since the previous snapshot and [force] is not set. */
     @Synchronized
     fun snapshot(nowMillis: Long, force: Boolean = false): List<ScannedBluetoothDevice>? {
         if (!force && !changed) return null

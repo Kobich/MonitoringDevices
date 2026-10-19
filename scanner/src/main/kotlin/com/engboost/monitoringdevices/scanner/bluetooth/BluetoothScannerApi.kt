@@ -3,28 +3,20 @@ package com.engboost.monitoringdevices.scanner.bluetooth
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
 
-/**
- * Scanner of nearby Bluetooth devices.
- *
- * Uses a Bluetooth LE scan, which finds both LE and dual-mode devices.
- */
+/** Uses a Bluetooth LE scan, which also finds dual-mode devices; Bluetooth Classic is not used. */
 interface BluetoothScannerApi {
-    /** Runtime permissions required to scan. */
     val requiredPermissions: Set<String>
 
-    /** Returns permissions from [requiredPermissions] that are not granted yet. */
     fun missingPermissions(): Set<String>
 
     /**
-     * Returns a cold flow that scans while it is collected.
+     * Scans while the returned cold flow is collected.
      *
-     * The flow completes after a terminal event: [BluetoothScanEvent.PermissionRequired],
-     * [BluetoothScanEvent.Unavailable] or [BluetoothScanEvent.Error].
+     * The flow completes by itself only after a terminal event.
      */
     fun scan(): Flow<BluetoothScanEvent>
 }
 
-/** Creates a [BluetoothScannerApi] backed by `BluetoothLeScanner`. */
 fun BluetoothScannerApi(
     context: Context,
     config: BluetoothScanConfig = BluetoothScanConfig()

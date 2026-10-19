@@ -14,12 +14,7 @@ import com.engboost.monitoringdevices.scanner.ui.common.PermissionRequestEffect
 import com.engboost.monitoringdevices.scanner.ui.common.ScanWhileVisibleEffect
 import com.engboost.monitoringdevices.scanner.wifi.WifiScannerApi
 
-/**
- * Test screen of the Wi-Fi scanner.
- *
- * Scans with [scanner] after Start while the screen is visible, requests missing permissions,
- * warns about scan throttling and shows found networks with a details sheet.
- */
+/** Scans only after Start and only while the screen is visible. */
 @Composable
 fun WifiScanScreen(
     scanner: WifiScannerApi,

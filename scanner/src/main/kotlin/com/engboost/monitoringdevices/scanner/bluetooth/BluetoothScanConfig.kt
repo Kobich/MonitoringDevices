@@ -1,16 +1,12 @@
 package com.engboost.monitoringdevices.scanner.bluetooth
 
 /**
- * Parameters of Bluetooth scanning.
+ * Advertisements arrive many times per second, so they are accumulated and published as snapshots.
  *
- * Advertisements arrive many times per second, so they are accumulated and published as
- * snapshots with smoothed RSSI.
- *
- * @property snapshotIntervalMillis minimal interval between device list snapshots.
+ * @property snapshotIntervalMillis a snapshot is sent at most this often and only if something changed.
  * @property ageRefreshIntervalMillis how often device ages are refreshed and expired devices are removed.
- * @property staleAfterMillis a device not seen for this long is reported with [ScannedBluetoothDevice.isStale].
  * @property retentionMillis a device not seen for this long is removed from the list.
- * @property rssiSmoothingFactor exponential RSSI smoothing factor in `(0, 1]`; `1` disables smoothing.
+ * @property rssiSmoothingFactor exponential smoothing factor in `(0, 1]`; `1` disables smoothing.
  * @property minRssiChangeDbm smoothed RSSI changes smaller than this are not reported.
  */
 data class BluetoothScanConfig(

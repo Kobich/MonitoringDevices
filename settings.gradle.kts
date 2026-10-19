@@ -25,4 +25,3 @@ dependencyResolutionManagement {
 rootProject.name = "MonitoringDevices"
 include(":app")
 include(":scanner")
-include(":scanner-ui")

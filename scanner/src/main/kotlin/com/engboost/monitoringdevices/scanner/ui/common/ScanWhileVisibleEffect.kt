@@ -8,11 +8,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 
-/**
- * Runs [scan] while the screen is at least started.
- *
- * Scanning stops when the app goes to the background and resumes when it comes back.
- */
 @Composable
 internal fun ScanWhileVisibleEffect(scan: suspend () -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current

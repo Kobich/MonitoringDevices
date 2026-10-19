@@ -7,7 +7,6 @@ import com.engboost.monitoringdevices.scanner.ui.common.nextPermissionRequest
 
 private val deviceUiMapper = BluetoothDeviceUiMapper()
 
-/** Applies a scanner [event] to the screen state. */
 internal fun BluetoothUiState.reduce(event: BluetoothScanEvent): BluetoothUiState {
     return when (event) {
         BluetoothScanEvent.Scanning -> copy(status = ScanStatus.Scanning)

@@ -1,33 +1,29 @@
 package com.engboost.monitoringdevices.scanner.wifi
 
-/** Event of a Wi-Fi scan. */
 sealed interface WifiScanEvent {
-    /** The scanner has started; results follow as [Networks]. */
     data object Scanning : WifiScanEvent
 
-    /** Networks found by the last scan. */
     data class Networks(
         val networks: List<ScannedWifiNetwork>
     ) : WifiScanEvent
 
-    /** Terminal event: [permissions] must be granted to continue. */
+    /** Terminal event. */
     data class PermissionRequired(
         val permissions: Set<String>
     ) : WifiScanEvent
 
-    /** Terminal event: scanning is impossible in the current device state. */
+    /** Terminal event. */
     data class Unavailable(
         val reason: WifiUnavailableReason
     ) : WifiScanEvent
 
-    /** Terminal event: scanning failed with [message] and an optional [cause]. */
+    /** Terminal event. */
     data class Error(
         val message: String,
         val cause: Throwable? = null
     ) : WifiScanEvent
 }
 
-/** Reason why Wi-Fi scanning is unavailable. */
 enum class WifiUnavailableReason {
     WIFI_DISABLED,
     LOCATION_DISABLED,

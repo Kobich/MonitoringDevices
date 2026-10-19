@@ -6,7 +6,6 @@ import com.engboost.monitoringdevices.scanner.ui.common.nextPermissionRequest
 import com.engboost.monitoringdevices.scanner.wifi.ScannedWifiNetwork
 import com.engboost.monitoringdevices.scanner.wifi.WifiScanEvent
 
-/** Applies a scanner [event] to the screen state. */
 internal fun WifiUiState.reduce(event: WifiScanEvent): WifiUiState {
     return when (event) {
         WifiScanEvent.Scanning -> copy(status = ScanStatus.Scanning)

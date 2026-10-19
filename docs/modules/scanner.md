@@ -1,6 +1,6 @@
 # `:scanner`
 
-Android library со всей логикой сканирования Wi-Fi и Bluetooth. Зависит только от `kotlinx-coroutines`; Compose, androidx и DI-фреймворк не нужны. Фоновой работы нет: сканирование идёт, пока собирается Flow.
+Android library со всей фичей: сканеры Wi-Fi и Bluetooth и их экраны на Compose. DI-фреймворк не нужен. Фоновой работы нет: сканирование идёт, пока собирается Flow.
 
 Раскладка пакетов описана в [архитектуре](../architecture.md#как-ориентироваться-в-scanner).
 
@@ -11,10 +11,20 @@ Android library со всей логикой сканирования Wi-Fi и B
 | `NearbyScanner`, `NearbyScannerConfig` | корень | API фичи: объединяет оба сканера и их конфигурацию |
 | `WifiScannerApi`, `ScannedWifiNetwork`, `WifiScanEvent`, `WifiUnavailableReason`, `WifiScanConfig` | `wifi` | Сканер Wi-Fi, его модели, события и параметры |
 | `BluetoothScannerApi`, `ScannedBluetoothDevice`, `BluetoothScanEvent`, `BluetoothUnavailableReason`, `BluetoothScanConfig` | `bluetooth` | Сканер Bluetooth, его модели, события и параметры |
+| `NearbyScanScreen` | `ui` | Экран фичи с вкладками Wi-Fi и Bluetooth |
+| `WifiScanScreen`, `BluetoothScanScreen` | `ui.wifi`, `ui.bluetooth` | Экраны отдельных сканеров, если нужен только один |
 
 Причины недоступности — enum, тексты для пользователя формирует UI.
 
 ## Использование
+
+Открыть экран фичи:
+
+```kotlin
+NearbyScanScreen(scanner = NearbyScanner(applicationContext))
+```
+
+Использовать сканер напрямую, без UI фичи:
 
 ```kotlin
 val bluetooth = NearbyScanner(applicationContext).bluetooth

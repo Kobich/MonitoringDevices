@@ -1,10 +1,6 @@
 package com.engboost.monitoringdevices.scanner.ui.common
 
-/**
- * Status of a scan shown on a screen.
- *
- * [R] is the reason type of the scanner's `Unavailable` event, e.g. `WifiUnavailableReason`.
- */
+/** [R] is the reason type of the scanner's `Unavailable` event, e.g. `WifiUnavailableReason`. */
 internal sealed interface ScanStatus<out R> {
     data object Stopped : ScanStatus<Nothing>
 
@@ -20,7 +16,6 @@ internal sealed interface ScanStatus<out R> {
     data class Failed(val message: String) : ScanStatus<Nothing>
 }
 
-/** Returns the text of the status; [reasonText] describes the reason of [ScanStatus.Unavailable]. */
 internal fun <R> ScanStatus<R>.toText(reasonText: (R) -> String): String {
     return when (this) {
         ScanStatus.Stopped -> "Stopped"
