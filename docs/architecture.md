@@ -17,7 +17,7 @@ Radio (сотовая сеть) и Bluetooth Classic не поддерживаю
 | Модуль | Тип | Содержимое |
 |---|---|---|
 | `:scanner` | Android library, Compose | API и реализация сканеров, экраны фичи, разрешения в манифесте |
-| `:app` | Android application | Создаёт `NearbyScanner` и открывает `NearbyScanScreen` |
+| `:app` | Android application | Пример хоста: `NavHost` со стартовым экраном, откуда открывается фича |
 
 ## Как ориентироваться в `:scanner`
 
@@ -93,7 +93,8 @@ scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 
 ```text
 com.engboost.monitoringdevices.scanner.ui
-├── NearbyScanScreen.kt  public  Экран фичи с вкладками Wi-Fi и Bluetooth
+├── NearbyScanScreen.kt      public  Экран фичи с вкладками Wi-Fi и Bluetooth
+├── NearbyScanNavigation.kt  public  NEARBY_SCAN_ROUTE, nearbyScanScreen(), navigateToNearbyScan()
 ├── common/      ScanStatus, PermissionRequestUi, PermissionRequestEffect, ScanWhileVisibleEffect,
 │                StatusCard, DetailRow, StartStopButtons, тексты ошибок
 ├── wifi/        WifiScanScreen → WifiViewModel → WifiUiState + WifiUiStateReducer → WifiScanContent
@@ -101,7 +102,7 @@ com.engboost.monitoringdevices.scanner.ui
                  → BluetoothScanContent
 ```
 
-- `NearbyScanScreen` — единственная точка входа для хоста; навигация между вкладками внутри фичи.
+- `NearbyScanScreen` — единственная точка входа для хоста; навигация между вкладками внутри фичи. Хост на Compose Navigation подключает его через `nearbyScanScreen(scanner)` и открывает через `navigateToNearbyScan()`; ViewModel вкладок живут в back stack entry фичи и очищаются при выходе с экрана.
 - `*ScanScreen` — экран вкладки: создаёт ViewModel, запрашивает разрешения и сканирует, пока экран виден.
 - `*ViewModel` — держит `StateFlow` состояния. Единственный источник правды — `ScanStatus`: скан идёт, пока статус равен `Scanning`. Start и Stop меняют статус, терминальное событие заменяет его и тем самым отменяет скан.
 - `*UiStateReducer` — чистые функции «состояние + событие → состояние».

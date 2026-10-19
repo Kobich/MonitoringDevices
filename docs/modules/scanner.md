@@ -12,16 +12,20 @@ Android library со всей фичей: сканеры Wi-Fi и Bluetooth и �
 | `WifiScannerApi`, `ScannedWifiNetwork`, `WifiScanEvent`, `WifiUnavailableReason`, `WifiScanConfig` | `wifi` | Сканер Wi-Fi, его модели, события и параметры |
 | `BluetoothScannerApi`, `ScannedBluetoothDevice`, `BluetoothScanEvent`, `BluetoothUnavailableReason`, `BluetoothScanConfig` | `bluetooth` | Сканер Bluetooth, его модели, события и параметры |
 | `NearbyScanScreen` | `ui` | Экран фичи с вкладками Wi-Fi и Bluetooth |
+| `NEARBY_SCAN_ROUTE`, `nearbyScanScreen()`, `navigateToNearbyScan()` | `ui` | Подключение экрана фичи в граф Compose Navigation хоста |
 | `WifiScanScreen`, `BluetoothScanScreen` | `ui.wifi`, `ui.bluetooth` | Экраны отдельных сканеров, если нужен только один |
 
 Причины недоступности — enum, тексты для пользователя формирует UI.
 
 ## Использование
 
-Открыть экран фичи:
+Добавить экран фичи в граф навигации хоста и открыть его:
 
 ```kotlin
-NearbyScanScreen(scanner = NearbyScanner(applicationContext))
+NavHost(navController = navController, startDestination = "home") {
+    composable("home") { HomeScreen(onOpenScannerClick = { navController.navigateToNearbyScan() }) }
+    nearbyScanScreen(scanner = scanner)
+}
 ```
 
 Использовать сканер напрямую, без UI фичи:
