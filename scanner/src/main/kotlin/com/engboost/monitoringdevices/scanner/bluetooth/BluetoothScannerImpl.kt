@@ -5,7 +5,6 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanResult
-import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.SystemClock
 import android.util.SparseArray
@@ -74,10 +73,7 @@ internal class BluetoothScannerImpl(
         }
 
         trySend(BluetoothScanEvent.Scanning)
-        val settings = ScanSettings.Builder()
-            .setScanMode(config.scanMode.toScanSettingsMode())
-            .build()
-        val startError = runCatching { leScanner.startScan(null, settings, callback) }.exceptionOrNull()
+        val startError = runCatching { leScanner.startScan(callback) }.exceptionOrNull()
         if (startError != null) {
             trySend(startError.toScanFailureEvent("Failed to start Bluetooth LE scan"))
             close()
@@ -130,14 +126,6 @@ internal class BluetoothScannerImpl(
     private fun SparseArray<ByteArray>.toHexMap(): Map<Int, String> {
         return (0 until size()).associate { index ->
             keyAt(index) to valueAt(index).joinToString(separator = "") { byte -> "%02X".format(byte) }
-        }
-    }
-
-    private fun BluetoothScanMode.toScanSettingsMode(): Int {
-        return when (this) {
-            BluetoothScanMode.LOW_POWER -> ScanSettings.SCAN_MODE_LOW_POWER
-            BluetoothScanMode.BALANCED -> ScanSettings.SCAN_MODE_BALANCED
-            BluetoothScanMode.LOW_LATENCY -> ScanSettings.SCAN_MODE_LOW_LATENCY
         }
     }
 

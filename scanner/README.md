@@ -77,7 +77,6 @@ All of the following are terminal: the flow completes after them.
 |---|---|---|
 | `WifiScanConfig.throttledRefreshIntervalMillis` | 30 000 | Scan interval while Android scan throttling is enabled. |
 | `WifiScanConfig.unthrottledRefreshIntervalMillis` | 5 000 | Scan interval while throttling is disabled. |
-| `BluetoothScanConfig.scanMode` | `LOW_LATENCY` | Radio duty cycle: `LOW_POWER`, `BALANCED` or `LOW_LATENCY` (continuous). |
 | `BluetoothScanConfig.snapshotIntervalMillis` | 750 | Devices are published at most this often. |
 | `BluetoothScanConfig.ageRefreshIntervalMillis` | 5 000 | How often device ages are refreshed and expired devices removed. |
 | `BluetoothScanConfig.staleAfterMillis` | 30 000 | A device not seen for this long gets `isStale = true`. |
