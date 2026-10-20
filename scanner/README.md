@@ -8,12 +8,12 @@ Scans nearby Wi-Fi networks and Bluetooth devices and shows them on a ready-made
 
 * **Layers:** Data (`wifi/`, `bluetooth/` — scanners on top of Android APIs) and Presentation (`ui/` — Compose screens and ViewModels). There is no separate Domain layer: scanners expose events that the UI reduces into state directly.
 * **Key technologies:**
-  * Kotlin 2.0.21, Kotlin Coroutines / Flow 1.9.0
-  * Jetpack Compose (BOM 2024.09.00), Material 3
-  * Navigation Compose 2.8.4
-  * Lifecycle (ViewModel, `repeatOnLifecycle`, `collectAsStateWithLifecycle`) 2.8.7, Activity Compose 1.9.3
+  * Kotlin Coroutines / Flow 1.8.1
+  * Jetpack Compose (BOM 2026.02.01), Material 3
+  * Navigation Compose 2.6.0
+  * Lifecycle (ViewModel, `repeatOnLifecycle`, `collectAsStateWithLifecycle`) 2.6.1
+  * Activity Compose 1.9.3, Core KTX 1.17.0
   * Android APIs: `WifiManager`, `BluetoothLeScanner`
-  * Android Gradle Plugin 9.0.1, Gradle 9.2.1, Java 11
   * SDK: `minSdk` 36, `compileSdk` 36.1 (Android 16 only)
 * **Dependencies:** no `:core` or `:features` modules. External dependencies only: Kotlin Coroutines (API), Navigation Compose (API), Compose, Lifecycle and Activity Compose (implementation).
 
