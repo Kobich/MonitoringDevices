@@ -1,13 +1,13 @@
 # MonitoringDevices
 
-Android project with the nearby scanner feature and a sample host app.
+Android-проект с фичей сканирования ближайших устройств и приложением-хостом для её проверки.
 
-| Module | Description |
+| Модуль | Описание |
 |---|---|
-| [`:scanner`](scanner/README.md) | Feature: Wi-Fi and Bluetooth scanners and their Compose screens. |
-| `:app` | Sample host app: a home screen that opens the feature through Compose Navigation. |
+| [`:scanner`](scanner/README.md) | Фича: сканеры Wi-Fi и Bluetooth и их Compose-экраны. |
+| `:app` | Пример хоста: стартовый экран, из которого фича открывается через Compose Navigation. |
 
-Opening the feature from a host app:
+Подключение фичи в приложении-хосте:
 
 ```kotlin
 NavHost(navController = navController, startDestination = "home") {
@@ -16,10 +16,10 @@ NavHost(navController = navController, startDestination = "home") {
 }
 ```
 
-Build and run the tests:
+Сборка и тесты:
 
 ```bash
 ./gradlew :app:assembleDebug :scanner:testDebugUnitTest
 ```
 
-Detailed design notes (in Russian) are in [docs/](docs/README.md).
+Подробные заметки по устройству проекта — в [docs/](docs/README.md).
