@@ -15,6 +15,7 @@
   * Activity Compose 1.9.3, Core KTX 1.17.0
   * Android API: `WifiManager`, `BluetoothLeScanner`
   * SDK: `minSdk` 36, `compileSdk` 36.1 (только Android 16)
+  * Сборка (из общего проекта): Android Gradle Plugin 9.2.0, Kotlin 2.4.21
 * **Зависимости:** от модулей `:core` и `:features` не зависит. Только внешние зависимости: Kotlin Coroutines (api), Navigation Compose (api), Compose, Lifecycle и Activity Compose (implementation).
 
 Структура пакетов:
