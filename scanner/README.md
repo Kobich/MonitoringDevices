@@ -51,6 +51,7 @@ com.engboost.monitoringdevices.scanner
 | `requiredPermissions: Set<String>` | Runtime-разрешения, нужные сканеру. |
 | `missingPermissions(): Set<String>` | Разрешения, которые ещё не выданы. |
 | `scan(): Flow<…ScanEvent>` | Холодный Flow: сканирует, пока его собирают, и сам завершается только после терминального события. |
+| | Bluetooth-скан запускается не чаще раза в 8 секунд на всё приложение: Android разрешает 5 запусков BLE-скана за 30 секунд, и один запуск остаётся для скана мониторинга. Слишком ранний запуск откладывается, а не отбрасывается. |
 | `WifiScannerApi.isScanThrottlingEnabled: Boolean` | Включено ли ограничение частоты Wi-Fi-сканов (scan throttling) в настройках разработчика. |
 
 ### Выходные данные

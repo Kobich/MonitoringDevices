@@ -73,6 +73,7 @@ internal class BluetoothScannerImpl(
         }
 
         trySend(BluetoothScanEvent.Scanning)
+        startLimiter.awaitStart()
         val startError = runCatching { leScanner.startScan(callback) }.exceptionOrNull()
         if (startError != null) {
             trySend(startError.toScanFailureEvent("Failed to start Bluetooth LE scan"))
@@ -98,6 +99,13 @@ internal class BluetoothScannerImpl(
             agingJob.cancel()
             runCatching { leScanner.stopScan(callback) }
         }
+    }
+
+    private companion object {
+        // Android allows 5 BLE scan starts per 30 seconds per app. 8 seconds gives this scanner
+        // at most 4 starts and leaves at least 1 for the monitoring scan.
+        // Shared by all instances because the system limit is per app.
+        val startLimiter = ScanStartLimiter(minIntervalMillis = 8_000L)
     }
 
     private fun Throwable.toScanFailureEvent(action: String): BluetoothScanEvent {
