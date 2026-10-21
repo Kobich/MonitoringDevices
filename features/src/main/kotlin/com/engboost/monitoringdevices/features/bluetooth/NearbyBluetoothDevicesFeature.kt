@@ -9,6 +9,7 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.SystemClock
 import com.engboost.monitoringdevices.features.ConditionFeature
 import com.engboost.monitoringdevices.features.ConditionResult
 import com.engboost.monitoringdevices.features.DataFeature
@@ -72,7 +73,7 @@ class NearbyBluetoothDevicesFeature(context: Context) :
             return false
         }
         val leScanner = adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner ?: return false
-        if (!startLimiter.tryStart()) return false
+        if (!tryReserveScanStart()) return false
 
         val results = Channel<NearbyBluetoothDevice>(Channel.UNLIMITED)
         val callback = object : ScanCallback() {
@@ -124,6 +125,17 @@ class NearbyBluetoothDevicesFeature(context: Context) :
         // Android allows 5 BLE scan starts per 30 seconds per app. The scanner screen takes up
         // to 4 of them, this feature takes 1. Shared by all instances because the limit is per app.
         const val MIN_SCAN_START_INTERVAL_MILLIS = 30_000L
-        val startLimiter = ScanStartLimiter(MIN_SCAN_START_INTERVAL_MILLIS)
+        var lastScanStartMillis: Long? = null
+
+        /** Reserves a scan start, or returns false if the previous one was too recent. */
+        @Synchronized
+        fun tryReserveScanStart(): Boolean {
+            val nowMillis = SystemClock.elapsedRealtime()
+            val lastStart = lastScanStartMillis
+            if (lastStart != null && nowMillis - lastStart < MIN_SCAN_START_INTERVAL_MILLIS) return false
+
+            lastScanStartMillis = nowMillis
+            return true
+        }
     }
 }
