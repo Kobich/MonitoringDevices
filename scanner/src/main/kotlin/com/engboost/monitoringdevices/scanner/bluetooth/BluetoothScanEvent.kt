@@ -28,5 +28,8 @@ sealed interface BluetoothScanEvent {
 enum class BluetoothUnavailableReason {
     ADAPTER_UNAVAILABLE,
     BLUETOOTH_DISABLED,
-    LE_SCANNER_UNAVAILABLE
+    LE_SCANNER_UNAVAILABLE,
+
+    /** The previous scan started less than 8 seconds ago. */
+    SCANNING_TOO_FREQUENTLY
 }

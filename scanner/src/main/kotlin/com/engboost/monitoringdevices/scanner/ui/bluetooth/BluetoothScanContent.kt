@@ -125,5 +125,6 @@ private fun BluetoothUnavailableReason.toDisplayText(): String {
         BluetoothUnavailableReason.ADAPTER_UNAVAILABLE -> "Bluetooth adapter is not available"
         BluetoothUnavailableReason.BLUETOOTH_DISABLED -> "Bluetooth is disabled"
         BluetoothUnavailableReason.LE_SCANNER_UNAVAILABLE -> "Bluetooth LE scanner is not available"
+        BluetoothUnavailableReason.SCANNING_TOO_FREQUENTLY -> "Scanning too frequently. Try again in a few seconds"
     }
 }

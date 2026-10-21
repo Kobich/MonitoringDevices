@@ -1,26 +1,19 @@
 package com.engboost.monitoringdevices.scanner.bluetooth
 
 import android.os.SystemClock
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
-/**
- * Keeps scan starts at least [minIntervalMillis] apart.
- * A start requested too early is delayed, not dropped.
- */
+/** Allows scan starts no more often than once per [minIntervalMillis]. */
 internal class ScanStartLimiter(private val minIntervalMillis: Long) {
-    private val mutex = Mutex()
     private var lastStartMillis: Long? = null
 
-    /** Suspends until a new scan may be started and reserves that start. */
-    suspend fun awaitStart() {
-        mutex.withLock {
-            lastStartMillis?.let { lastStart ->
-                val waitMillis = lastStart + minIntervalMillis - SystemClock.elapsedRealtime()
-                if (waitMillis > 0) delay(waitMillis)
-            }
-            lastStartMillis = SystemClock.elapsedRealtime()
-        }
+    /** Reserves a start and returns true, or returns false if the previous start was too recent. */
+    @Synchronized
+    fun tryStart(): Boolean {
+        val nowMillis = SystemClock.elapsedRealtime()
+        val lastStart = lastStartMillis
+        if (lastStart != null && nowMillis - lastStart < minIntervalMillis) return false
+
+        lastStartMillis = nowMillis
+        return true
     }
 }

@@ -51,7 +51,7 @@ com.engboost.monitoringdevices.scanner
 | `requiredPermissions: Set<String>` | Runtime-разрешения, нужные сканеру. |
 | `missingPermissions(): Set<String>` | Разрешения, которые ещё не выданы. |
 | `scan(): Flow<…ScanEvent>` | Холодный Flow: сканирует, пока его собирают, и сам завершается только после терминального события. |
-| | Bluetooth-скан запускается не чаще раза в 8 секунд на всё приложение: Android разрешает 5 запусков BLE-скана за 30 секунд, и один запуск остаётся для скана мониторинга. Слишком ранний запуск откладывается, а не отбрасывается. |
+| | Bluetooth-скан запускается не чаще раза в 8 секунд на всё приложение: Android разрешает 5 запусков BLE-скана за 30 секунд, и один запуск остаётся для скана мониторинга. Слишком ранний запуск сразу завершается с `Unavailable(SCANNING_TOO_FREQUENTLY)`. |
 | `WifiScannerApi.isScanThrottlingEnabled: Boolean` | Включено ли ограничение частоты Wi-Fi-сканов (scan throttling) в настройках разработчика. |
 
 ### Выходные данные
@@ -70,7 +70,7 @@ com.engboost.monitoringdevices.scanner
 |---|---|
 | `PermissionRequired(permissions)` | Не выданы какие-то из `requiredPermissions`. |
 | `WifiScanEvent.Unavailable(reason)` | `WIFI_DISABLED`, `LOCATION_DISABLED`, `SCAN_REJECTED` (Android отклонил запрос, а кэшированных результатов нет). |
-| `BluetoothScanEvent.Unavailable(reason)` | `ADAPTER_UNAVAILABLE`, `BLUETOOTH_DISABLED`, `LE_SCANNER_UNAVAILABLE`. |
+| `BluetoothScanEvent.Unavailable(reason)` | `ADAPTER_UNAVAILABLE`, `BLUETOOTH_DISABLED`, `LE_SCANNER_UNAVAILABLE`, `SCANNING_TOO_FREQUENTLY` (предыдущий скан запущен меньше 8 секунд назад). |
 | `Error(message, cause)` | Непредвиденный сбой. Для Bluetooth в сообщении есть код ошибки `ScanCallback`, например `Bluetooth LE scan failed: 2`. |
 
 ### Конфигурация
