@@ -37,10 +37,13 @@ class NearbyBluetoothDevicesFeature(context: Context) :
 
     override suspend fun getData(): List<NearbyBluetoothDevice>? {
         val devices = LinkedHashMap<String, NearbyBluetoothDevice>()
-        val isScanned = scan(filters = emptyList()) { device ->
-            devices[device.address] = device
-            false
-        }
+        val isScanned = scan(
+            filters = emptyList(),
+            stopWhen = { device ->
+                devices[device.address] = device
+                false // collect everything for the whole window
+            }
+        )
         return if (isScanned) devices.values.toList() else null
     }
 
@@ -50,10 +53,13 @@ class NearbyBluetoothDevicesFeature(context: Context) :
 
         val filters = names.map { name -> ScanFilter.Builder().setDeviceName(name).build() }
         var isFound = false
-        val isScanned = scan(filters) { device ->
-            isFound = device.name?.let { it in names } == true
-            isFound
-        }
+        val isScanned = scan(
+            filters = filters,
+            stopWhen = { device ->
+                isFound = device.name?.let { it in names } == true
+                isFound // stop as soon as a wanted device is found
+            }
+        )
         return when {
             !isScanned -> ConditionResult.UNKNOWN
             isFound -> ConditionResult.TRUE
@@ -62,12 +68,13 @@ class NearbyBluetoothDevicesFeature(context: Context) :
     }
 
     /**
-     * Scans until [onDevice] returns true or [SCAN_WINDOW_MILLIS] passes.
+     * Calls [stopWhen] for every found device and scans until it returns true
+     * or [SCAN_WINDOW_MILLIS] passes.
      * Returns false when the scan could not run or failed.
      */
     private suspend fun scan(
         filters: List<ScanFilter>,
-        onDevice: (NearbyBluetoothDevice) -> Boolean
+        stopWhen: (NearbyBluetoothDevice) -> Boolean
     ): Boolean {
         if (appContext.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
             return false
@@ -98,7 +105,7 @@ class NearbyBluetoothDevicesFeature(context: Context) :
         return try {
             withTimeoutOrNull(SCAN_WINDOW_MILLIS) {
                 for (device in results) {
-                    if (onDevice(device)) break
+                    if (stopWhen(device)) break
                 }
             }
             true
