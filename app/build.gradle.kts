@@ -47,6 +47,7 @@ dependencies {
     implementation(project(":scanner:wifi:impl"))
     implementation(project(":scanner:bluetooth:impl"))
     implementation(project(":scanner:radio:impl"))
+    implementation(project(":features"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

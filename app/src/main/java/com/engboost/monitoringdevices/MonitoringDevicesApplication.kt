@@ -4,6 +4,7 @@ import android.app.Application
 import com.engboost.monitoringdevices.feature.bluetooth.impl.di.bluetoothFeatureModule
 import com.engboost.monitoringdevices.feature.radio.impl.di.radioFeatureModule
 import com.engboost.monitoringdevices.feature.wifi.impl.di.wifiFeatureModule
+import com.engboost.monitoringdevices.features.di.featuresModule
 import com.engboost.monitoringdevices.scanner.bluetooth.impl.di.bluetoothScannerModule
 import com.engboost.monitoringdevices.scanner.radio.impl.di.radioScannerModule
 import com.engboost.monitoringdevices.scanner.wifi.impl.di.wifiScannerModule
@@ -26,7 +27,8 @@ class MonitoringDevicesApplication : Application() {
                 monitoringServiceModule,
                 wifiFeatureModule,
                 bluetoothFeatureModule,
-                radioFeatureModule
+                radioFeatureModule,
+                featuresModule
             )
         }
     }

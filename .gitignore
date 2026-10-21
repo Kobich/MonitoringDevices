@@ -29,3 +29,4 @@ local.properties
 /scanner/wifi/impl/build/
 /service/monitoring/api/build/
 /service/monitoring/impl/build/
+/features/build/

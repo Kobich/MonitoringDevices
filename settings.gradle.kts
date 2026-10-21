@@ -38,4 +38,4 @@ include(":scanner:bluetooth:api")
 include(":scanner:bluetooth:impl")
 include(":scanner:radio:api")
 include(":scanner:radio:impl")
- 
+include(":features")
