@@ -15,9 +15,10 @@ import com.engboost.monitoringdevices.features.ConditionResult
 import com.engboost.monitoringdevices.features.DataFeature
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration.Companion.seconds
 
 /**
- * Nearby Bluetooth LE devices. Each call runs a short scan of up to [SCAN_WINDOW_MILLIS].
+ * Nearby Bluetooth LE devices. Each call runs a short scan of up to [SCAN_WINDOW].
  *
  * [getData] scans without a filter, so it finds nothing while the screen is off.
  * Returns null when the scan could not run.
@@ -69,7 +70,7 @@ class NearbyBluetoothDevicesFeature(context: Context) :
 
     /**
      * Calls [stopWhen] for every found device and scans until it returns true
-     * or [SCAN_WINDOW_MILLIS] passes.
+     * or [SCAN_WINDOW] passes.
      * Returns false when the scan could not run or failed.
      */
     private suspend fun scan(
@@ -103,7 +104,7 @@ class NearbyBluetoothDevicesFeature(context: Context) :
         }
 
         return try {
-            withTimeoutOrNull(SCAN_WINDOW_MILLIS) {
+            withTimeoutOrNull(SCAN_WINDOW) {
                 for (device in results) {
                     if (stopWhen(device)) break
                 }
@@ -127,7 +128,7 @@ class NearbyBluetoothDevicesFeature(context: Context) :
     private class ScanFailedException(errorCode: Int) : Exception("Bluetooth LE scan failed: $errorCode")
 
     private companion object {
-        const val SCAN_WINDOW_MILLIS = 10_000L
+        val SCAN_WINDOW = 10.seconds
 
         // Android allows 5 BLE scan starts per 30 seconds per app. The scanner screen takes up
         // to 4 of them, this feature takes 1. Shared by all instances because the limit is per app.

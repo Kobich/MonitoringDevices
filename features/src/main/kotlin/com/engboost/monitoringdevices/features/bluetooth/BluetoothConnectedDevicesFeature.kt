@@ -12,6 +12,7 @@ import com.engboost.monitoringdevices.features.DataFeature
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Bluetooth devices that are connected right now (not just bonded):
@@ -64,7 +65,7 @@ class BluetoothConnectedDevicesFeature(context: Context) :
         adapter: BluetoothAdapter,
         profile: Int
     ): List<BluetoothDevice> {
-        val result = withTimeoutOrNull(PROFILE_PROXY_TIMEOUT_MILLIS) {
+        val result = withTimeoutOrNull(PROFILE_PROXY_TIMEOUT) {
             suspendCancellableCoroutine<Result<List<BluetoothDevice>>> { continuation ->
                 val listener = object : BluetoothProfile.ServiceListener {
                     override fun onServiceConnected(profile: Int, proxy: BluetoothProfile) {
@@ -90,6 +91,6 @@ class BluetoothConnectedDevicesFeature(context: Context) :
     )
 
     private companion object {
-        const val PROFILE_PROXY_TIMEOUT_MILLIS = 2_000L
+        val PROFILE_PROXY_TIMEOUT = 2.seconds
     }
 }
