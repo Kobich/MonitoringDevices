@@ -9,6 +9,9 @@ import android.content.Context
 import com.engboost.monitoringdevices.features.ConditionFeature
 import com.engboost.monitoringdevices.features.ConditionResult
 import com.engboost.monitoringdevices.features.DataFeature
+import com.engboost.monitoringdevices.features.Reading
+import com.engboost.monitoringdevices.features.UnknownReason
+import com.engboost.monitoringdevices.features.valueOrNull
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
@@ -20,6 +23,9 @@ import kotlin.time.Duration.Companion.seconds
  *
  * [getData] returns null when Bluetooth is unavailable, turned off or permissions are missing.
  * [isMeetsCondition] checks whether a device with one of the given names is connected.
+ *
+ * Unknown reasons: [UnknownReason.SOURCE_UNAVAILABLE], [UnknownReason.SOURCE_DISABLED],
+ * [UnknownReason.PERMISSION_DENIED].
  */
 @SuppressLint("MissingPermission")
 class BluetoothConnectedDevicesFeature(context: Context) :
@@ -29,28 +35,33 @@ class BluetoothConnectedDevicesFeature(context: Context) :
     private val appContext = context.applicationContext
     private val bluetoothManager = appContext.getSystemService(BluetoothManager::class.java)
 
-    override suspend fun getData(): List<BluetoothConnectedDevice>? {
-        val manager = bluetoothManager ?: return null
-        val adapter = manager.adapter ?: return null
+    override suspend fun getData(): List<BluetoothConnectedDevice>? = readConnectedDevices().valueOrNull()
+
+    override suspend fun isMeetsCondition(input: List<String>): ConditionResult {
+        val connected = when (val reading = readConnectedDevices()) {
+            is Reading.Failure -> return ConditionResult.Unknown(reading.reason)
+            is Reading.Success -> reading.value
+        }
+
+        val connectedNames = connected.mapNotNullTo(HashSet()) { it.name }
+        return ConditionResult.of(input.any { it in connectedNames })
+    }
+
+    private suspend fun readConnectedDevices(): Reading<List<BluetoothConnectedDevice>> {
+        val manager = bluetoothManager ?: return Reading.Failure(UnknownReason.SOURCE_UNAVAILABLE)
+        val adapter = manager.adapter ?: return Reading.Failure(UnknownReason.SOURCE_UNAVAILABLE)
         return try {
-            if (!adapter.isEnabled) return null
+            if (!adapter.isEnabled) return Reading.Failure(UnknownReason.SOURCE_DISABLED)
 
             val profileDevices = profiles().flatMap { readConnectedDevices(adapter, it) }
             val gattDevices = manager.getConnectedDevices(BluetoothProfile.GATT)
-            (profileDevices + gattDevices)
+            val devices = (profileDevices + gattDevices)
                 .distinctBy { it.address }
                 .map { it.toConnectedDevice() }
+            Reading.Success(devices)
         } catch (error: SecurityException) {
-            null
+            Reading.Failure(UnknownReason.PERMISSION_DENIED)
         }
-    }
-
-    override suspend fun isMeetsCondition(input: List<String>): ConditionResult {
-        val connected = getData() ?: return ConditionResult.UNKNOWN
-
-        val connectedNames = connected.mapNotNullTo(HashSet()) { it.name }
-        val isAnyConnected = input.any { it in connectedNames }
-        return if (isAnyConnected) ConditionResult.TRUE else ConditionResult.FALSE
     }
 
     private fun profiles(): List<Int> = listOf(

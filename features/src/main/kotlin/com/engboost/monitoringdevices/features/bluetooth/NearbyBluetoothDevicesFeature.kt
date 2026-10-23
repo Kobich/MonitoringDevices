@@ -13,6 +13,7 @@ import android.os.SystemClock
 import com.engboost.monitoringdevices.features.ConditionFeature
 import com.engboost.monitoringdevices.features.ConditionResult
 import com.engboost.monitoringdevices.features.DataFeature
+import com.engboost.monitoringdevices.features.UnknownReason
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
@@ -26,7 +27,10 @@ import kotlin.time.Duration.Companion.seconds
  * so it also works while the screen is off. Matches only the name the device advertises.
  *
  * Scans start at most once per [MIN_SCAN_START_INTERVAL_MILLIS]; a call made earlier
- * gets null or [ConditionResult.UNKNOWN].
+ * gets null or [UnknownReason.TOO_FREQUENT].
+ *
+ * Unknown reasons: [UnknownReason.PERMISSION_DENIED], [UnknownReason.SOURCE_UNAVAILABLE],
+ * [UnknownReason.SOURCE_DISABLED], [UnknownReason.TOO_FREQUENT], [UnknownReason.READ_FAILED].
  */
 @SuppressLint("MissingPermission")
 class NearbyBluetoothDevicesFeature(context: Context) :
@@ -34,54 +38,52 @@ class NearbyBluetoothDevicesFeature(context: Context) :
     ConditionFeature<List<String>> {
 
     private val appContext = context.applicationContext
-    private val adapter = appContext.getSystemService(BluetoothManager::class.java)?.adapter
+    private val bluetoothAdapter = appContext.getSystemService(BluetoothManager::class.java)?.adapter
 
     override suspend fun getData(): List<NearbyBluetoothDevice>? {
         val devices = LinkedHashMap<String, NearbyBluetoothDevice>()
-        val isScanned = scan(
+        val failure = scan(
             filters = emptyList(),
             stopWhen = { device ->
                 devices[device.address] = device
                 false // collect everything for the whole window
             }
         )
-        return if (isScanned) devices.values.toList() else null
+        return if (failure == null) devices.values.toList() else null
     }
 
     override suspend fun isMeetsCondition(input: List<String>): ConditionResult {
         val names = input.toSet()
-        if (names.isEmpty()) return ConditionResult.FALSE
+        if (names.isEmpty()) return ConditionResult.False
 
         val filters = names.map { name -> ScanFilter.Builder().setDeviceName(name).build() }
         var isFound = false
-        val isScanned = scan(
+        val failure = scan(
             filters = filters,
             stopWhen = { device ->
                 isFound = device.name?.let { it in names } == true
                 isFound // stop as soon as a wanted device is found
             }
         )
-        return when {
-            !isScanned -> ConditionResult.UNKNOWN
-            isFound -> ConditionResult.TRUE
-            else -> ConditionResult.FALSE
-        }
+        return if (failure != null) ConditionResult.Unknown(failure) else ConditionResult.of(isFound)
     }
 
     /**
      * Calls [stopWhen] for every found device and scans until it returns true
      * or [SCAN_WINDOW] passes.
-     * Returns false when the scan could not run or failed.
+     * Returns null when the scan ran, or the reason it could not run or failed.
      */
     private suspend fun scan(
         filters: List<ScanFilter>,
         stopWhen: (NearbyBluetoothDevice) -> Boolean
-    ): Boolean {
+    ): UnknownReason? {
         if (appContext.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
-            return false
+            return UnknownReason.PERMISSION_DENIED
         }
-        val leScanner = adapter?.takeIf { it.isEnabled }?.bluetoothLeScanner ?: return false
-        if (!tryReserveScanStart()) return false
+        val adapter = bluetoothAdapter ?: return UnknownReason.SOURCE_UNAVAILABLE
+        if (!adapter.isEnabled) return UnknownReason.SOURCE_DISABLED
+        val leScanner = adapter.bluetoothLeScanner ?: return UnknownReason.SOURCE_UNAVAILABLE
+        if (!tryReserveScanStart()) return UnknownReason.TOO_FREQUENT
 
         val results = Channel<NearbyBluetoothDevice>(Channel.UNLIMITED)
         val callback = object : ScanCallback() {
@@ -100,7 +102,7 @@ class NearbyBluetoothDevicesFeature(context: Context) :
         try {
             leScanner.startScan(filters, settings, callback)
         } catch (error: SecurityException) {
-            return false
+            return UnknownReason.PERMISSION_DENIED
         }
 
         return try {
@@ -109,9 +111,9 @@ class NearbyBluetoothDevicesFeature(context: Context) :
                     if (stopWhen(device)) break
                 }
             }
-            true
+            null
         } catch (error: ScanFailedException) {
-            false
+            UnknownReason.READ_FAILED
         } finally {
             runCatching { leScanner.stopScan(callback) }
         }
