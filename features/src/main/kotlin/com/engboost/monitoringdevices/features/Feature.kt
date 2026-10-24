@@ -52,7 +52,10 @@ enum class UnknownReason {
     /** Independent sources contradict each other: GPS and network location disagree, possible spoofing. */
     SOURCES_CONFLICT,
 
-    /** Only a source that can be spoofed answered, with nothing to check it against: GPS alone. */
+    /**
+     * Only a source that cannot be trusted is available: GPS alone with nothing to check it against,
+     * or the system clock set manually.
+     */
     NOT_VERIFIED
 }
 
