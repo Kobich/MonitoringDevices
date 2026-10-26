@@ -11,27 +11,29 @@ import android.location.LocationRequest
 import android.os.SystemClock
 import com.engboost.monitoringdevices.features.ConditionFeature
 import com.engboost.monitoringdevices.features.ConditionResult
+import com.engboost.monitoringdevices.features.DataFeature
 import com.engboost.monitoringdevices.features.UnknownReason
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Checks whether the user is inside any of the given zones.
+ * Current location and whether the user is inside any of the given zones.
  *
- * Listens to GPS and network location (Wi-Fi and cell towers) at the same time for up to
- * [LOCATION_WINDOW] and stops as soon as the answer is certain. How samples are judged
- * is described in [LocationJudge].
+ * Uses every enabled source: Android's combined location (fused), GPS and network location
+ * (Wi-Fi and cell towers). The last known fix of each source is used at once, then new fixes
+ * are awaited for up to [LOCATION_WINDOW]. The most accurate fix wins; how fixes are judged is
+ * described in [LocationJudge]. There is no spoofing protection.
+ *
+ * [getData] returns as soon as a fix is at most [FRESH_SAMPLE_AGE_MILLIS] old, otherwise the best
+ * fix when the window is over, or null if there is none.
+ * [isMeetsCondition] returns as soon as the best fix is certain.
  *
  * Unknown reasons: [UnknownReason.PERMISSION_DENIED], [UnknownReason.SOURCE_UNAVAILABLE],
- * [UnknownReason.SOURCE_DISABLED], [UnknownReason.NO_DATA], [UnknownReason.MOCK_DATA],
- * [UnknownReason.NOT_ACCURATE_ENOUGH], [UnknownReason.SOURCES_CONFLICT], [UnknownReason.NOT_VERIFIED].
- * Network location is required: GPS alone is never trusted, so without network location GPS is
- * not turned on at all and the result is [UnknownReason.SOURCE_UNAVAILABLE] or
- * [UnknownReason.SOURCE_DISABLED].
+ * [UnknownReason.SOURCE_DISABLED], [UnknownReason.NO_DATA], [UnknownReason.NOT_ACCURATE_ENOUGH].
  *
- * [trace] receives a readable line for every step: which sources are available, every received
- * fix and whether it was used, and the result. Use it for logs and debugging.
+ * [trace] receives a readable line for every step: which sources are available, every fix and the
+ * result. Use it for logs and debugging.
  *
  * In the background it needs a foreground service of type `location`.
  */
@@ -39,81 +41,107 @@ import kotlin.time.Duration.Companion.seconds
 class LocationFeature(
     context: Context,
     private val trace: (String) -> Unit = {}
-) : ConditionFeature<List<GeoZone>> {
+) : DataFeature<CurrentLocation>,
+    ConditionFeature<List<GeoZone>> {
+
     private val appContext = context.applicationContext
     private val locationManager = appContext.getSystemService(LocationManager::class.java)
 
-    override suspend fun isMeetsCondition(input: List<GeoZone>): ConditionResult {
+    override suspend fun getData(): CurrentLocation? {
         val startMillis = SystemClock.elapsedRealtime()
-        val result = check(input)
-        trace("Result: $result after ${SystemClock.elapsedRealtime() - startMillis} ms")
+        val judge = LocationJudge(zones = emptyList(), trace = trace)
+        val failure = listen(judge) { nowMillis ->
+            val best = judge.bestSample(nowMillis)
+            best != null && nowMillis - best.elapsedRealtimeMillis <= FRESH_SAMPLE_AGE_MILLIS
+        }
+        val nowMillis = SystemClock.elapsedRealtime()
+        val result = if (failure == null) judge.bestSample(nowMillis)?.toCurrentLocation(nowMillis) else null
+        trace("Result: ${result ?: "null ($failure)"} after ${nowMillis - startMillis} ms")
         return result
     }
 
-    private suspend fun check(zones: List<GeoZone>): ConditionResult {
-        if (zones.isEmpty()) return ConditionResult.False
+    override suspend fun isMeetsCondition(input: List<GeoZone>): ConditionResult {
+        if (input.isEmpty()) return ConditionResult.False
+
+        val startMillis = SystemClock.elapsedRealtime()
+        val judge = LocationJudge(zones = input, trace = trace)
+        var certain: ConditionResult? = null
+        val failure = listen(judge) { nowMillis ->
+            certain = judge.certainResult(nowMillis)
+            certain != null
+        }
+        val nowMillis = SystemClock.elapsedRealtime()
+        val certainResult = certain
+        val result = when {
+            failure != null -> ConditionResult.Unknown(failure)
+            certainResult != null -> certainResult
+            else -> {
+                trace("Window is over without a certain answer")
+                judge.finalResult(nowMillis)
+            }
+        }
+        trace("Result: $result after ${nowMillis - startMillis} ms")
+        return result
+    }
+
+    /**
+     * Feeds the last known fix and then new fixes of every enabled source into [judge]
+     * until [stopWhen] returns true or [LOCATION_WINDOW] passes.
+     * Returns null when listening ran, or the reason it could not run.
+     */
+    private suspend fun listen(judge: LocationJudge, stopWhen: (nowMillis: Long) -> Boolean): UnknownReason? {
         if (appContext.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             trace("ACCESS_FINE_LOCATION is not granted")
-            return ConditionResult.Unknown(UnknownReason.PERMISSION_DENIED)
+            return UnknownReason.PERMISSION_DENIED
         }
-        val manager = locationManager ?: return ConditionResult.Unknown(UnknownReason.SOURCE_UNAVAILABLE)
+        val manager = locationManager ?: return UnknownReason.SOURCE_UNAVAILABLE
         if (!manager.isLocationEnabled) {
             trace("Location is turned off")
-            return ConditionResult.Unknown(UnknownReason.SOURCE_DISABLED)
+            return UnknownReason.SOURCE_DISABLED
         }
 
-        val gpsState = manager.providerState(LocationManager.GPS_PROVIDER)
-        val networkState = manager.providerState(LocationManager.NETWORK_PROVIDER)
-        trace("Sources: GPS $gpsState, network $networkState")
-        when (networkState) {
-            ProviderState.MISSING -> {
-                trace("No network location on this device, GPS alone is not trusted, GPS is not turned on")
-                return ConditionResult.Unknown(UnknownReason.SOURCE_UNAVAILABLE)
+        val states = PROVIDERS.associateWith { manager.providerState(it) }
+        trace("Sources: " + states.entries.joinToString { (provider, state) -> "${provider.uppercase()} $state" })
+        val providers = PROVIDERS.filter { states[it] == ProviderState.ENABLED }
+        if (providers.isEmpty()) {
+            return if (states.values.all { it == ProviderState.MISSING }) {
+                UnknownReason.SOURCE_UNAVAILABLE
+            } else {
+                UnknownReason.SOURCE_DISABLED
             }
-
-            ProviderState.DISABLED -> {
-                trace("Network location is turned off (on Google devices: Google Location Accuracy), GPS is not turned on")
-                return ConditionResult.Unknown(UnknownReason.SOURCE_DISABLED)
-            }
-
-            ProviderState.ENABLED -> Unit
         }
 
-        val isGpsExpected = gpsState == ProviderState.ENABLED
-        val providers = if (isGpsExpected) PROVIDERS else listOf(LocationManager.NETWORK_PROVIDER)
-        val judge = LocationJudge(zones, isGpsExpected, trace)
         val samples = Channel<LocationSample>(Channel.UNLIMITED)
         val listeners = providers.associateWith { provider ->
-            LocationListener { location ->
-                val sample = location.toSample(provider)
-                if (sample == null) {
-                    trace("${provider.uppercase()} fix dropped: no accuracy")
-                } else {
-                    samples.trySend(sample)
-                }
-            }
+            LocationListener { location -> location.toSample(provider)?.let { samples.trySend(it) } }
         }
         val request = LocationRequest.Builder(SAMPLE_INTERVAL_MILLIS)
             .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
             .build()
 
         return try {
+            // The last known fixes come at once, so a recent one can answer without waiting.
+            trace("Last known fixes:")
+            providers.forEach { provider ->
+                manager.getLastKnownLocation(provider)?.toSample(provider)?.let {
+                    judge.addSample(it, SystemClock.elapsedRealtime())
+                }
+            }
+            if (stopWhen(SystemClock.elapsedRealtime())) return null
+
             listeners.forEach { (provider, listener) ->
                 manager.requestLocationUpdates(provider, request, appContext.mainExecutor, listener)
             }
             trace("Listening to ${providers.joinToString { it.uppercase() }} for up to $LOCATION_WINDOW")
-            val certainResult = withTimeoutOrNull(LOCATION_WINDOW) {
+            withTimeoutOrNull(LOCATION_WINDOW) {
                 for (sample in samples) {
-                    judge.addSample(sample, SystemClock.elapsedRealtime())?.let { return@withTimeoutOrNull it }
+                    judge.addSample(sample, SystemClock.elapsedRealtime())
+                    if (stopWhen(SystemClock.elapsedRealtime())) break
                 }
-                null
             }
-            certainResult ?: run {
-                trace("Window is over without a certain answer")
-                judge.finalResult(SystemClock.elapsedRealtime())
-            }
+            null
         } catch (error: SecurityException) {
-            ConditionResult.Unknown(UnknownReason.PERMISSION_DENIED)
+            UnknownReason.PERMISSION_DENIED
         } finally {
             listeners.values.forEach { runCatching { manager.removeUpdates(it) } }
         }
@@ -128,22 +156,43 @@ class LocationFeature(
     private enum class ProviderState { MISSING, DISABLED, ENABLED }
 
     private fun Location.toSample(provider: String): LocationSample? {
-        if (!hasAccuracy()) return null
+        if (!hasAccuracy()) {
+            trace("${provider.uppercase()} fix dropped: no accuracy")
+            return null
+        }
         return LocationSample(
-            source = if (provider == LocationManager.GPS_PROVIDER) LocationSource.GPS else LocationSource.NETWORK,
+            source = when (provider) {
+                LocationManager.GPS_PROVIDER -> LocationSource.GPS
+                LocationManager.NETWORK_PROVIDER -> LocationSource.NETWORK
+                else -> LocationSource.FUSED
+            },
             latitude = latitude,
             longitude = longitude,
             accuracyMeters = accuracy.toDouble(),
-            elapsedRealtimeMillis = elapsedRealtimeMillis,
-            isMock = isMock
+            elapsedRealtimeMillis = elapsedRealtimeMillis
         )
     }
 
-    private companion object {
-        val PROVIDERS = listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
+    private fun LocationSample.toCurrentLocation(nowMillis: Long) = CurrentLocation(
+        latitude = latitude,
+        longitude = longitude,
+        accuracyMeters = accuracyMeters,
+        source = source,
+        ageMillis = nowMillis - elapsedRealtimeMillis
+    )
 
-        /** How long one check waits for a certain answer at most. */
+    private companion object {
+        val PROVIDERS = listOf(
+            LocationManager.FUSED_PROVIDER,
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER
+        )
+
+        /** How long one call waits for new fixes at most. */
         val LOCATION_WINDOW = 20.seconds
+
+        /** [getData] returns as soon as it has a fix at most this old. */
+        const val FRESH_SAMPLE_AGE_MILLIS = 10_000L
 
         const val SAMPLE_INTERVAL_MILLIS = 1_000L
     }

@@ -1,19 +1,21 @@
 package com.engboost.monitoringdevices.features.location
 
-internal enum class LocationSource {
-    /** Satellites: accurate, but can be jammed or spoofed. */
+enum class LocationSource {
+    /** Android's combined location: satellites, Wi-Fi, cell towers and sensors. */
+    FUSED,
+
+    /** Satellites only. */
     GPS,
 
-    /** Wi-Fi access points and cell towers: less accurate, not affected by GPS jamming. */
+    /** Wi-Fi access points and cell towers. */
     NETWORK
 }
 
-/** One location fix. [accuracyMeters] is the radius the real position is likely within. */
+/** One location fix. [accuracyMeters] is the radius the real position is within with about 68% confidence. */
 internal data class LocationSample(
     val source: LocationSource,
     val latitude: Double,
     val longitude: Double,
     val accuracyMeters: Double,
-    val elapsedRealtimeMillis: Long,
-    val isMock: Boolean
+    val elapsedRealtimeMillis: Long
 )

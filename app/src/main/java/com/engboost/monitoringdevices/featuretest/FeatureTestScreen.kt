@@ -105,6 +105,10 @@ fun FeatureTestScreen() {
                     label = { Text("Zones: latitude, longitude, radius in meters; one per line") },
                     modifier = Modifier.fillMaxWidth()
                 )
+                FeatureAction(label = "getData") {
+                    locationTrace.clear()
+                    location.getData()
+                }
                 FeatureAction(label = "isMeetsCondition") {
                     locationTrace.clear()
                     location.isMeetsCondition(zones.toZones())

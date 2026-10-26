@@ -8,185 +8,48 @@ import org.junit.Test
 
 class LocationJudgeTest {
     private val zone = GeoZone(latitude = 55.7558, longitude = 37.6173, radiusMeters = 50.0)
-    private val now = 100_000L
+    private val now = 1_000_000L
 
     @Test
-    fun `gps and network agree inside - true`() {
+    fun `network fix inside the zone - true at once`() {
         val judge = LocationJudge(listOf(zone))
 
-        assertNull(judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 40.0), now))
-        assertEquals(
-            ConditionResult.True,
-            judge.addSample(sample(LocationSource.GPS, metersNorth = 5.0, accuracy = 10.0), now)
-        )
+        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
+        assertEquals(ConditionResult.True, judge.certainResult(now))
     }
 
     @Test
-    fun `far from zone - false`() {
+    fun `far from the zone - false`() {
         val judge = LocationJudge(listOf(zone))
 
         judge.addSample(sample(LocationSource.NETWORK, metersNorth = 2_000.0, accuracy = 300.0), now)
-        assertEquals(
-            ConditionResult.False,
-            judge.addSample(sample(LocationSource.GPS, metersNorth = 2_010.0, accuracy = 20.0), now)
-        )
+        assertEquals(ConditionResult.False, judge.certainResult(now))
     }
 
     @Test
-    fun `gps far from network several times in a row - sources conflict`() {
+    fun `gps alone is enough`() {
         val judge = LocationJudge(listOf(zone))
 
-        for (step in 0 until LocationJudge.CONFLICT_CONFIRMATIONS) {
-            val time = now - 3_000 + step * 1_000L
-            judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 40.0, time = time), now)
-            val result = judge.addSample(
-                sample(LocationSource.GPS, metersNorth = 10_000.0, accuracy = 5.0, time = time),
-                now
-            )
-            if (step < LocationJudge.CONFLICT_CONFIRMATIONS - 1) {
-                assertNull(result)
-            } else {
-                assertEquals(ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT), result)
-            }
-        }
+        judge.addSample(sample(LocationSource.GPS, metersNorth = 5.0, accuracy = 5.0), now)
+        assertEquals(ConditionResult.True, judge.certainResult(now))
     }
 
     @Test
-    fun `one bad network fix is not counted as several conflicts`() {
+    fun `on the zone border - not accurate enough`() {
         val judge = LocationJudge(listOf(zone))
 
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 5_000.0, accuracy = 40.0), now)
-        repeat(5) { step ->
-            val gps = sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0, time = now - step)
-            assertNull(judge.addSample(gps, now))
-        }
-    }
-
-    @Test
-    fun `gps inside while network is certainly outside - not trusted`() {
-        val judge = LocationJudge(listOf(zone))
-
-        // The 9 seconds between the fixes allow 270 m of movement, so they are not too far apart,
-        // but GPS says inside and network says outside.
-        judge.addSample(
-            sample(LocationSource.NETWORK, metersNorth = 200.0, accuracy = 20.0, time = now - 9_000),
-            now
-        )
-        assertNull(judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0), now))
-        assertEquals(ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT), judge.finalResult(now))
-    }
-
-    @Test
-    fun `without gps provider network decides at once`() {
-        val judge = LocationJudge(listOf(zone), isGpsExpected = false)
-
-        assertEquals(
-            ConditionResult.True,
-            judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
-        )
-    }
-
-    @Test
-    fun `with gps provider network waits for gps`() {
-        val judge = LocationJudge(listOf(zone))
-
-        assertNull(judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now))
-    }
-
-    @Test
-    fun `single bad gps fix does not stop the check`() {
-        val judge = LocationJudge(listOf(zone))
-
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
-        assertNull(judge.addSample(sample(LocationSource.GPS, metersNorth = 1_000.0, accuracy = 5.0), now))
-        assertEquals(
-            ConditionResult.True,
-            judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0), now)
-        )
-    }
-
-    @Test
-    fun `disagreement when the window is over - sources conflict`() {
-        val judge = LocationJudge(listOf(zone))
-
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
-        judge.addSample(sample(LocationSource.GPS, metersNorth = 1_000.0, accuracy = 5.0), now)
-        assertEquals(ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT), judge.finalResult(now))
-    }
-
-    @Test
-    fun `fixes taken apart in time allow for movement`() {
-        val judge = LocationJudge(listOf(zone))
-
-        // 8 seconds apart at up to 30 m/s allows 240 m of movement on top of the accuracies.
-        judge.addSample(
-            sample(LocationSource.NETWORK, metersNorth = 3_000.0, accuracy = 20.0, time = now - 8_000),
-            now
-        )
-        assertEquals(
-            ConditionResult.False,
-            judge.addSample(sample(LocationSource.GPS, metersNorth = 3_250.0, accuracy = 5.0), now)
-        )
-    }
-
-    @Test
-    fun `accuracy is doubled for certainty`() {
-        val judge = LocationJudge(listOf(zone))
-
-        // 30 + 15 = 45 m would fit the 50 m zone, but 30 + 15 * 2 = 60 m does not.
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 30.0, accuracy = 15.0), now)
-        assertEquals(
-            ConditionResult.Unknown(UnknownReason.NOT_ACCURATE_ENOUGH),
-            judge.finalResult(now)
-        )
-    }
-
-    @Test
-    fun `on the zone border - waits, then not accurate enough`() {
-        val judge = LocationJudge(listOf(zone))
-
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 50.0, accuracy = 40.0), now)
-        assertNull(judge.addSample(sample(LocationSource.GPS, metersNorth = 50.0, accuracy = 10.0), now))
-        assertEquals(
-            ConditionResult.Unknown(UnknownReason.NOT_ACCURATE_ENOUGH),
-            judge.finalResult(now)
-        )
-    }
-
-    @Test
-    fun `gps alone - not verified`() {
-        val judge = LocationJudge(listOf(zone))
-
-        assertNull(judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0), now))
-        assertEquals(ConditionResult.Unknown(UnknownReason.NOT_VERIFIED), judge.finalResult(now))
-    }
-
-    @Test
-    fun `network alone and certain - trusted`() {
-        val judge = LocationJudge(listOf(zone))
-
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
-        assertEquals(ConditionResult.True, judge.finalResult(now))
+        judge.addSample(sample(LocationSource.GPS, metersNorth = 50.0, accuracy = 10.0), now)
+        assertNull(judge.certainResult(now))
+        assertEquals(ConditionResult.Unknown(UnknownReason.NOT_ACCURATE_ENOUGH), judge.finalResult(now))
     }
 
     @Test
     fun `nothing received - no data`() {
-        assertEquals(
-            ConditionResult.Unknown(UnknownReason.NO_DATA),
-            LocationJudge(listOf(zone)).finalResult(now)
-        )
+        assertEquals(ConditionResult.Unknown(UnknownReason.NO_DATA), LocationJudge(listOf(zone)).finalResult(now))
     }
 
     @Test
-    fun `only mock samples - mock data`() {
-        val judge = LocationJudge(listOf(zone))
-
-        judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0, isMock = true), now)
-        assertEquals(ConditionResult.Unknown(UnknownReason.MOCK_DATA), judge.finalResult(now))
-    }
-
-    @Test
-    fun `stale samples are ignored`() {
+    fun `fix older than two minutes is dropped`() {
         val judge = LocationJudge(listOf(zone))
         val old = now - LocationJudge.MAX_SAMPLE_AGE_MILLIS - 1
 
@@ -195,15 +58,45 @@ class LocationJudgeTest {
     }
 
     @Test
+    fun `older fix is less certain`() {
+        // 10 m accuracy is 20 m effective. 20 s old adds 30 m of walking: 50 m still fits the zone.
+        val recent = LocationJudge(listOf(zone))
+        recent.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 10.0, time = now - 20_000), now)
+        assertEquals(ConditionResult.True, recent.certainResult(now))
+
+        // 60 s old adds 90 m: 110 m no longer fits the 50 m zone.
+        val old = LocationJudge(listOf(zone))
+        old.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 10.0, time = now - 60_000), now)
+        assertNull(old.certainResult(now))
+    }
+
+    @Test
+    fun `the most accurate fix wins`() {
+        val judge = LocationJudge(listOf(zone))
+
+        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 200.0), now)
+        judge.addSample(sample(LocationSource.GPS, metersNorth = 3.0, accuracy = 5.0), now)
+        assertEquals(LocationSource.GPS, judge.bestSample(now)?.source)
+        assertEquals(ConditionResult.True, judge.certainResult(now))
+    }
+
+    @Test
+    fun `fresh coarse fix beats an accurate but old one`() {
+        val judge = LocationJudge(listOf(zone))
+
+        // 5 m, 100 s old: 10 + 150 = 160 m effective. 30 m, fresh: 60 m effective.
+        judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0, time = now - 100_000), now)
+        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 30.0), now)
+        assertEquals(LocationSource.NETWORK, judge.bestSample(now)?.source)
+    }
+
+    @Test
     fun `inside one of several zones - true`() {
         val farZone = GeoZone(latitude = 59.9343, longitude = 30.3351, radiusMeters = 50.0)
         val judge = LocationJudge(listOf(farZone, zone))
 
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 30.0), now)
-        assertEquals(
-            ConditionResult.True,
-            judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 10.0), now)
-        )
+        judge.addSample(sample(LocationSource.FUSED, metersNorth = 0.0, accuracy = 10.0), now)
+        assertEquals(ConditionResult.True, judge.certainResult(now))
     }
 
     @Test
@@ -211,15 +104,16 @@ class LocationJudgeTest {
         val lines = mutableListOf<String>()
         val judge = LocationJudge(listOf(zone), trace = { lines += it })
 
-        judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0, isMock = true), now)
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
+        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0, time = now - 10_000), now)
+        judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0, time = now - 200_000), now)
 
-        assertEquals("GPS fix dropped: mock location", lines[0])
         assertEquals(
-            "NETWORK fix: ±20 m, 0 ms old, nearest zone center 0 m away, certainly inside a zone",
-            lines[1]
+            listOf(
+                "NETWORK fix: ±20 m, 10 s old, effective ±55 m, nearest zone center 0 m away, unclear",
+                "GPS fix dropped: 200 s old"
+            ),
+            lines
         )
-        assertEquals("Waiting for GPS", lines[2])
     }
 
     @Test
@@ -233,15 +127,13 @@ class LocationJudgeTest {
         source: LocationSource,
         metersNorth: Double,
         accuracy: Double,
-        isMock: Boolean = false,
         time: Long = now
     ) = LocationSample(
         source = source,
         latitude = zone.latitude + metersNorth / METERS_PER_DEGREE_LATITUDE,
         longitude = zone.longitude,
         accuracyMeters = accuracy,
-        elapsedRealtimeMillis = time,
-        isMock = isMock
+        elapsedRealtimeMillis = time
     )
 
     private companion object {

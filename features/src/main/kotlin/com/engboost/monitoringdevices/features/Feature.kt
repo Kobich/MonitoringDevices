@@ -43,19 +43,10 @@ enum class UnknownReason {
     /** Nothing to decide on: an empty Wi-Fi cache, no location received in time. */
     NO_DATA,
 
-    /** Only mock locations were received; they are ignored. */
-    MOCK_DATA,
-
     /** The data is not accurate enough: the location is too close to the zone border. */
     NOT_ACCURATE_ENOUGH,
 
-    /** Independent sources contradict each other: GPS and network location disagree, possible spoofing. */
-    SOURCES_CONFLICT,
-
-    /**
-     * Only a source that cannot be trusted answered: GPS while network location did not arrive
-     * in time, or the system clock set manually.
-     */
+    /** Only a source that cannot be trusted is available: the system clock set manually. */
     NOT_VERIFIED
 }
 
