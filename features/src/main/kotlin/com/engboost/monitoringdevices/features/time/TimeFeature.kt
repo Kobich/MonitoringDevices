@@ -19,46 +19,50 @@ enum class TimeSource {
     GNSS,
 
     /** System clock while automatic time is on. The user can still bypass it. */
-    SYSTEM
+    SYSTEM,
+
+    /** System clock set manually by the user: it can be anything. */
+    MANUAL
 }
 
-data class TrustedTime(
+data class CurrentTime(
     val instant: Instant,
     val source: TimeSource
 )
 
 /**
  * Current time from the most trusted source: network, then satellites, then the system clock
- * while automatic time is on. With manual time and no network or satellite time there is no
- * trusted time.
+ * while automatic time is on, and as the last resort the system clock set manually.
  *
  * Network and satellite time keep counting from their last sync with an internal timer,
  * so changing the clock in the settings does not affect them. They are lost after a reboot
  * until the next sync.
  *
- * [getData] returns the current time and its source, or null when no source can be trusted.
- * [isMeetsCondition] checks whether the current time is inside the given period.
+ * [getData] always returns the current time and its source; check the source to see how much to trust it.
+ * [isMeetsCondition] checks whether the current time is inside the given period. It does not trust
+ * manual time.
  *
- * Unknown reasons: [UnknownReason.NOT_VERIFIED] (no network or satellite time and the time is set manually).
+ * Unknown reasons: [UnknownReason.NOT_VERIFIED] (only manual time is available).
  */
 class TimeFeature(context: Context) :
-    DataFeature<TrustedTime>,
+    DataFeature<CurrentTime>,
     ConditionFeature<TimePeriod> {
 
     private val contentResolver = context.applicationContext.contentResolver
 
-    override suspend fun getData(): TrustedTime? = readTime()
+    override suspend fun getData(): CurrentTime = readTime()
 
     override suspend fun isMeetsCondition(input: TimePeriod): ConditionResult {
-        val time = readTime() ?: return ConditionResult.Unknown(UnknownReason.NOT_VERIFIED)
+        val time = readTime()
+        if (time.source == TimeSource.MANUAL) return ConditionResult.Unknown(UnknownReason.NOT_VERIFIED)
         return ConditionResult.of(time.instant in input)
     }
 
-    private fun readTime(): TrustedTime? {
-        readClock { SystemClock.currentNetworkTimeClock() }?.let { return TrustedTime(it, TimeSource.NETWORK) }
-        readClock { SystemClock.currentGnssTimeClock() }?.let { return TrustedTime(it, TimeSource.GNSS) }
+    private fun readTime(): CurrentTime {
+        readClock { SystemClock.currentNetworkTimeClock() }?.let { return CurrentTime(it, TimeSource.NETWORK) }
+        readClock { SystemClock.currentGnssTimeClock() }?.let { return CurrentTime(it, TimeSource.GNSS) }
         val isAutoTime = Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) == 1
-        return if (isAutoTime) TrustedTime(Instant.now(), TimeSource.SYSTEM) else null
+        return CurrentTime(Instant.now(), if (isAutoTime) TimeSource.SYSTEM else TimeSource.MANUAL)
     }
 
     /** The clock throws when its source has not been synced since boot. */
