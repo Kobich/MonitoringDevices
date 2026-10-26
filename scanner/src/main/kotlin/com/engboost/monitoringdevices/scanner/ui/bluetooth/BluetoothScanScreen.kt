@@ -9,7 +9,7 @@ import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScannerApi
 import com.engboost.monitoringdevices.scanner.ui.common.PermissionRequestEffect
 import com.engboost.monitoringdevices.scanner.ui.common.ScreenVisibilityEffect
 
-/** Scans only after Start and only while the screen is visible; stops 5 seconds after it is hidden. */
+/** Scans only after Start and only while the screen is visible; stops 8 seconds after it is hidden. */
 @Composable
 fun BluetoothScanScreen(
     scanner: BluetoothScannerApi,

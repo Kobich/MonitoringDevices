@@ -113,6 +113,8 @@ internal class BluetoothViewModel(
     }
 
     private companion object {
-        val SCAN_STOP_DELAY = 5.seconds
+        // Equal to the scanner's start limit: the scan stops at least 8 seconds after it started,
+        // so coming back to the screen can never restart it too early.
+        val SCAN_STOP_DELAY = 8.seconds
     }
 }
