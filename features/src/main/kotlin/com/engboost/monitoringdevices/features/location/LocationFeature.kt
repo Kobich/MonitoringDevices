@@ -128,8 +128,11 @@ class LocationFeature(
             // The last known fixes come at once, so a recent one can answer without waiting.
             trace("Last known fixes:")
             providers.forEach { provider ->
-                manager.getLastKnownLocation(provider)?.toSample(provider)?.let {
-                    judge.addSample(it, SystemClock.elapsedRealtime())
+                val sample = manager.getLastKnownLocation(provider)?.toSample(provider)
+                if (sample == null) {
+                    trace("${provider.uppercase()}: none")
+                } else {
+                    judge.addSample(sample, SystemClock.elapsedRealtime())
                 }
             }
             if (stopWhen(SystemClock.elapsedRealtime())) return null
@@ -137,7 +140,10 @@ class LocationFeature(
             listeners.forEach { (provider, listener) ->
                 manager.requestLocationUpdates(provider, request, appContext.mainExecutor, listener)
             }
-            gnssCallback?.let { manager.registerGnssStatusCallback(appContext.mainExecutor, it) }
+            gnssCallback?.let {
+                val isRegistered = manager.registerGnssStatusCallback(appContext.mainExecutor, it)
+                trace(if (isRegistered) "Satellite status: subscribed" else "Satellite status: subscription refused")
+            }
             trace("Listening to ${providers.joinToString { it.uppercase() }} for up to $window")
             withTimeoutOrNull(window) {
                 for (sample in samples) {
@@ -157,6 +163,14 @@ class LocationFeature(
     /** Traces how many satellites GPS sees and uses, only when the numbers change. */
     private inner class SatelliteTrace : GnssStatus.Callback() {
         private var lastText: String? = null
+
+        override fun onStarted() {
+            trace("GPS engine started")
+        }
+
+        override fun onStopped() {
+            trace("GPS engine stopped")
+        }
 
         override fun onFirstFix(ttffMillis: Int) {
             trace("GPS first fix after $ttffMillis ms")
