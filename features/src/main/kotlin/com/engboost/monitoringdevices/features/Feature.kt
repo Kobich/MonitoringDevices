@@ -53,8 +53,8 @@ enum class UnknownReason {
     SOURCES_CONFLICT,
 
     /**
-     * Only a source that cannot be trusted is available: GPS alone with nothing to check it against,
-     * or the system clock set manually.
+     * Only a source that cannot be trusted answered: GPS while network location did not arrive
+     * in time, or the system clock set manually.
      */
     NOT_VERIFIED
 }

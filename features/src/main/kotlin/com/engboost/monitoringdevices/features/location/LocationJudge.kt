@@ -6,6 +6,7 @@ import kotlin.math.abs
 import kotlin.math.asin
 import kotlin.math.cos
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -27,12 +28,16 @@ import kotlin.math.sqrt
  *   again only when both samples are new, so one bad fix is not counted several times.
  *   [CONFLICT_CONFIRMATIONS] disagreements in a row, or a disagreement when the window is over,
  *   give [UnknownReason.SOURCES_CONFLICT].
- * - GPS alone is never trusted ([UnknownReason.NOT_VERIFIED]); network alone is.
+ * - GPS alone is never trusted ([UnknownReason.NOT_VERIFIED] when network location did not arrive);
+ *   network alone is.
  *   When GPS cannot arrive at all ([isGpsExpected] is false), network decides without waiting.
+ *
+ * Every step is reported to [trace] as a readable line.
  */
 internal class LocationJudge(
     private val zones: List<GeoZone>,
-    private val isGpsExpected: Boolean = true
+    private val isGpsExpected: Boolean = true,
+    private val trace: (String) -> Unit = {}
 ) {
     private val latest = mutableMapOf<LocationSource, LocationSample>()
     private var isMockReceived = false
@@ -41,19 +46,37 @@ internal class LocationJudge(
 
     /** Adds [sample] and returns the result once it is certain, or null to keep waiting. */
     fun addSample(sample: LocationSample, nowMillis: Long): ConditionResult? {
+        val ageMillis = nowMillis - sample.elapsedRealtimeMillis
         if (sample.isMock) {
+            trace("${sample.source} fix dropped: mock location")
             isMockReceived = true
             return null
         }
-        if (sample.isStale(nowMillis)) return null
+        if (sample.isStale(nowMillis)) {
+            trace("${sample.source} fix dropped: $ageMillis ms old")
+            return null
+        }
         latest[sample.source] = sample
+        trace(
+            "${sample.source} fix: ±${sample.accuracyMeters.roundToInt()} m, $ageMillis ms old, " +
+                "nearest zone center ${nearestZoneDistance(sample).roundToInt()} m away, ${sample.statusText()}"
+        )
 
-        val network = freshSample(LocationSource.NETWORK, nowMillis) ?: return null
-        val gps = freshSample(LocationSource.GPS, nowMillis)
-            ?: return if (isGpsExpected) null else certainResult(network)
+        val network = freshSample(LocationSource.NETWORK, nowMillis) ?: run {
+            trace("Waiting for network location")
+            return null
+        }
+        val gps = freshSample(LocationSource.GPS, nowMillis) ?: run {
+            if (isGpsExpected) {
+                trace("Waiting for GPS")
+                return null
+            }
+            return certainResult(network)
+        }
 
         if (isDisagreement(gps, network)) {
             countDisagreement(gps, network)
+            trace("GPS and network disagree ($conflictsInRow of $CONFLICT_CONFIRMATIONS)")
             return if (conflictsInRow >= CONFLICT_CONFIRMATIONS) {
                 ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT)
             } else {
@@ -84,6 +107,16 @@ internal class LocationJudge(
             isMockReceived -> ConditionResult.Unknown(UnknownReason.MOCK_DATA)
             else -> ConditionResult.Unknown(UnknownReason.NO_DATA)
         }
+    }
+
+    private fun nearestZoneDistance(sample: LocationSample): Double {
+        return zones.minOf { zone -> distanceMeters(sample.latitude, sample.longitude, zone.latitude, zone.longitude) }
+    }
+
+    private fun LocationSample.statusText(): String = when (certainResult(this)) {
+        ConditionResult.True -> "certainly inside a zone"
+        ConditionResult.False -> "certainly outside all zones"
+        else -> "unclear"
     }
 
     private fun freshSample(source: LocationSource, nowMillis: Long): LocationSample? {

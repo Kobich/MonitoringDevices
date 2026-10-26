@@ -207,6 +207,22 @@ class LocationJudgeTest {
     }
 
     @Test
+    fun `every step is traced`() {
+        val lines = mutableListOf<String>()
+        val judge = LocationJudge(listOf(zone), trace = { lines += it })
+
+        judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0, isMock = true), now)
+        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
+
+        assertEquals("GPS fix dropped: mock location", lines[0])
+        assertEquals(
+            "NETWORK fix: ±20 m, 0 ms old, nearest zone center 0 m away, certainly inside a zone",
+            lines[1]
+        )
+        assertEquals("Waiting for GPS", lines[2])
+    }
+
+    @Test
     fun `distance is about right`() {
         // One degree of latitude is about 111.2 km.
         val distance = LocationJudge.distanceMeters(55.0, 37.0, 56.0, 37.0)

@@ -21,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -55,7 +56,8 @@ fun FeatureTestScreen() {
     val wifi = remember { WifiNetworksFeature(context) }
     val connectedBluetooth = remember { BluetoothConnectedDevicesFeature(context) }
     val nearbyBluetooth = remember { NearbyBluetoothDevicesFeature(context) }
-    val location = remember { LocationFeature(context) }
+    val locationTrace = remember { mutableStateListOf<String>() }
+    val location = remember { LocationFeature(context, trace = { line -> locationTrace += line }) }
     val time = remember { TimeFeature(context) }
 
     Scaffold { innerPadding ->
@@ -103,7 +105,14 @@ fun FeatureTestScreen() {
                     label = { Text("Zones: latitude, longitude, radius in meters; one per line") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                FeatureAction(label = "isMeetsCondition") { location.isMeetsCondition(zones.toZones()) }
+                FeatureAction(label = "isMeetsCondition") {
+                    locationTrace.clear()
+                    location.isMeetsCondition(zones.toZones())
+                }
+                if (locationTrace.isNotEmpty()) {
+                    Text(text = "Steps:", style = MaterialTheme.typography.labelMedium)
+                    Text(text = locationTrace.joinToString("\n"), style = MaterialTheme.typography.bodySmall)
+                }
             }
 
             FeatureCard(title = "Time") {
