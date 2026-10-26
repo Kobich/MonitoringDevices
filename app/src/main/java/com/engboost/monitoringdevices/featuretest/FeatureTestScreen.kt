@@ -38,6 +38,7 @@ import com.engboost.monitoringdevices.features.time.TimePeriod
 import com.engboost.monitoringdevices.features.wifi.WifiNetworksFeature
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -57,7 +58,6 @@ fun FeatureTestScreen() {
     val connectedBluetooth = remember { BluetoothConnectedDevicesFeature(context) }
     val nearbyBluetooth = remember { NearbyBluetoothDevicesFeature(context) }
     val locationTrace = remember { mutableStateListOf<String>() }
-    val location = remember { LocationFeature(context, trace = { line -> locationTrace += line }) }
     val time = remember { TimeFeature(context) }
 
     Scaffold { innerPadding ->
@@ -97,7 +97,20 @@ fun FeatureTestScreen() {
             }
 
             FeatureCard(title = "Location") {
-                Text(text = "Up to 20 s per call", style = MaterialTheme.typography.bodySmall)
+                var windowSeconds by remember { mutableStateOf("20") }
+                OutlinedTextField(
+                    value = windowSeconds,
+                    onValueChange = { windowSeconds = it },
+                    label = { Text("Wait for fixes, seconds (GPS without SIM may need 60-180)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                fun location(): LocationFeature {
+                    locationTrace.clear()
+                    val seconds = windowSeconds.toLongOrNull()
+                    require(seconds != null && seconds > 0) { "Wait must be a positive number of seconds" }
+                    return LocationFeature(context, window = seconds.seconds, trace = { line -> locationTrace += line })
+                }
                 var zones by remember { mutableStateOf("55.7558, 37.6173, 100") }
                 OutlinedTextField(
                     value = zones,
@@ -105,14 +118,8 @@ fun FeatureTestScreen() {
                     label = { Text("Zones: latitude, longitude, radius in meters; one per line") },
                     modifier = Modifier.fillMaxWidth()
                 )
-                FeatureAction(label = "getData") {
-                    locationTrace.clear()
-                    location.getData()
-                }
-                FeatureAction(label = "isMeetsCondition") {
-                    locationTrace.clear()
-                    location.isMeetsCondition(zones.toZones())
-                }
+                FeatureAction(label = "getData") { location().getData() }
+                FeatureAction(label = "isMeetsCondition") { location().isMeetsCondition(zones.toZones()) }
                 if (locationTrace.isNotEmpty()) {
                     Text(text = "Steps:", style = MaterialTheme.typography.labelMedium)
                     Text(text = locationTrace.joinToString("\n"), style = MaterialTheme.typography.bodySmall)

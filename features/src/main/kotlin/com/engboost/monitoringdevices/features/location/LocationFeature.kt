@@ -4,6 +4,7 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.GnssStatus
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
@@ -15,6 +16,7 @@ import com.engboost.monitoringdevices.features.DataFeature
 import com.engboost.monitoringdevices.features.UnknownReason
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -22,7 +24,8 @@ import kotlin.time.Duration.Companion.seconds
  *
  * Uses every enabled source: Android's combined location (fused), GPS and network location
  * (Wi-Fi and cell towers). The last known fix of each source is used at once, then new fixes
- * are awaited for up to [LOCATION_WINDOW]. The most accurate fix wins; how fixes are judged is
+ * are awaited for up to [window]. Without a SIM card and internet the first GPS fix outdoors can
+ * take minutes, longer than the default 20 seconds. The most accurate fix wins; how fixes are judged is
  * described in [LocationJudge]. There is no spoofing protection.
  *
  * [getData] returns as soon as a fix is at most [FRESH_SAMPLE_AGE_MILLIS] old, otherwise the best
@@ -32,14 +35,15 @@ import kotlin.time.Duration.Companion.seconds
  * Unknown reasons: [UnknownReason.PERMISSION_DENIED], [UnknownReason.SOURCE_UNAVAILABLE],
  * [UnknownReason.SOURCE_DISABLED], [UnknownReason.NO_DATA], [UnknownReason.NOT_ACCURATE_ENOUGH].
  *
- * [trace] receives a readable line for every step: which sources are available, every fix and the
- * result. Use it for logs and debugging.
+ * [trace] receives a readable line for every step: which sources are available, how many satellites
+ * GPS sees and uses, every fix and the result. Use it for logs and debugging.
  *
  * In the background it needs a foreground service of type `location`.
  */
 @SuppressLint("MissingPermission")
 class LocationFeature(
     context: Context,
+    private val window: Duration = DEFAULT_WINDOW,
     private val trace: (String) -> Unit = {}
 ) : DataFeature<CurrentLocation>,
     ConditionFeature<List<GeoZone>> {
@@ -86,7 +90,7 @@ class LocationFeature(
 
     /**
      * Feeds the last known fix and then new fixes of every enabled source into [judge]
-     * until [stopWhen] returns true or [LOCATION_WINDOW] passes.
+     * until [stopWhen] returns true or [window] passes.
      * Returns null when listening ran, or the reason it could not run.
      */
     private suspend fun listen(judge: LocationJudge, stopWhen: (nowMillis: Long) -> Boolean): UnknownReason? {
@@ -118,6 +122,7 @@ class LocationFeature(
         val request = LocationRequest.Builder(SAMPLE_INTERVAL_MILLIS)
             .setQuality(LocationRequest.QUALITY_HIGH_ACCURACY)
             .build()
+        val gnssCallback = SatelliteTrace().takeIf { LocationManager.GPS_PROVIDER in providers }
 
         return try {
             // The last known fixes come at once, so a recent one can answer without waiting.
@@ -132,8 +137,9 @@ class LocationFeature(
             listeners.forEach { (provider, listener) ->
                 manager.requestLocationUpdates(provider, request, appContext.mainExecutor, listener)
             }
-            trace("Listening to ${providers.joinToString { it.uppercase() }} for up to $LOCATION_WINDOW")
-            withTimeoutOrNull(LOCATION_WINDOW) {
+            gnssCallback?.let { manager.registerGnssStatusCallback(appContext.mainExecutor, it) }
+            trace("Listening to ${providers.joinToString { it.uppercase() }} for up to $window")
+            withTimeoutOrNull(window) {
                 for (sample in samples) {
                     judge.addSample(sample, SystemClock.elapsedRealtime())
                     if (stopWhen(SystemClock.elapsedRealtime())) break
@@ -144,6 +150,27 @@ class LocationFeature(
             UnknownReason.PERMISSION_DENIED
         } finally {
             listeners.values.forEach { runCatching { manager.removeUpdates(it) } }
+            gnssCallback?.let { runCatching { manager.unregisterGnssStatusCallback(it) } }
+        }
+    }
+
+    /** Traces how many satellites GPS sees and uses, only when the numbers change. */
+    private inner class SatelliteTrace : GnssStatus.Callback() {
+        private var lastText: String? = null
+
+        override fun onFirstFix(ttffMillis: Int) {
+            trace("GPS first fix after $ttffMillis ms")
+        }
+
+        override fun onSatelliteStatusChanged(status: GnssStatus) {
+            val indices = 0 until status.satelliteCount
+            val withSignal = indices.count { status.getCn0DbHz(it) > 0 }
+            val usedInFix = indices.count { status.usedInFix(it) }
+            val text = "Satellites: ${status.satelliteCount} visible, $withSignal with signal, $usedInFix used in fix"
+            if (text != lastText) {
+                lastText = text
+                trace(text)
+            }
         }
     }
 
@@ -188,8 +215,8 @@ class LocationFeature(
             LocationManager.NETWORK_PROVIDER
         )
 
-        /** How long one call waits for new fixes at most. */
-        val LOCATION_WINDOW = 20.seconds
+        /** How long one call waits for new fixes at most by default. */
+        val DEFAULT_WINDOW = 20.seconds
 
         /** [getData] returns as soon as it has a fix at most this old. */
         const val FRESH_SAMPLE_AGE_MILLIS = 10_000L
