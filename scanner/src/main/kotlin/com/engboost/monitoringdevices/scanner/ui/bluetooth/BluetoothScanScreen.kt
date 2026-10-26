@@ -7,9 +7,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.engboost.monitoringdevices.scanner.bluetooth.BluetoothScannerApi
 import com.engboost.monitoringdevices.scanner.ui.common.PermissionRequestEffect
-import com.engboost.monitoringdevices.scanner.ui.common.ScanWhileVisibleEffect
+import com.engboost.monitoringdevices.scanner.ui.common.ScreenVisibilityEffect
 
-/** Scans only after Start and only while the screen is visible. */
+/** Scans only after Start and only while the screen is visible; stops 5 seconds after it is hidden. */
 @Composable
 fun BluetoothScanScreen(
     scanner: BluetoothScannerApi,
@@ -18,7 +18,7 @@ fun BluetoothScanScreen(
     val viewModel = viewModel { BluetoothViewModel(scanner) }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    ScanWhileVisibleEffect(scan = viewModel::scanWhileVisible)
+    ScreenVisibilityEffect(onVisibilityChange = viewModel::onScreenVisibilityChange)
     PermissionRequestEffect(
         request = state.permissionRequest,
         onResult = viewModel::onPermissionResult
