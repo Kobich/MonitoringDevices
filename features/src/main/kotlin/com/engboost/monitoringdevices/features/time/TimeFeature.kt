@@ -39,10 +39,10 @@ data class CurrentTime(
  * until the next sync.
  *
  * [getData] always returns the current time and its source; check the source to see how much to trust it.
- * [isMeetsCondition] checks whether the current time is inside the given period. It does not trust
- * manual time.
+ * [isMeetsCondition] checks whether the current time is inside the given period. Manual time
+ * outside the period gives false; manual time inside it is not trusted.
  *
- * Unknown reasons: [UnknownReason.NOT_VERIFIED] (only manual time is available).
+ * Unknown reasons: [UnknownReason.NOT_VERIFIED] (only manual time is available and it is inside the period).
  */
 class TimeFeature(context: Context) :
     DataFeature<CurrentTime>,
@@ -54,8 +54,9 @@ class TimeFeature(context: Context) :
 
     override suspend fun isMeetsCondition(input: TimePeriod): ConditionResult {
         val time = readTime()
-        if (time.source == TimeSource.MANUAL) return ConditionResult.Unknown(UnknownReason.NOT_VERIFIED)
-        return ConditionResult.of(time.instant in input)
+        val isInside = time.instant in input
+        if (isInside && time.source == TimeSource.MANUAL) return ConditionResult.Unknown(UnknownReason.NOT_VERIFIED)
+        return ConditionResult.of(isInside)
     }
 
     private fun readTime(): CurrentTime {

@@ -48,7 +48,7 @@ interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): Condi
 | `READ_FAILED` | система вернула ошибку при чтении или скане | Bluetooth |
 | `NO_DATA` | данных нет: кеш Wi-Fi пуст, нет ни одной координаты не старше 2 минут | Wi-Fi, Location |
 | `NOT_ACCURATE_ENOUGH` | пользователь у границы зоны, погрешность не даёт решить | Location |
-| `NOT_VERIFIED` | время выставлено вручную, а сетевого и спутникового нет | Time |
+| `NOT_VERIFIED` | есть только время, выставленное вручную, и оно внутри периода | Time |
 
 ## LocationFeature
 
@@ -101,4 +101,4 @@ interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): Condi
   ```
 
   Строки в формате ISO 8601 со смещением часового пояса: `+03:00`, `Z` для UTC, можно добавить пояс `[Europe/Moscow]`. Без смещения строка не принимается: непонятно, о каком поясе речь. Пояс телефона не используется.
-* Для проверки периода время, выставленное вручную, не используется: если других источников нет → `Unknown(NOT_VERIFIED)`.
+* Если есть только время, выставленное вручную: вне периода → `False`, внутри → `Unknown(NOT_VERIFIED)`, потому что ручному времени не доверяем.
