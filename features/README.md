@@ -101,5 +101,3 @@ interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): Condi
 
   Строки в формате ISO 8601 со смещением часового пояса: `+03:00`, `Z` для UTC, можно добавить пояс `[Europe/Moscow]`. Без смещения строка не принимается: непонятно, о каком поясе речь. Пояс телефона не используется.
 * Время выставлено вручную, а сетевого и спутникового нет → `Unknown(NOT_VERIFIED)`.
-
-Порядок источников лежит в `TrustedTimeResolver` и покрыт тестами `TrustedTimeResolverTest`.
