@@ -35,15 +35,62 @@ class LocationJudgeTest {
     @Test
     fun `gps far from network several times in a row - sources conflict`() {
         val judge = LocationJudge(listOf(zone))
-        val spoofedGps = sample(LocationSource.GPS, metersNorth = 10_000.0, accuracy = 5.0)
 
-        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 40.0), now)
-        assertNull(judge.addSample(spoofedGps, now))
-        assertNull(judge.addSample(spoofedGps, now))
-        assertEquals(
-            ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT),
-            judge.addSample(spoofedGps, now)
+        for (step in 0 until LocationJudge.CONFLICT_CONFIRMATIONS) {
+            val time = now - 3_000 + step * 1_000L
+            judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 40.0, time = time), now)
+            val result = judge.addSample(
+                sample(LocationSource.GPS, metersNorth = 10_000.0, accuracy = 5.0, time = time),
+                now
+            )
+            if (step < LocationJudge.CONFLICT_CONFIRMATIONS - 1) {
+                assertNull(result)
+            } else {
+                assertEquals(ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT), result)
+            }
+        }
+    }
+
+    @Test
+    fun `one bad network fix is not counted as several conflicts`() {
+        val judge = LocationJudge(listOf(zone))
+
+        judge.addSample(sample(LocationSource.NETWORK, metersNorth = 5_000.0, accuracy = 40.0), now)
+        repeat(5) { step ->
+            val gps = sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0, time = now - step)
+            assertNull(judge.addSample(gps, now))
+        }
+    }
+
+    @Test
+    fun `gps inside while network is certainly outside - not trusted`() {
+        val judge = LocationJudge(listOf(zone))
+
+        // The 9 seconds between the fixes allow 270 m of movement, so they are not too far apart,
+        // but GPS says inside and network says outside.
+        judge.addSample(
+            sample(LocationSource.NETWORK, metersNorth = 200.0, accuracy = 20.0, time = now - 9_000),
+            now
         )
+        assertNull(judge.addSample(sample(LocationSource.GPS, metersNorth = 0.0, accuracy = 5.0), now))
+        assertEquals(ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT), judge.finalResult(now))
+    }
+
+    @Test
+    fun `without gps provider network decides at once`() {
+        val judge = LocationJudge(listOf(zone), isGpsExpected = false)
+
+        assertEquals(
+            ConditionResult.True,
+            judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now)
+        )
+    }
+
+    @Test
+    fun `with gps provider network waits for gps`() {
+        val judge = LocationJudge(listOf(zone))
+
+        assertNull(judge.addSample(sample(LocationSource.NETWORK, metersNorth = 0.0, accuracy = 20.0), now))
     }
 
     @Test

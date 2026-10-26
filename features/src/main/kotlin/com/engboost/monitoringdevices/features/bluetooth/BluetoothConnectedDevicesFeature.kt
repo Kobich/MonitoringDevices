@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.seconds
  * [isMeetsCondition] checks whether a device with one of the given names is connected.
  *
  * Unknown reasons: [UnknownReason.SOURCE_UNAVAILABLE], [UnknownReason.SOURCE_DISABLED],
- * [UnknownReason.PERMISSION_DENIED].
+ * [UnknownReason.PERMISSION_DENIED], [UnknownReason.READ_FAILED].
  */
 @SuppressLint("MissingPermission")
 class BluetoothConnectedDevicesFeature(context: Context) :
@@ -63,6 +63,8 @@ class BluetoothConnectedDevicesFeature(context: Context) :
             Reading.Success(devices)
         } catch (error: SecurityException) {
             Reading.Failure(UnknownReason.PERMISSION_DENIED)
+        } catch (error: ProfileReadException) {
+            Reading.Failure(UnknownReason.READ_FAILED)
         }
     }
 
@@ -95,8 +97,12 @@ class BluetoothConnectedDevicesFeature(context: Context) :
                 }
             }
         }
-        return result?.getOrThrow().orEmpty()
+        return result
+            ?.getOrElse { error -> throw error as? SecurityException ?: ProfileReadException(error) }
+            .orEmpty()
     }
+
+    private class ProfileReadException(cause: Throwable) : Exception(cause)
 
     private fun BluetoothDevice.toConnectedDevice() = BluetoothConnectedDevice(
         name = name?.takeIf { it.isNotEmpty() },

@@ -1,6 +1,9 @@
 package com.engboost.monitoringdevices.features.wifi
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.LocationManager
 import android.net.wifi.ScanResult
 import android.net.wifi.WifiManager
 import com.engboost.monitoringdevices.features.ConditionFeature
@@ -17,13 +20,14 @@ import com.engboost.monitoringdevices.features.valueOrNull
  * [isMeetsCondition] checks whether any network with one of the given names (SSID) is detected.
  *
  * Unknown reasons: [UnknownReason.SOURCE_UNAVAILABLE], [UnknownReason.PERMISSION_DENIED],
- * [UnknownReason.NO_DATA] (the cache is empty).
+ * [UnknownReason.SOURCE_DISABLED] (Wi-Fi or location is off), [UnknownReason.NO_DATA] (the cache is empty).
  */
 class WifiNetworksFeature(context: Context) :
     DataFeature<List<WifiNetwork>>,
     ConditionFeature<List<String>> {
 
-    private val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java)
+    private val appContext = context.applicationContext
+    private val wifiManager = appContext.getSystemService(WifiManager::class.java)
 
     override suspend fun getData(): List<WifiNetwork>? = readNetworks().valueOrNull()
 
@@ -41,8 +45,19 @@ class WifiNetworksFeature(context: Context) :
         return ConditionResult.of(input.any { it in detectedNames })
     }
 
+    /**
+     * Without location permission or with location off, Android returns an empty list instead of
+     * an error, so these are checked first to tell them apart from an empty cache.
+     */
     private fun readNetworks(): Reading<List<WifiNetwork>> {
         val manager = wifiManager ?: return Reading.Failure(UnknownReason.SOURCE_UNAVAILABLE)
+        if (appContext.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            return Reading.Failure(UnknownReason.PERMISSION_DENIED)
+        }
+        if (!manager.isWifiEnabled) return Reading.Failure(UnknownReason.SOURCE_DISABLED)
+        if (appContext.getSystemService(LocationManager::class.java)?.isLocationEnabled != true) {
+            return Reading.Failure(UnknownReason.SOURCE_DISABLED)
+        }
         return try {
             Reading.Success(manager.scanResults.map { it.toWifiNetwork() })
         } catch (error: SecurityException) {

@@ -19,19 +19,25 @@ import kotlin.math.sqrt
  *   [ACCURACY_FACTOR] (about 95%). Below, "accuracy" means this multiplied value.
  * - A sample is certainly inside a zone when `distance + accuracy <= radius`,
  *   certainly outside when `distance - accuracy > radius`, otherwise unclear.
- * - GPS and network are checked against each other. They disagree when the distance between them
- *   is larger than their accuracies together plus how far the user could move between the two
- *   fixes at [MAX_USER_SPEED_METERS_PER_SECOND]. GPS can be spoofed, network location is not
- *   affected by GPS jamming.
- * - A single disagreement may be a bad fix, so it only pauses the decision. Only
+ * - GPS and network are checked against each other. GPS can be spoofed, network location is not
+ *   affected by GPS jamming. They disagree when one is certainly inside and the other certainly
+ *   outside, or when the distance between them is larger than their accuracies together plus how
+ *   far the user could move between the two fixes at [MAX_USER_SPEED_METERS_PER_SECOND].
+ * - A single disagreement may be a bad fix, so it only pauses the decision. A disagreement counts
+ *   again only when both samples are new, so one bad fix is not counted several times.
  *   [CONFLICT_CONFIRMATIONS] disagreements in a row, or a disagreement when the window is over,
  *   give [UnknownReason.SOURCES_CONFLICT].
  * - GPS alone is never trusted ([UnknownReason.NOT_VERIFIED]); network alone is.
+ *   When GPS cannot arrive at all ([isGpsExpected] is false), network decides without waiting.
  */
-internal class LocationJudge(private val zones: List<GeoZone>) {
+internal class LocationJudge(
+    private val zones: List<GeoZone>,
+    private val isGpsExpected: Boolean = true
+) {
     private val latest = mutableMapOf<LocationSource, LocationSample>()
     private var isMockReceived = false
     private var conflictsInRow = 0
+    private var lastCountedConflict: Pair<LocationSample, LocationSample>? = null
 
     /** Adds [sample] and returns the result once it is certain, or null to keep waiting. */
     fun addSample(sample: LocationSample, nowMillis: Long): ConditionResult? {
@@ -42,10 +48,12 @@ internal class LocationJudge(private val zones: List<GeoZone>) {
         if (sample.isStale(nowMillis)) return null
         latest[sample.source] = sample
 
-        val gps = freshSample(LocationSource.GPS, nowMillis) ?: return null
         val network = freshSample(LocationSource.NETWORK, nowMillis) ?: return null
-        if (isConflict(gps, network)) {
-            conflictsInRow++
+        val gps = freshSample(LocationSource.GPS, nowMillis)
+            ?: return if (isGpsExpected) null else certainResult(network)
+
+        if (isDisagreement(gps, network)) {
+            countDisagreement(gps, network)
             return if (conflictsInRow >= CONFLICT_CONFIRMATIONS) {
                 ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT)
             } else {
@@ -53,6 +61,7 @@ internal class LocationJudge(private val zones: List<GeoZone>) {
             }
         }
         conflictsInRow = 0
+        lastCountedConflict = null
         return certainResult(gps) ?: certainResult(network)
     }
 
@@ -62,7 +71,7 @@ internal class LocationJudge(private val zones: List<GeoZone>) {
         val network = freshSample(LocationSource.NETWORK, nowMillis)
         return when {
             gps != null && network != null -> when {
-                isConflict(gps, network) -> ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT)
+                isDisagreement(gps, network) -> ConditionResult.Unknown(UnknownReason.SOURCES_CONFLICT)
                 else -> certainResult(gps)
                     ?: certainResult(network)
                     ?: ConditionResult.Unknown(UnknownReason.NOT_ACCURATE_ENOUGH)
@@ -88,7 +97,22 @@ internal class LocationJudge(private val zones: List<GeoZone>) {
     private val LocationSample.accuracy: Double
         get() = accuracyMeters * ACCURACY_FACTOR
 
-    private fun isConflict(gps: LocationSample, network: LocationSample): Boolean {
+    private fun isDisagreement(gps: LocationSample, network: LocationSample): Boolean {
+        val gpsResult = certainResult(gps)
+        val networkResult = certainResult(network)
+        if (gpsResult != null && networkResult != null && gpsResult != networkResult) return true
+        return isTooFarApart(gps, network)
+    }
+
+    private fun countDisagreement(gps: LocationSample, network: LocationSample) {
+        val last = lastCountedConflict
+        if (last == null || (last.first != gps && last.second != network)) {
+            conflictsInRow++
+            lastCountedConflict = gps to network
+        }
+    }
+
+    private fun isTooFarApart(gps: LocationSample, network: LocationSample): Boolean {
         val distance = distanceMeters(gps.latitude, gps.longitude, network.latitude, network.longitude)
         val timeGapSeconds = abs(gps.elapsedRealtimeMillis - network.elapsedRealtimeMillis) / 1_000.0
         val possibleMovement = timeGapSeconds * MAX_USER_SPEED_METERS_PER_SECOND

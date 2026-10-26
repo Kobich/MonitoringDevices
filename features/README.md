@@ -31,24 +31,26 @@ interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): Condi
 |---|---|---|
 | `WifiNetworksFeature` | `ACCESS_FINE_LOCATION` | `ACCESS_WIFI_STATE` (выдаётся без запроса) |
 | `BluetoothConnectedDevicesFeature` | `BLUETOOTH_CONNECT` | |
-| `NearbyBluetoothDevicesFeature` | `BLUETOOTH_SCAN` | `BLUETOOTH_CONNECT` по желанию: без него имя берётся только из эфира |
+| `NearbyBluetoothDevicesFeature` | `BLUETOOTH_SCAN`, `ACCESS_FINE_LOCATION` | `BLUETOOTH_CONNECT` по желанию: без него имя берётся только из эфира |
 | `LocationFeature` | `ACCESS_FINE_LOCATION` (запрашивается вместе с `ACCESS_COARSE_LOCATION`) | в фоне — foreground service типа `location` |
 | `TimeFeature` | нет | |
+
+Без геолокации `NearbyBluetoothDevicesFeature` не работает: `BLUETOOTH_SCAN` объявлен без флага `neverForLocation`, и без разрешения на геолокацию Android молча выбрасывает все результаты скана. `WifiNetworksFeature` дополнительно требует включённые Wi-Fi и геолокацию: без них Android отдаёт пустой кеш вместо ошибки, поэтому фича проверяет их сама.
 
 ## Причины `Unknown`
 
 | `UnknownReason` | Когда | Фичи |
 |---|---|---|
 | `PERMISSION_DENIED` | не выдано runtime-разрешение | все, кроме Time |
-| `SOURCE_DISABLED` | выключен Bluetooth или геолокация | Bluetooth, Location |
+| `SOURCE_DISABLED` | выключен Wi-Fi, Bluetooth или геолокация | Wi-Fi, Bluetooth, Location |
 | `SOURCE_UNAVAILABLE` | на устройстве нет нужного железа или сервиса | все, кроме Time |
 | `TOO_FREQUENT` | предыдущий скан запущен меньше 30 сек назад | Nearby Bluetooth |
-| `READ_FAILED` | система вернула ошибку скана | Nearby Bluetooth |
+| `READ_FAILED` | система вернула ошибку при чтении или скане | Bluetooth |
 | `NO_DATA` | данных нет: кеш Wi-Fi пуст, за 20 сек не пришло ни одной координаты | Wi-Fi, Location |
 | `MOCK_DATA` | пришли только поддельные координаты (`isMock`) | Location |
 | `NOT_ACCURATE_ENOUGH` | пользователь у границы зоны, погрешность не даёт решить | Location |
 | `SOURCES_CONFLICT` | GPS и сеть показывают разные места, возможна подмена GPS | Location |
-| `NOT_VERIFIED` | ответил только GPS, сверить не с чем; время выставлено вручную и нет сетевого и спутникового | Location, Time |
+| `NOT_VERIFIED` | ответил только GPS или сетевая геолокация недоступна, сверить не с чем; время выставлено вручную и нет сетевого и спутникового | Location, Time |
 
 ## LocationFeature
 
@@ -66,9 +68,10 @@ interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): Condi
 Порядок проверки:
 
 1. Зон нет → `False`. Нет разрешения → `PERMISSION_DENIED`. Геолокация выключена → `SOURCE_DISABLED`. Геолокация включена, но ни GPS, ни сеть недоступны → `SOURCE_UNAVAILABLE`.
+   Сетевая геолокация недоступна → сразу `NOT_VERIFIED`: одному GPS не доверяем, и включать его незачем. GPS недоступен → решаем по одной сети, не дожидаясь GPS.
 2. Ждём координаты до 20 сек. Поддельные, старше 10 сек и без погрешности пропускаем.
-3. Когда есть координаты от обоих источников, сверяем их. Они расходятся, если расстояние между ними больше суммы их погрешностей плюс путь, который пользователь мог проехать между двумя замерами (до 30 м/с, около 108 км/ч):
-   * расходятся 3 раза подряд → `SOURCES_CONFLICT`, стоп;
+3. Когда есть координаты от обоих источников, сверяем их. Они расходятся, если одна точно внутри зоны, а другая точно снаружи, или если расстояние между ними больше суммы их погрешностей плюс путь, который пользователь мог проехать между двумя замерами (до 30 м/с, около 108 км/ч):
+   * расходятся 3 раза подряд → `SOURCES_CONFLICT`, стоп. Расхождение засчитывается заново, только когда обе точки новые, поэтому одна плохая точка не считается несколько раз;
    * расходятся, но реже → ждём следующий замер, первая точка GPS бывает плохой;
    * не расходятся и хотя бы одна точно внутри зоны или точно снаружи → `True` / `False`, стоп.
 4. Прошло 20 сек без уверенного ответа:

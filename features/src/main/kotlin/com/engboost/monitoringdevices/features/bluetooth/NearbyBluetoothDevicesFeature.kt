@@ -77,7 +77,10 @@ class NearbyBluetoothDevicesFeature(context: Context) :
         filters: List<ScanFilter>,
         stopWhen: (NearbyBluetoothDevice) -> Boolean
     ): UnknownReason? {
-        if (appContext.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) != PackageManager.PERMISSION_GRANTED) {
+        // BLUETOOTH_SCAN is declared without neverForLocation, so without location permission
+        // the scan runs but Android silently drops every result.
+        val permissions = listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (permissions.any { appContext.checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }) {
             return UnknownReason.PERMISSION_DENIED
         }
         val adapter = bluetoothAdapter ?: return UnknownReason.SOURCE_UNAVAILABLE

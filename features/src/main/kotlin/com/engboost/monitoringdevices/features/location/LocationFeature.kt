@@ -44,8 +44,12 @@ class LocationFeature(context: Context) : ConditionFeature<List<GeoZone>> {
 
         val providers = PROVIDERS.filter { manager.hasProvider(it) && manager.isProviderEnabled(it) }
         if (providers.isEmpty()) return ConditionResult.Unknown(UnknownReason.SOURCE_UNAVAILABLE)
+        // GPS alone is never trusted, so without network location there is no point in turning GPS on.
+        if (LocationManager.NETWORK_PROVIDER !in providers) {
+            return ConditionResult.Unknown(UnknownReason.NOT_VERIFIED)
+        }
 
-        val judge = LocationJudge(input)
+        val judge = LocationJudge(input, isGpsExpected = LocationManager.GPS_PROVIDER in providers)
         val samples = Channel<LocationSample>(Channel.UNLIMITED)
         val listeners = providers.associateWith { provider ->
             LocationListener { location -> location.toSample(provider)?.let { samples.trySend(it) } }
