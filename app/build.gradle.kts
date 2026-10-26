@@ -39,6 +39,7 @@ android {
 
 dependencies {
     implementation(project(":scanner"))
+    implementation(project(":features"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
