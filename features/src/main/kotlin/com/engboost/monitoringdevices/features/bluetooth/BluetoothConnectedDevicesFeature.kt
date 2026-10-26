@@ -38,6 +38,8 @@ class BluetoothConnectedDevicesFeature(context: Context) :
     override suspend fun getData(): List<BluetoothConnectedDevice>? = readConnectedDevices().valueOrNull()
 
     override suspend fun isMeetsCondition(input: List<String>): ConditionResult {
+        if (input.isEmpty()) return ConditionResult.False
+
         val connected = when (val reading = readConnectedDevices()) {
             is Reading.Failure -> return ConditionResult.Unknown(reading.reason)
             is Reading.Success -> reading.value

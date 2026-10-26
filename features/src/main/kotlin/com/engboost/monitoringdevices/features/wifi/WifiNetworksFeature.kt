@@ -28,6 +28,8 @@ class WifiNetworksFeature(context: Context) :
     override suspend fun getData(): List<WifiNetwork>? = readNetworks().valueOrNull()
 
     override suspend fun isMeetsCondition(input: List<String>): ConditionResult {
+        if (input.isEmpty()) return ConditionResult.False
+
         val detected = when (val reading = readNetworks()) {
             is Reading.Failure -> return ConditionResult.Unknown(reading.reason)
             is Reading.Success -> reading.value
