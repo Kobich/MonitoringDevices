@@ -26,19 +26,11 @@ internal class BluetoothViewModel(
     private val mutableUiState = MutableStateFlow(BluetoothUiState())
     val uiState: StateFlow<BluetoothUiState> = mutableUiState.asStateFlow()
 
-    /** Becomes false only [SCAN_STOP_DELAY] after the screen is hidden. */
     private val isScreenVisible = MutableStateFlow(false)
     private var hideJob: Job? = null
 
-    /**
-     * Scans while the status is [ScanStatus.Scanning] and the screen is visible.
-     *
-     * The status is the only source of truth: Start and Stop change it, and a terminal scan event
-     * replaces it, which cancels the scan.
-     *
-     * The scan lives in the view model, not in the screen, so recreating the screen on rotation
-     * does not restart it. Restarting within 8 seconds would hit the scanner's start limit.
-     */
+    // The status is the only source of truth: Start, Stop and a terminal scan event change it.
+    // The scan lives here, not in the screen, so a rotation does not restart it and hit the start limit.
     init {
         viewModelScope.launch {
             combine(
@@ -67,7 +59,6 @@ internal class BluetoothViewModel(
         }
     }
 
-    /** A short hide, such as a rotation, keeps the scan running. */
     fun onScreenVisibilityChange(isVisible: Boolean) {
         hideJob?.cancel()
         if (isVisible) {
@@ -113,8 +104,7 @@ internal class BluetoothViewModel(
     }
 
     private companion object {
-        // Equal to the scanner's start limit: the scan stops at least 8 seconds after it started,
-        // so coming back to the screen can never restart it too early.
+        // Equal to the scanner's start limit, so coming back to the screen never restarts it too early.
         val SCAN_STOP_DELAY = 8.seconds
     }
 }

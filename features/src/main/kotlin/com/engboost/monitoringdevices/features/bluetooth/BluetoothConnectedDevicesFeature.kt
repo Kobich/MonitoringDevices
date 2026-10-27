@@ -18,14 +18,8 @@ import kotlin.coroutines.resume
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Bluetooth devices that are connected right now (not just bonded):
- * audio profiles (headset, A2DP, hearing aid, LE audio) and GATT connections.
- *
- * [getData] returns null when Bluetooth is unavailable, turned off or permissions are missing.
- * [isMeetsCondition] checks whether a device with one of the given names is connected.
- *
- * Unknown reasons: [UnknownReason.SOURCE_UNAVAILABLE], [UnknownReason.SOURCE_DISABLED],
- * [UnknownReason.PERMISSION_DENIED], [UnknownReason.READ_FAILED].
+ * Devices connected right now, not just bonded. Android has no single call for this, so it asks the
+ * audio profiles and GATT. HID devices (keyboards, mice) are not covered.
  */
 @SuppressLint("MissingPermission")
 class BluetoothConnectedDevicesFeature(context: Context) :
@@ -75,7 +69,7 @@ class BluetoothConnectedDevicesFeature(context: Context) :
         BluetoothProfile.LE_AUDIO
     )
 
-    /** Profile proxy is delivered asynchronously, so wait for it with a timeout. */
+    // A profile that does not answer in time is treated as having no devices.
     private suspend fun readConnectedDevices(
         adapter: BluetoothAdapter,
         profile: Int

@@ -13,15 +13,7 @@ import com.engboost.monitoringdevices.features.Reading
 import com.engboost.monitoringdevices.features.UnknownReason
 import com.engboost.monitoringdevices.features.valueOrNull
 
-/**
- * Wi-Fi networks from the system scan cache. Does not start a new scan.
- *
- * [getData] returns null when Wi-Fi is unavailable or permissions are missing.
- * [isMeetsCondition] checks whether any network with one of the given names (SSID) is detected.
- *
- * Unknown reasons: [UnknownReason.SOURCE_UNAVAILABLE], [UnknownReason.PERMISSION_DENIED],
- * [UnknownReason.SOURCE_DISABLED] (Wi-Fi or location is off), [UnknownReason.NO_DATA] (the cache is empty).
- */
+/** Wi-Fi networks from the system scan cache; never starts a scan. Matches by SSID. */
 class WifiNetworksFeature(context: Context) :
     DataFeature<List<WifiNetwork>>,
     ConditionFeature<List<String>> {
@@ -45,10 +37,8 @@ class WifiNetworksFeature(context: Context) :
         return ConditionResult.of(input.any { it in detectedNames })
     }
 
-    /**
-     * Without location permission or with location off, Android returns an empty list instead of
-     * an error, so these are checked first to tell them apart from an empty cache.
-     */
+    // Without location permission or with location off Android returns an empty list, not an error,
+    // so these are checked first to tell them apart from an empty cache.
     private fun readNetworks(): Reading<List<WifiNetwork>> {
         val manager = wifiManager ?: return Reading.Failure(UnknownReason.SOURCE_UNAVAILABLE)
         if (appContext.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {

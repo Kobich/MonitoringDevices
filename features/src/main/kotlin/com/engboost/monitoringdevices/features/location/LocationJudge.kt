@@ -10,19 +10,10 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * Keeps the latest fix of every source and decides whether the user is inside any of [zones].
- * Plain Kotlin without Android, so the rules can be unit tested.
+ * Location rules, kept free of Android so they can be unit tested.
  *
- * Rules:
- * - Fixes older than [MAX_SAMPLE_AGE_MILLIS] are dropped.
- * - Every fix gets an effective accuracy: Android accuracy (about 68% confidence) times
- *   [ACCURACY_FACTOR] (about 95%), plus how far the user could have walked since the fix was
- *   taken at [WALKING_SPEED_METERS_PER_SECOND]. An old fix is still used, it is just less certain.
- * - The best fix is the one with the smallest effective accuracy right now.
- * - The best fix is certainly inside a zone when `distance + accuracy <= radius`,
- *   certainly outside when `distance - accuracy > radius`, otherwise unclear.
- *
- * Every step is reported to [trace] as a readable line.
+ * Effective accuracy = accuracy × [ACCURACY_FACTOR] + walking distance since the fix. The fix with the
+ * smallest one wins. Inside when `distance + accuracy <= radius`, outside when `distance - accuracy > radius`.
  */
 internal class LocationJudge(
     private val zones: List<GeoZone>,
@@ -50,20 +41,18 @@ internal class LocationJudge(
         )
     }
 
-    /** The fix with the smallest effective accuracy right now, or null if there is none. */
     fun bestSample(nowMillis: Long): LocationSample? {
         return latest.values
             .filter { it.ageMillis(nowMillis) <= MAX_SAMPLE_AGE_MILLIS }
             .minByOrNull { effectiveAccuracy(it, nowMillis) }
     }
 
-    /** True or false once the best fix is certain, otherwise null. */
+    /** Null while the best fix is not certain. */
     fun certainResult(nowMillis: Long): ConditionResult? {
         val best = bestSample(nowMillis) ?: return null
         return certainResult(best, nowMillis)
     }
 
-    /** The result when the waiting window is over. */
     fun finalResult(nowMillis: Long): ConditionResult {
         val best = bestSample(nowMillis) ?: return ConditionResult.Unknown(UnknownReason.NO_DATA)
         return certainResult(best, nowMillis) ?: ConditionResult.Unknown(UnknownReason.NOT_ACCURATE_ENOUGH)
@@ -76,7 +65,6 @@ internal class LocationJudge(
         return sample.accuracyMeters * ACCURACY_FACTOR + ageSeconds * WALKING_SPEED_METERS_PER_SECOND
     }
 
-    /** True if certainly inside any zone, false if certainly outside all of them, null if unclear. */
     private fun certainResult(sample: LocationSample, nowMillis: Long): ConditionResult? {
         val accuracy = effectiveAccuracy(sample, nowMillis)
         val distances = zones.map { zone ->
@@ -100,13 +88,11 @@ internal class LocationJudge(
     }
 
     companion object {
-        /** A fix older than this is not used at all. */
         const val MAX_SAMPLE_AGE_MILLIS = 120_000L
 
-        /** Turns Android accuracy (about 68% confidence) into about 95% confidence. */
+        /** Android accuracy has about 68% confidence; doubled it is about 95%. */
         const val ACCURACY_FACTOR = 2.0
 
-        /** How fast the user is assumed to move since an old fix was taken, about 5 km/h. */
         const val WALKING_SPEED_METERS_PER_SECOND = 1.5
 
         private const val EARTH_RADIUS_METERS = 6_371_000.0

@@ -1,17 +1,16 @@
 package com.engboost.monitoringdevices.features.location
 
 enum class LocationSource {
-    /** Android's combined location: satellites, Wi-Fi, cell towers and sensors. */
+    /** Android's combination of satellites, Wi-Fi, cell towers and sensors. */
     FUSED,
 
-    /** Satellites only. */
     GPS,
 
-    /** Wi-Fi access points and cell towers. */
+    /** Wi-Fi and cell towers; needs internet. */
     NETWORK
 }
 
-/** One location fix. [accuracyMeters] is the radius the real position is within with about 68% confidence. */
+/** [accuracyMeters] is Android's accuracy: about 68% confidence, not a hard bound. */
 internal data class LocationSample(
     val source: LocationSource,
     val latitude: Double,

@@ -19,18 +19,11 @@ import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Nearby Bluetooth LE devices. Each call runs a short scan of up to [SCAN_WINDOW].
+ * Every call runs its own BLE scan of up to [SCAN_WINDOW], at most once per 30 seconds.
  *
- * [getData] scans without a filter, so it finds nothing while the screen is off.
- * Returns null when the scan could not run.
- * [isMeetsCondition] scans with a filter by the given names and stops as soon as one is found,
- * so it also works while the screen is off. Matches only the name the device advertises.
- *
- * Scans start at most once per [MIN_SCAN_START_INTERVAL_MILLIS]; a call made earlier
- * gets null or [UnknownReason.TOO_FREQUENT].
- *
- * Unknown reasons: [UnknownReason.PERMISSION_DENIED], [UnknownReason.SOURCE_UNAVAILABLE],
- * [UnknownReason.SOURCE_DISABLED], [UnknownReason.TOO_FREQUENT], [UnknownReason.READ_FAILED].
+ * [getData] scans without a filter, which gets no results while the screen is off.
+ * [isMeetsCondition] filters by name and stops at the first match, so it works with the screen off.
+ * Many devices do not advertise a name and cannot be found this way.
  */
 @SuppressLint("MissingPermission")
 class NearbyBluetoothDevicesFeature(context: Context) :
@@ -68,17 +61,13 @@ class NearbyBluetoothDevicesFeature(context: Context) :
         return if (failure != null) ConditionResult.Unknown(failure) else ConditionResult.of(isFound)
     }
 
-    /**
-     * Calls [stopWhen] for every found device and scans until it returns true
-     * or [SCAN_WINDOW] passes.
-     * Returns null when the scan ran, or the reason it could not run or failed.
-     */
+    /** Returns null when the scan ran, otherwise why it could not. */
     private suspend fun scan(
         filters: List<ScanFilter>,
         stopWhen: (NearbyBluetoothDevice) -> Boolean
     ): UnknownReason? {
-        // BLUETOOTH_SCAN is declared without neverForLocation, so without location permission
-        // the scan runs but Android silently drops every result.
+        // BLUETOOTH_SCAN has no neverForLocation flag: without location permission Android
+        // silently drops every result.
         val permissions = listOf(Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.ACCESS_FINE_LOCATION)
         if (permissions.any { appContext.checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED }) {
             return UnknownReason.PERMISSION_DENIED
@@ -123,7 +112,7 @@ class NearbyBluetoothDevicesFeature(context: Context) :
     }
 
     private fun ScanResult.toNearbyDevice() = NearbyBluetoothDevice(
-        // The advertised name needs no permission and is what the scan filter matches.
+        // The scan filter matches the advertised name, which also needs no permission.
         name = scanRecord?.deviceName?.takeIf { it.isNotBlank() }
             ?: runCatching { device.name }.getOrNull()?.takeIf { it.isNotBlank() },
         address = device.address,
@@ -135,12 +124,11 @@ class NearbyBluetoothDevicesFeature(context: Context) :
     private companion object {
         val SCAN_WINDOW = 10.seconds
 
-        // Android allows 5 BLE scan starts per 30 seconds per app. The scanner screen takes up
-        // to 4 of them, this feature takes 1. Shared by all instances because the limit is per app.
+        // Android allows 5 BLE scan starts per 30 s per app. The scanner screen takes up to 4,
+        // this feature 1. Keep both limits in sync. Static because the limit is per app.
         const val MIN_SCAN_START_INTERVAL_MILLIS = 30_000L
         var lastScanStartMillis: Long? = null
 
-        /** Reserves a scan start, or returns false if the previous one was too recent. */
         @Synchronized
         fun tryReserveScanStart(): Boolean {
             val nowMillis = SystemClock.elapsedRealtime()

@@ -20,25 +20,13 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Current location and whether the user is inside any of the given zones.
+ * Listens to fused, GPS and network location at once, starting from their last known fixes, for up
+ * to [window]; returns as soon as the answer is clear. Rules are in [LocationJudge]. No spoofing protection.
  *
- * Uses every enabled source: Android's combined location (fused), GPS and network location
- * (Wi-Fi and cell towers). The last known fix of each source is used at once, then new fixes
- * are awaited for up to [window]. Without a SIM card and internet the first GPS fix outdoors can
- * take minutes, longer than the default 20 seconds. The most accurate fix wins; how fixes are judged is
- * described in [LocationJudge]. There is no spoofing protection.
- *
- * [getData] returns as soon as a fix is at most [FRESH_SAMPLE_AGE_MILLIS] old, otherwise the best
- * fix when the window is over, or null if there is none.
- * [isMeetsCondition] returns as soon as the best fix is certain.
- *
- * Unknown reasons: [UnknownReason.PERMISSION_DENIED], [UnknownReason.SOURCE_UNAVAILABLE],
- * [UnknownReason.SOURCE_DISABLED], [UnknownReason.NO_DATA], [UnknownReason.NOT_ACCURATE_ENOUGH].
- *
- * [trace] receives a readable line for every step: which sources are available, how many satellites
- * GPS sees and uses, every fix and the result. Use it for logs and debugging.
- *
+ * Without a SIM card and internet the first GPS fix can take minutes, longer than the default window.
  * In the background it needs a foreground service of type `location`.
+ *
+ * [trace] gets a readable line per step (sources, satellites, fixes, result) for logs and debugging.
  */
 @SuppressLint("MissingPermission")
 class LocationFeature(
@@ -88,11 +76,7 @@ class LocationFeature(
         return result
     }
 
-    /**
-     * Feeds the last known fix and then new fixes of every enabled source into [judge]
-     * until [stopWhen] returns true or [window] passes.
-     * Returns null when listening ran, or the reason it could not run.
-     */
+    /** Returns null when listening ran, otherwise why it could not. */
     private suspend fun listen(judge: LocationJudge, stopWhen: (nowMillis: Long) -> Boolean): UnknownReason? {
         if (appContext.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             trace("ACCESS_FINE_LOCATION is not granted")
@@ -125,7 +109,7 @@ class LocationFeature(
         val gnssCallback = SatelliteTrace().takeIf { LocationManager.GPS_PROVIDER in providers }
 
         return try {
-            // The last known fixes come at once, so a recent one can answer without waiting.
+            // A recent last known fix can answer without waiting.
             trace("Last known fixes:")
             providers.forEach { provider ->
                 val sample = manager.getLastKnownLocation(provider)?.toSample(provider)
@@ -160,7 +144,6 @@ class LocationFeature(
         }
     }
 
-    /** Traces how many satellites GPS sees and uses, only when the numbers change. */
     private inner class SatelliteTrace : GnssStatus.Callback() {
         private var lastText: String? = null
 
@@ -229,10 +212,8 @@ class LocationFeature(
             LocationManager.NETWORK_PROVIDER
         )
 
-        /** How long one call waits for new fixes at most by default. */
         val DEFAULT_WINDOW = 20.seconds
 
-        /** [getData] returns as soon as it has a fix at most this old. */
         const val FRESH_SAMPLE_AGE_MILLIS = 10_000L
 
         const val SAMPLE_INTERVAL_MILLIS = 1_000L

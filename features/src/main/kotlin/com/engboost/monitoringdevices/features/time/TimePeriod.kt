@@ -5,10 +5,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 
 /**
- * Time period from [start] inclusive to [end] exclusive.
- *
- * Both are ISO 8601 strings with a time zone offset, for example `2026-10-24T09:00:00+03:00`,
- * `2026-10-24T06:00:00Z` or `2026-10-24T09:00:00+03:00[Europe/Moscow]`.
+ * [start] inclusive, [end] exclusive. ISO 8601 with an offset, for example `2026-10-24T09:00:00+03:00`;
+ * the phone's time zone is never used.
  */
 data class TimePeriod(
     val start: String,

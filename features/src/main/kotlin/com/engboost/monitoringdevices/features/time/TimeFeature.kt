@@ -12,16 +12,13 @@ import java.time.DateTimeException
 import java.time.Instant
 
 enum class TimeSource {
-    /** Time synced from the internet (NTP). */
     NETWORK,
 
-    /** Time from satellites (GNSS). */
     GNSS,
 
-    /** System clock while automatic time is on. The user can still bypass it. */
+    /** System clock with automatic time on. Still possible to bypass. */
     SYSTEM,
 
-    /** System clock set manually by the user: it can be anything. */
     MANUAL
 }
 
@@ -31,18 +28,11 @@ data class CurrentTime(
 )
 
 /**
- * Current time from the most trusted source: network, then satellites, then the system clock
- * while automatic time is on, and as the last resort the system clock set manually.
+ * Sources in order of trust: network, satellites, system clock with automatic time, manual clock.
+ * Network and satellite time count from their last sync, so changing the clock does not affect them;
+ * after a reboot they are gone until the next sync.
  *
- * Network and satellite time keep counting from their last sync with an internal timer,
- * so changing the clock in the settings does not affect them. They are lost after a reboot
- * until the next sync.
- *
- * [getData] always returns the current time and its source; check the source to see how much to trust it.
- * [isMeetsCondition] checks whether the current time is inside the given period. Manual time
- * outside the period gives false; manual time inside it is not trusted.
- *
- * Unknown reasons: [UnknownReason.NOT_VERIFIED] (only manual time is available and it is inside the period).
+ * Manual time outside the period gives false, inside it gives [UnknownReason.NOT_VERIFIED].
  */
 class TimeFeature(context: Context) :
     DataFeature<CurrentTime>,
@@ -66,7 +56,7 @@ class TimeFeature(context: Context) :
         return CurrentTime(Instant.now(), if (isAutoTime) TimeSource.SYSTEM else TimeSource.MANUAL)
     }
 
-    /** The clock throws when its source has not been synced since boot. */
+    /** Throws until its source has synced since boot. */
     private fun readClock(clock: () -> Clock): Instant? {
         return try {
             clock().instant()

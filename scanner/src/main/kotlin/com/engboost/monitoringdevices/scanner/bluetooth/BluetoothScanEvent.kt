@@ -30,6 +30,5 @@ enum class BluetoothUnavailableReason {
     BLUETOOTH_DISABLED,
     LE_SCANNER_UNAVAILABLE,
 
-    /** The previous scan started less than 8 seconds ago. */
     SCANNING_TOO_FREQUENTLY
 }

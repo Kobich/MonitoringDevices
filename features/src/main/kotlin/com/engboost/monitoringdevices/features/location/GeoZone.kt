@@ -1,6 +1,5 @@
 package com.engboost.monitoringdevices.features.location
 
-/** Circle on the map: center in degrees and radius in meters. */
 data class GeoZone(
     val latitude: Double,
     val longitude: Double,

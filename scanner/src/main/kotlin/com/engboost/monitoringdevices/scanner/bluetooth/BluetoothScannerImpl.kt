@@ -107,9 +107,8 @@ internal class BluetoothScannerImpl(
     }
 
     private companion object {
-        // Android allows 5 BLE scan starts per 30 seconds per app and silently ignores the rest.
-        // 8 seconds gives this scanner at most 4 starts and leaves at least 1 for the monitoring scan.
-        // Shared by all instances because the system limit is per app.
+        // Android allows 5 BLE scan starts per 30 s per app and silently ignores the rest. 8 s gives
+        // this scanner up to 4 and leaves 1 for the features module. Static because the limit is per app.
         val startLimiter = ScanStartLimiter(minIntervalMillis = 8_000L)
     }
 

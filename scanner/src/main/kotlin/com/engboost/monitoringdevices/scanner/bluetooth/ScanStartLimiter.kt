@@ -6,7 +6,6 @@ import android.os.SystemClock
 internal class ScanStartLimiter(private val minIntervalMillis: Long) {
     private var lastStartMillis: Long? = null
 
-    /** Reserves a start and returns true, or returns false if the previous start was too recent. */
     @Synchronized
     fun tryStart(): Boolean {
         val nowMillis = SystemClock.elapsedRealtime()

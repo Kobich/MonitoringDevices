@@ -50,7 +50,7 @@ private val PERMISSIONS = arrayOf(
     Manifest.permission.BLUETOOTH_CONNECT
 )
 
-/** Manual test screen: calls every feature separately and shows the raw result. */
+/** Manual testing: calls every feature and shows the raw result. */
 @Composable
 fun FeatureTestScreen() {
     val context = LocalContext.current.applicationContext
@@ -191,7 +191,6 @@ private fun NamesField(value: String, onValueChange: (String) -> Unit, label: St
     )
 }
 
-/** A button that runs [action] and shows its result and how long it took. */
 @Composable
 private fun FeatureAction(label: String, action: suspend () -> Any?) {
     val scope = rememberCoroutineScope()
