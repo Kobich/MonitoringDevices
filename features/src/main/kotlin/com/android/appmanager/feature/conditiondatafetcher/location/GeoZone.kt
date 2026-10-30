@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.features.location
+package com.android.appmanager.feature.conditiondatafetcher.location
 
 data class GeoZone(
     val latitude: Double,

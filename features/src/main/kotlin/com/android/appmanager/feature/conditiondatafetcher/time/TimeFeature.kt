@@ -1,31 +1,18 @@
-package com.engboost.monitoringdevices.features.time
+package com.android.appmanager.feature.conditiondatafetcher.time
 
 import android.content.Context
 import android.os.SystemClock
 import android.provider.Settings
-import com.engboost.monitoringdevices.features.ConditionFeature
-import com.engboost.monitoringdevices.features.ConditionResult
-import com.engboost.monitoringdevices.features.DataFeature
-import com.engboost.monitoringdevices.features.UnknownReason
+import com.android.appmanager.feature.conditiondatafetcher.ConditionFeature
+import com.android.appmanager.feature.conditiondatafetcher.ConditionResult
+import com.android.appmanager.feature.conditiondatafetcher.DataFeature
+import com.android.appmanager.feature.conditiondatafetcher.SourceId
+import com.android.appmanager.feature.conditiondatafetcher.TimeCondition
+import com.android.appmanager.feature.conditiondatafetcher.TimeData
+import com.android.appmanager.feature.conditiondatafetcher.UnknownReason
 import java.time.Clock
 import java.time.DateTimeException
 import java.time.Instant
-
-enum class TimeSource {
-    NETWORK,
-
-    GNSS,
-
-    /** System clock with automatic time on. Still possible to bypass. */
-    SYSTEM,
-
-    MANUAL
-}
-
-data class CurrentTime(
-    val instant: Instant,
-    val source: TimeSource
-)
 
 /**
  * Sources in order of trust: network, satellites, system clock with automatic time, manual clock.
@@ -35,25 +22,27 @@ data class CurrentTime(
  * Manual time outside the period gives false, inside it gives [UnknownReason.NOT_VERIFIED].
  */
 class TimeFeature(context: Context) :
-    DataFeature<CurrentTime>,
-    ConditionFeature<TimePeriod> {
+    DataFeature<TimeData>,
+    ConditionFeature<TimeCondition> {
+
+    override fun getId() = SourceId.TIME
 
     private val contentResolver = context.applicationContext.contentResolver
 
-    override suspend fun getData(): CurrentTime = readTime()
+    override suspend fun getData(): TimeData = readTime()
 
-    override suspend fun isMeetsCondition(input: TimePeriod): ConditionResult {
+    override suspend fun isMeetsCondition(input: TimeCondition): ConditionResult {
         val time = readTime()
         val isInside = time.instant in input
         if (isInside && time.source == TimeSource.MANUAL) return ConditionResult.Unknown(UnknownReason.NOT_VERIFIED)
         return ConditionResult.of(isInside)
     }
 
-    private fun readTime(): CurrentTime {
-        readClock { SystemClock.currentNetworkTimeClock() }?.let { return CurrentTime(it, TimeSource.NETWORK) }
-        readClock { SystemClock.currentGnssTimeClock() }?.let { return CurrentTime(it, TimeSource.GNSS) }
+    private fun readTime(): TimeData {
+        readClock { SystemClock.currentNetworkTimeClock() }?.let { return TimeData(it, TimeSource.NETWORK) }
+        readClock { SystemClock.currentGnssTimeClock() }?.let { return TimeData(it, TimeSource.GNSS) }
         val isAutoTime = Settings.Global.getInt(contentResolver, Settings.Global.AUTO_TIME, 0) == 1
-        return CurrentTime(Instant.now(), if (isAutoTime) TimeSource.SYSTEM else TimeSource.MANUAL)
+        return TimeData(Instant.now(), if (isAutoTime) TimeSource.SYSTEM else TimeSource.MANUAL)
     }
 
     /** Throws until its source has synced since boot. */

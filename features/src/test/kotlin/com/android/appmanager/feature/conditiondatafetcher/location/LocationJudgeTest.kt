@@ -1,7 +1,7 @@
-package com.engboost.monitoringdevices.features.location
+package com.android.appmanager.feature.conditiondatafetcher.location
 
-import com.engboost.monitoringdevices.features.ConditionResult
-import com.engboost.monitoringdevices.features.UnknownReason
+import com.android.appmanager.feature.conditiondatafetcher.ConditionResult
+import com.android.appmanager.feature.conditiondatafetcher.UnknownReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

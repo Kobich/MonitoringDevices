@@ -1,11 +1,24 @@
-package com.engboost.monitoringdevices.features
+package com.android.appmanager.feature.conditiondatafetcher
+
+enum class SourceId {
+    TIME,
+    GEO,
+    WIFI_FOUND,
+    BT_FOUND,
+    BT_CONNECTED
+}
+
+/** Common parent, so the data and the condition side of one feature share the same id. */
+interface Feature {
+    fun getId(): SourceId
+}
 
 /** Returns null when the data cannot be obtained. */
-interface DataFeature<out T> {
+interface DataFeature<out T : DataType> : Feature {
     suspend fun getData(): T?
 }
 
-interface ConditionFeature<in P> {
+interface ConditionFeature<in P : ConditionInput> : Feature {
     suspend fun isMeetsCondition(input: P): ConditionResult
 }
 

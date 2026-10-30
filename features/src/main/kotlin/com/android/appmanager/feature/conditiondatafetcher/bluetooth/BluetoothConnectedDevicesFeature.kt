@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.features.bluetooth
+package com.android.appmanager.feature.conditiondatafetcher.bluetooth
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
@@ -6,12 +6,15 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
 import android.bluetooth.BluetoothProfile
 import android.content.Context
-import com.engboost.monitoringdevices.features.ConditionFeature
-import com.engboost.monitoringdevices.features.ConditionResult
-import com.engboost.monitoringdevices.features.DataFeature
-import com.engboost.monitoringdevices.features.Reading
-import com.engboost.monitoringdevices.features.UnknownReason
-import com.engboost.monitoringdevices.features.valueOrNull
+import com.android.appmanager.feature.conditiondatafetcher.BtConnectedCondition
+import com.android.appmanager.feature.conditiondatafetcher.BtConnectedData
+import com.android.appmanager.feature.conditiondatafetcher.ConditionFeature
+import com.android.appmanager.feature.conditiondatafetcher.ConditionResult
+import com.android.appmanager.feature.conditiondatafetcher.DataFeature
+import com.android.appmanager.feature.conditiondatafetcher.Reading
+import com.android.appmanager.feature.conditiondatafetcher.SourceId
+import com.android.appmanager.feature.conditiondatafetcher.UnknownReason
+import com.android.appmanager.feature.conditiondatafetcher.valueOrNull
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
@@ -23,16 +26,18 @@ import kotlin.time.Duration.Companion.seconds
  */
 @SuppressLint("MissingPermission")
 class BluetoothConnectedDevicesFeature(context: Context) :
-    DataFeature<List<BluetoothConnectedDevice>>,
-    ConditionFeature<List<String>> {
+    DataFeature<BtConnectedData>,
+    ConditionFeature<BtConnectedCondition> {
+
+    override fun getId() = SourceId.BT_CONNECTED
 
     private val appContext = context.applicationContext
     private val bluetoothManager = appContext.getSystemService(BluetoothManager::class.java)
 
-    override suspend fun getData(): List<BluetoothConnectedDevice>? = readConnectedDevices().valueOrNull()
+    override suspend fun getData(): BtConnectedData? = readConnectedDevices().valueOrNull()?.let(::BtConnectedData)
 
-    override suspend fun isMeetsCondition(input: List<String>): ConditionResult {
-        if (input.isEmpty()) return ConditionResult.False
+    override suspend fun isMeetsCondition(input: BtConnectedCondition): ConditionResult {
+        if (input.names.isEmpty()) return ConditionResult.False
 
         val connected = when (val reading = readConnectedDevices()) {
             is Reading.Failure -> return ConditionResult.Unknown(reading.reason)
@@ -40,7 +45,7 @@ class BluetoothConnectedDevicesFeature(context: Context) :
         }
 
         val connectedNames = connected.mapNotNullTo(HashSet()) { it.name }
-        return ConditionResult.of(input.any { it in connectedNames })
+        return ConditionResult.of(input.names.any { it in connectedNames })
     }
 
     private suspend fun readConnectedDevices(): Reading<List<BluetoothConnectedDevice>> {

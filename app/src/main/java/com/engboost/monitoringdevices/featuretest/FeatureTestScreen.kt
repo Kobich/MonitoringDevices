@@ -29,13 +29,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.engboost.monitoringdevices.features.bluetooth.BluetoothConnectedDevicesFeature
-import com.engboost.monitoringdevices.features.bluetooth.NearbyBluetoothDevicesFeature
-import com.engboost.monitoringdevices.features.location.GeoZone
-import com.engboost.monitoringdevices.features.location.LocationFeature
-import com.engboost.monitoringdevices.features.time.TimeFeature
-import com.engboost.monitoringdevices.features.time.TimePeriod
-import com.engboost.monitoringdevices.features.wifi.WifiNetworksFeature
+import com.android.appmanager.feature.conditiondatafetcher.BtConnectedCondition
+import com.android.appmanager.feature.conditiondatafetcher.BtConnectedData
+import com.android.appmanager.feature.conditiondatafetcher.BtFoundCondition
+import com.android.appmanager.feature.conditiondatafetcher.BtFoundData
+import com.android.appmanager.feature.conditiondatafetcher.GeoCondition
+import com.android.appmanager.feature.conditiondatafetcher.TimeCondition
+import com.android.appmanager.feature.conditiondatafetcher.WifiFoundCondition
+import com.android.appmanager.feature.conditiondatafetcher.WifiFoundData
+import com.android.appmanager.feature.conditiondatafetcher.WifiNetworkCondition
+import com.android.appmanager.feature.conditiondatafetcher.bluetooth.BluetoothConnectedDevicesFeature
+import com.android.appmanager.feature.conditiondatafetcher.bluetooth.NearbyBluetoothDevicesFeature
+import com.android.appmanager.feature.conditiondatafetcher.location.GeoZone
+import com.android.appmanager.feature.conditiondatafetcher.location.LocationFeature
+import com.android.appmanager.feature.conditiondatafetcher.time.TimeFeature
+import com.android.appmanager.feature.conditiondatafetcher.wifi.WifiNetworksFeature
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
@@ -73,16 +81,16 @@ fun FeatureTestScreen() {
 
             FeatureCard(title = "Wi-Fi networks") {
                 var names by remember { mutableStateOf("") }
-                NamesField(value = names, onValueChange = { names = it }, label = "Network names (SSID)")
+                NamesField(value = names, onValueChange = { names = it }, label = "Networks: name or name|bssid")
                 FeatureAction(label = "getData") { wifi.getData() }
-                FeatureAction(label = "isMeetsCondition") { wifi.isMeetsCondition(names.toNames()) }
+                FeatureAction(label = "isMeetsCondition") { wifi.isMeetsCondition(WifiFoundCondition(names.toWifiNetworks())) }
             }
 
             FeatureCard(title = "Connected Bluetooth devices") {
                 var names by remember { mutableStateOf("") }
                 NamesField(value = names, onValueChange = { names = it }, label = "Device names")
                 FeatureAction(label = "getData") { connectedBluetooth.getData() }
-                FeatureAction(label = "isMeetsCondition") { connectedBluetooth.isMeetsCondition(names.toNames()) }
+                FeatureAction(label = "isMeetsCondition") { connectedBluetooth.isMeetsCondition(BtConnectedCondition(names.toNames())) }
             }
 
             FeatureCard(title = "Nearby Bluetooth devices") {
@@ -93,7 +101,7 @@ fun FeatureTestScreen() {
                 var names by remember { mutableStateOf("") }
                 NamesField(value = names, onValueChange = { names = it }, label = "Device names")
                 FeatureAction(label = "getData") { nearbyBluetooth.getData() }
-                FeatureAction(label = "isMeetsCondition") { nearbyBluetooth.isMeetsCondition(names.toNames()) }
+                FeatureAction(label = "isMeetsCondition") { nearbyBluetooth.isMeetsCondition(BtFoundCondition(names.toNames())) }
             }
 
             FeatureCard(title = "Location") {
@@ -119,7 +127,7 @@ fun FeatureTestScreen() {
                     modifier = Modifier.fillMaxWidth()
                 )
                 FeatureAction(label = "getData") { location().getData() }
-                FeatureAction(label = "isMeetsCondition") { location().isMeetsCondition(zones.toZones()) }
+                FeatureAction(label = "isMeetsCondition") { location().isMeetsCondition(GeoCondition(zones.toZones())) }
                 if (locationTrace.isNotEmpty()) {
                     Text(text = "Steps:", style = MaterialTheme.typography.labelMedium)
                     Text(text = locationTrace.joinToString("\n"), style = MaterialTheme.typography.bodySmall)
@@ -144,7 +152,7 @@ fun FeatureTestScreen() {
                     modifier = Modifier.fillMaxWidth()
                 )
                 FeatureAction(label = "getData") { time.getData() }
-                FeatureAction(label = "isMeetsCondition") { time.isMeetsCondition(TimePeriod(start, end)) }
+                FeatureAction(label = "isMeetsCondition") { time.isMeetsCondition(TimeCondition(start, end)) }
             }
         }
     }
@@ -229,11 +237,20 @@ private fun FeatureAction(label: String, action: suspend () -> Any?) {
 
 private fun Any?.toDisplayText(): String = when (this) {
     null -> "null"
+    is WifiFoundData -> networks.toDisplayText()
+    is BtFoundData -> devices.toDisplayText()
+    is BtConnectedData -> devices.toDisplayText()
     is List<*> -> if (isEmpty()) "empty list" else "$size items:\n" + joinToString("\n")
     else -> toString()
 }
 
 private fun String.toNames(): List<String> = split(',').map { it.trim() }.filter { it.isNotEmpty() }
+
+private fun String.toWifiNetworks(): List<WifiNetworkCondition> = toNames().map { entry ->
+    val name = entry.substringBefore('|').trim()
+    val bssid = entry.substringAfter('|', missingDelimiterValue = "").trim().ifEmpty { null }
+    WifiNetworkCondition(name = name, bssid = bssid)
+}
 
 private fun String.toZones(): List<GeoZone> = lines()
     .filter { it.isNotBlank() }

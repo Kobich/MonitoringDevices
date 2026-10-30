@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.features.wifi
+package com.android.appmanager.feature.conditiondatafetcher.wifi
 
 data class WifiNetwork(
     val ssid: String?,

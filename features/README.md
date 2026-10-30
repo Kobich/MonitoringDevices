@@ -1,27 +1,38 @@
-# features
+# Получение данных и проверка старт-условий
 
-Проверки окружения для мониторинга. Каждая фича реализует общий интерфейс:
+Проверки окружения для мониторинга. У каждой фичи есть `getId()`, данные и проверка условия:
 
 ```kotlin
-interface DataFeature<out T> { suspend fun getData(): T? }                                   // данные или null
-interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): ConditionResult } // проверка условия
+interface Feature { fun getId(): SourceId }
+interface DataFeature<out T : DataType> : Feature { suspend fun getData(): T? }                                   // данные или null
+interface ConditionFeature<in P : ConditionInput> : Feature { suspend fun isMeetsCondition(input: P): ConditionResult } // проверка условия
 ```
 
-`ConditionResult` — `True`, `False` или `Unknown(reason)`. Причина `Unknown` всегда из одного общего списка `UnknownReason`.
+* `DataType` и `ConditionInput` — sealed: набор данных и входов фиксирован.
+* `ConditionResult` — `True`, `False` или `Unknown(reason)`. Причина `Unknown` всегда из одного общего списка `UnknownReason`.
+* `FeatureMediator` — одна точка входа: `getData(id: SourceId): DataType?`, `isMeetsCondition(input: ConditionInput)` и `features: Map<SourceId, Feature>`. Сам отправляет запрос в нужную фичу; новый вид входа не соберётся, пока его не добавят в медиатор.
+
+```kotlin
+val mediator = FeatureMediator(context) // или FeatureMediator(time, geo, wifiFound, btFound, btConnected) из DI
+mediator.isMeetsCondition(WifiFoundCondition(listOf(WifiNetworkCondition(name = "Office"))))
+mediator.getData(SourceId.GEO)
+```
 
 ## Фичи
 
-| Фича | Вход `isMeetsCondition` | `getData` | Время |
-|---|---|---|---|
-| `WifiNetworksFeature` | имена сетей (SSID) | сети из системного кеша | мгновенно, скан не запускает |
-| `BluetoothConnectedDevicesFeature` | имена устройств | подключённые сейчас устройства | до 2 сек на профиль |
-| `NearbyBluetoothDevicesFeature` | имена устройств | BLE-устройства рядом | скан до 10 сек, не чаще раза в 30 сек |
-| `LocationFeature` | список `GeoZone` (точка + радиус) | текущая координата | сразу по последней точке или до 20 сек |
-| `TimeFeature` | `TimePeriod` (начало и конец строками ISO 8601) | текущее время и его источник, всегда | мгновенно |
+| Фича | `getId()` | Вход `isMeetsCondition` | `getData` | Время |
+|---|---|---|---|---|
+| `TimeFeature` | `TIME` | `TimeCondition(start, end)` — строки ISO 8601 | `TimeData(instant, source)` — всегда | мгновенно |
+| `LocationFeature` | `GEO` | `GeoCondition(zones: List<GeoZone>)` | `GeoData(latitude, longitude, accuracyMeters, source, ageMillis)` | сразу по последней точке или до 20 сек |
+| `WifiNetworksFeature` | `WIFI_FOUND` | `WifiFoundCondition(networks: List<WifiNetworkCondition(name, bssid?)>)` | `WifiFoundData(networks: List<WifiNetwork>)` — из системного кеша | мгновенно, скан не запускает |
+| `NearbyBluetoothDevicesFeature` | `BT_FOUND` | `BtFoundCondition(names: List<String>)` | `BtFoundData(devices: List<NearbyBluetoothDevice>)` | скан до 10 сек, не чаще раза в 30 сек |
+| `BluetoothConnectedDevicesFeature` | `BT_CONNECTED` | `BtConnectedCondition(names: List<String>)` | `BtConnectedData(devices: List<BluetoothConnectedDevice>)` | до 2 сек на профиль |
 
-В фичах со списком на входе условие выполняется, если подходит **хотя бы одно** значение. Пустой список сразу даёт `False`, данные при этом не читаются.
+Условие со списком выполняется, если подходит **хотя бы одно** значение. Пустой список сразу даёт `False`, данные при этом не читаются.
 
-`NearbyBluetoothDevicesFeature.getData()` сканирует без фильтра, а такой скан при выключенном экране ничего не получает. Поэтому в фоне он вернёт пустой список, хотя устройства рядом могут быть. Для фоновых проверок используйте `isMeetsCondition`: он сканирует с фильтром по именам и работает при выключенном экране.
+Wi-Fi-сеть подходит, если совпало имя; `bssid` проверяется, только если он указан.
+
+`NearbyBluetoothDevicesFeature.getData()` сканирует без фильтра, а такой скан при выключенном экране ничего не получает. Поэтому в фоне он вернёт `BtFoundData` с пустым списком, хотя устройства рядом могут быть. Для фоновых проверок используйте `isMeetsCondition`: он сканирует с фильтром по именам и работает при выключенном экране.
 
 ## Разрешения
 
@@ -68,9 +79,9 @@ interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): Condi
 4. Точки старше 2 минут не используем. У остальных считаем погрешность с запасом: погрешность Android × 2 (уверенность около 95% вместо 68%) плюс путь, который человек мог пройти пешком с момента замера (1,5 м/с). Старая точка не выбрасывается, а просто становится менее уверенной.
 5. Используется самая точная точка на текущий момент.
 
-`getData()` возвращает `CurrentLocation`: широта, долгота, погрешность, источник и возраст точки. Отвечает, как только есть точка не старше 10 сек, иначе по истечении 20 сек отдаёт лучшую из тех, что есть, или `null`.
+`getData()` возвращает `GeoData`: широта, долгота, погрешность, источник и возраст точки. Отвечает, как только есть точка не старше 10 сек, иначе по истечении 20 сек отдаёт лучшую из тех, что есть, или `null`.
 
-`isMeetsCondition(zones)` — внутри ли пользователь хотя бы одной зоны. Для зоны с радиусом `r`, расстоянием до центра `d` и погрешностью с запасом `a`:
+`isMeetsCondition(GeoCondition(zones))` — внутри ли пользователь хотя бы одной зоны. Для зоны с радиусом `r`, расстоянием до центра `d` и погрешностью с запасом `a`:
 
 * `d + a ≤ r` → `True`, сразу;
 * `d − a > r` → `False`, сразу;
@@ -94,10 +105,10 @@ interface ConditionFeature<in P> { suspend fun isMeetsCondition(input: P): Condi
 Сетевое и спутниковое время система запоминает при синхронизации и дальше отсчитывает по внутреннему таймеру, поэтому ручной перевод часов на них не влияет. После перезагрузки они недоступны до следующей синхронизации.
 
 * `getData()` — всегда возвращает время и источник (`NETWORK`, `GNSS`, `SYSTEM`, `MANUAL`). Насколько ему доверять, видно по источнику.
-* `isMeetsCondition(period)` — текущее время внутри периода: от `start` включительно до `end` не включительно.
+* `isMeetsCondition(TimeCondition(start, end))` — текущее время внутри периода: от `start` включительно до `end` не включительно.
 
   ```kotlin
-  timeFeature.isMeetsCondition(TimePeriod("2026-10-24T09:00:00+03:00", "2026-10-24T18:00:00+03:00"))
+  timeFeature.isMeetsCondition(TimeCondition("2026-10-24T09:00:00+03:00", "2026-10-24T18:00:00+03:00"))
   ```
 
   Строки в формате ISO 8601 со смещением часового пояса: `+03:00`, `Z` для UTC, можно добавить пояс `[Europe/Moscow]`. Без смещения строка не принимается: непонятно, о каком поясе речь. Пояс телефона не используется.

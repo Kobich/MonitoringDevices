@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.features.location
+package com.android.appmanager.feature.conditiondatafetcher.location
 
 enum class LocationSource {
     /** Android's combination of satellites, Wi-Fi, cell towers and sensors. */

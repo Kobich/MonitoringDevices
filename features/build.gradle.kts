@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.engboost.monitoringdevices.features"
+    namespace = "com.android.appmanager.feature.conditiondatafetcher"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

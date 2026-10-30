@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.features.location
+package com.android.appmanager.feature.conditiondatafetcher.location
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -10,10 +10,13 @@ import android.location.LocationListener
 import android.location.LocationManager
 import android.location.LocationRequest
 import android.os.SystemClock
-import com.engboost.monitoringdevices.features.ConditionFeature
-import com.engboost.monitoringdevices.features.ConditionResult
-import com.engboost.monitoringdevices.features.DataFeature
-import com.engboost.monitoringdevices.features.UnknownReason
+import com.android.appmanager.feature.conditiondatafetcher.ConditionFeature
+import com.android.appmanager.feature.conditiondatafetcher.ConditionResult
+import com.android.appmanager.feature.conditiondatafetcher.DataFeature
+import com.android.appmanager.feature.conditiondatafetcher.GeoCondition
+import com.android.appmanager.feature.conditiondatafetcher.GeoData
+import com.android.appmanager.feature.conditiondatafetcher.SourceId
+import com.android.appmanager.feature.conditiondatafetcher.UnknownReason
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration
@@ -33,13 +36,15 @@ class LocationFeature(
     context: Context,
     private val window: Duration = DEFAULT_WINDOW,
     private val trace: (String) -> Unit = {}
-) : DataFeature<CurrentLocation>,
-    ConditionFeature<List<GeoZone>> {
+) : DataFeature<GeoData>,
+    ConditionFeature<GeoCondition> {
+
+    override fun getId() = SourceId.GEO
 
     private val appContext = context.applicationContext
     private val locationManager = appContext.getSystemService(LocationManager::class.java)
 
-    override suspend fun getData(): CurrentLocation? {
+    override suspend fun getData(): GeoData? {
         val startMillis = SystemClock.elapsedRealtime()
         val judge = LocationJudge(zones = emptyList(), trace = trace)
         val failure = listen(judge) { nowMillis ->
@@ -47,16 +52,16 @@ class LocationFeature(
             best != null && nowMillis - best.elapsedRealtimeMillis <= FRESH_SAMPLE_AGE_MILLIS
         }
         val nowMillis = SystemClock.elapsedRealtime()
-        val result = if (failure == null) judge.bestSample(nowMillis)?.toCurrentLocation(nowMillis) else null
+        val result = if (failure == null) judge.bestSample(nowMillis)?.toGeoData(nowMillis) else null
         trace("Result: ${result ?: "null ($failure)"} after ${nowMillis - startMillis} ms")
         return result
     }
 
-    override suspend fun isMeetsCondition(input: List<GeoZone>): ConditionResult {
-        if (input.isEmpty()) return ConditionResult.False
+    override suspend fun isMeetsCondition(input: GeoCondition): ConditionResult {
+        if (input.zones.isEmpty()) return ConditionResult.False
 
         val startMillis = SystemClock.elapsedRealtime()
-        val judge = LocationJudge(zones = input, trace = trace)
+        val judge = LocationJudge(zones = input.zones, trace = trace)
         var certain: ConditionResult? = null
         val failure = listen(judge) { nowMillis ->
             certain = judge.certainResult(nowMillis)
@@ -197,7 +202,7 @@ class LocationFeature(
         )
     }
 
-    private fun LocationSample.toCurrentLocation(nowMillis: Long) = CurrentLocation(
+    private fun LocationSample.toGeoData(nowMillis: Long) = GeoData(
         latitude = latitude,
         longitude = longitude,
         accuracyMeters = accuracyMeters,

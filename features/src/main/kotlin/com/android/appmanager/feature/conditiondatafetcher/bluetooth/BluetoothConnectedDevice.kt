@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.features.bluetooth
+package com.android.appmanager.feature.conditiondatafetcher.bluetooth
 
 data class BluetoothConnectedDevice(
     val name: String?,

@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.features.bluetooth
+package com.android.appmanager.feature.conditiondatafetcher.bluetooth
 
 import android.Manifest
 import android.annotation.SuppressLint
@@ -10,10 +10,13 @@ import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.SystemClock
-import com.engboost.monitoringdevices.features.ConditionFeature
-import com.engboost.monitoringdevices.features.ConditionResult
-import com.engboost.monitoringdevices.features.DataFeature
-import com.engboost.monitoringdevices.features.UnknownReason
+import com.android.appmanager.feature.conditiondatafetcher.BtFoundCondition
+import com.android.appmanager.feature.conditiondatafetcher.BtFoundData
+import com.android.appmanager.feature.conditiondatafetcher.ConditionFeature
+import com.android.appmanager.feature.conditiondatafetcher.ConditionResult
+import com.android.appmanager.feature.conditiondatafetcher.DataFeature
+import com.android.appmanager.feature.conditiondatafetcher.SourceId
+import com.android.appmanager.feature.conditiondatafetcher.UnknownReason
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.seconds
@@ -27,13 +30,15 @@ import kotlin.time.Duration.Companion.seconds
  */
 @SuppressLint("MissingPermission")
 class NearbyBluetoothDevicesFeature(context: Context) :
-    DataFeature<List<NearbyBluetoothDevice>>,
-    ConditionFeature<List<String>> {
+    DataFeature<BtFoundData>,
+    ConditionFeature<BtFoundCondition> {
+
+    override fun getId() = SourceId.BT_FOUND
 
     private val appContext = context.applicationContext
     private val bluetoothAdapter = appContext.getSystemService(BluetoothManager::class.java)?.adapter
 
-    override suspend fun getData(): List<NearbyBluetoothDevice>? {
+    override suspend fun getData(): BtFoundData? {
         val devices = LinkedHashMap<String, NearbyBluetoothDevice>()
         val failure = scan(
             filters = emptyList(),
@@ -42,11 +47,11 @@ class NearbyBluetoothDevicesFeature(context: Context) :
                 false // collect everything for the whole window
             }
         )
-        return if (failure == null) devices.values.toList() else null
+        return if (failure == null) BtFoundData(devices.values.toList()) else null
     }
 
-    override suspend fun isMeetsCondition(input: List<String>): ConditionResult {
-        val names = input.toSet()
+    override suspend fun isMeetsCondition(input: BtFoundCondition): ConditionResult {
+        val names = input.names.toSet()
         if (names.isEmpty()) return ConditionResult.False
 
         val filters = names.map { name -> ScanFilter.Builder().setDeviceName(name).build() }
