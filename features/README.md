@@ -1,42 +1,50 @@
-# Получение данных и проверка старт-условий
+# Получение данных по старт-условиям
 
-Проверки окружения для мониторинга. У каждой фичи есть `getId()`, данные и проверка условия:
+Библиотека для Android, которая получает данные об окружении устройства и проверяет по ним старт-условия.
 
-```kotlin
-interface Feature { fun getId(): SourceId }
-interface DataFeature<out T : DataType> : Feature { suspend fun getData(): T? }                                   // данные или null
-interface ConditionFeature<in P : ConditionInput> : Feature { suspend fun isMeetsCondition(input: P): ConditionResult } // проверка условия
+## Описание
+
+Модуль отдаёт данные из пяти источников — время, координаты, видимые Wi-Fi-сети, Bluetooth-устройства рядом и подключённые Bluetooth-устройства — и проверяет, выполняется ли по ним старт-условие. Каждая проверка отвечает `True`, `False` или `Unknown` с причиной, почему ответить нельзя: нет разрешения, источник выключен, данных нет и т.д.
+
+Модуль сам не работает в фоне и не запрашивает разрешения: это задача приложения. Работу с фичами удобнее всего вести через `FeatureMediator` — одну точку входа для всех источников.
+
+## Архитектура и стек
+
+```
+condition-data-fetcher/
+├── src/main/kotlin/com/android/appmanager/feature/conditiondatafetcher/
+│   ├── Feature.kt              # Общие интерфейсы, SourceId, ConditionResult, UnknownReason
+│   ├── DataType.kt             # Данные getData: TimeData, GeoData, WifiFoundData, BtFoundData, BtConnectedData
+│   ├── ConditionInput.kt       # Входы isMeetsCondition: TimeCondition, GeoCondition, WifiFoundCondition, ...
+│   ├── FeatureMediator.kt      # Единая точка входа ко всем фичам
+│   ├── time/                   # TimeFeature, TimeSource
+│   ├── location/               # LocationFeature, LocationJudge (правила решения), GeoZone, LocationSample
+│   ├── wifi/                   # WifiNetworksFeature, WifiNetwork
+│   └── bluetooth/              # NearbyBluetoothDevicesFeature, BluetoothConnectedDevicesFeature и их модели
+├── src/test/kotlin/...         # LocationJudgeTest, TimePeriodTest
+├── src/main/AndroidManifest.xml
+└── build.gradle.kts
 ```
 
-* `DataType` и `ConditionInput` — sealed: набор данных и входов фиксирован.
-* `ConditionResult` — `True`, `False` или `Unknown(reason)`. Причина `Unknown` всегда из одного общего списка `UnknownReason`.
-* `FeatureMediator` — одна точка входа: `getData(id: SourceId): DataType?`, `isMeetsCondition(input: ConditionInput)` и `features: Map<SourceId, Feature>`. Сам отправляет запрос в нужную фичу; новый вид входа не соберётся, пока его не добавят в медиатор.
+Модуль состоит из трёх частей:
 
-```kotlin
-val mediator = FeatureMediator(context) // или FeatureMediator(time, geo, wifiFound, btFound, btConnected) из DI
-mediator.isMeetsCondition(WifiFoundCondition(listOf(WifiNetworkCondition(name = "Office"))))
-mediator.getData(SourceId.GEO)
-```
+**Публичный интерфейс:**
+- `Feature`, `DataFeature`, `ConditionFeature` — общие интерфейсы всех фич: `getId()`, `getData()`, `isMeetsCondition()`
+- `FeatureMediator` — одна точка входа: отправляет запрос в нужную фичу по `SourceId` или по типу входа
+- `DataType`, `ConditionInput` — sealed-иерархии данных и входов
+- `ConditionResult`, `UnknownReason` — результат проверки и причины `Unknown`
 
-## Фичи
+**Фичи:**
+- `TimeFeature` — время из самого надёжного источника: сеть, спутники, системное
+- `LocationFeature` — координаты из fused, GPS и сети
+- `WifiNetworksFeature` — Wi-Fi-сети из системного кеша
+- `NearbyBluetoothDevicesFeature` — BLE-устройства рядом, свой короткий скан
+- `BluetoothConnectedDevicesFeature` — подключённые сейчас Bluetooth-устройства
 
-| Фича | `getId()` | Вход `isMeetsCondition` | `getData` | Время |
-|---|---|---|---|---|
-| `TimeFeature` | `TIME` | `TimeCondition(start, end)` — строки ISO 8601 | `TimeData(instant, source)` — всегда | мгновенно |
-| `LocationFeature` | `GEO` | `GeoCondition(zones: List<GeoZone>)` | `GeoData(latitude, longitude, accuracyMeters, source, ageMillis)` | сразу по последней точке или до 20 сек |
-| `WifiNetworksFeature` | `WIFI_FOUND` | `WifiFoundCondition(networks: List<WifiNetworkCondition(name, bssid?)>)` | `WifiFoundData(networks: List<WifiNetwork>)` — из системного кеша | мгновенно, скан не запускает |
-| `NearbyBluetoothDevicesFeature` | `BT_FOUND` | `BtFoundCondition(names: List<String>)` | `BtFoundData(devices: List<NearbyBluetoothDevice>)` | скан до 10 сек, не чаще раза в 30 сек |
-| `BluetoothConnectedDevicesFeature` | `BT_CONNECTED` | `BtConnectedCondition(names: List<String>)` | `BtConnectedData(devices: List<BluetoothConnectedDevice>)` | до 2 сек на профиль |
+**Логика решения:**
+- `LocationJudge` — правила для координат на чистом Kotlin, покрыты юнит-тестами
 
-Условие со списком выполняется, если подходит **хотя бы одно** значение. Пустой список сразу даёт `False`, данные при этом не читаются.
-
-Wi-Fi-сеть подходит, если совпало имя; `bssid` проверяется, только если он указан.
-
-`NearbyBluetoothDevicesFeature.getData()` сканирует без фильтра, а такой скан при выключенном экране ничего не получает. Поэтому в фоне он вернёт `BtFoundData` с пустым списком, хотя устройства рядом могут быть. Для фоновых проверок используйте `isMeetsCondition`: он сканирует с фильтром по именам и работает при выключенном экране.
-
-## Разрешения
-
-Объявлены в манифесте модуля и попадают в приложение при слиянии манифестов. Runtime-разрешения запрашивает приложение, сами фичи их не запрашивают: без разрешения фича отвечает `Unknown(PERMISSION_DENIED)`, а `getData()` возвращает `null`.
+Модуль объявляет разрешения в `AndroidManifest.xml`, runtime-разрешения запрашивает приложение:
 
 | Фича | Runtime-разрешения | Ещё нужно |
 |---|---|---|
@@ -48,7 +56,61 @@ Wi-Fi-сеть подходит, если совпало имя; `bssid` про�
 
 Без геолокации `NearbyBluetoothDevicesFeature` не работает: `BLUETOOTH_SCAN` объявлен без флага `neverForLocation`, и без разрешения на геолокацию Android молча выбрасывает все результаты скана. `WifiNetworksFeature` дополнительно требует включённые Wi-Fi и геолокацию: без них Android отдаёт пустой кеш вместо ошибки, поэтому фича проверяет их сама.
 
-## Причины `Unknown`
+Технические зависимости: Kotlin Coroutines 1.9.0, JUnit (тестирование).
+
+Минимальная версия SDK: 36. Версия компиляции SDK: 36.
+
+## Подключение модуля к проекту
+
+Добавьте модуль в список подпроектов в корневом файле `settings.gradle.kts`:
+
+```kotlin
+include(":manager-kit:features:condition-data-fetcher")
+```
+
+Добавьте зависимость в `build.gradle.kts` целевого модуля:
+
+```kotlin
+implementation(project(":manager-kit:features:condition-data-fetcher"))
+```
+
+## Описание API
+
+### Общие интерфейсы
+
+| Метод | Описание |
+|---|---|
+| `Feature.getId(): SourceId` | Идентификатор фичи: `TIME`, `GEO`, `WIFI_FOUND`, `BT_FOUND`, `BT_CONNECTED` |
+| `DataFeature.getData(): T?` | Данные источника или `null`, если получить их нельзя |
+| `ConditionFeature.isMeetsCondition(input: P): ConditionResult` | Проверка условия: `True`, `False` или `Unknown(reason)` |
+
+### FeatureMediator
+
+| Метод | Описание |
+|---|---|
+| `FeatureMediator(context)` | Создаёт все фичи сам |
+| `FeatureMediator(time, geo, wifiFound, btFound, btConnected)` | Принимает готовые фичи, например из DI |
+| `getData(id: SourceId): DataType?` | Данные фичи с этим `id` |
+| `isMeetsCondition(input: ConditionInput): ConditionResult` | Проверка в фиче, которая отвечает за этот вход |
+| `features: Map<SourceId, Feature>` | Все фичи по `id` |
+
+### Фичи, входы и данные
+
+| Фича | `getId()` | Вход `isMeetsCondition` | `getData` | Время |
+|---|---|---|---|---|
+| `TimeFeature` | `TIME` | `TimeCondition(periods: List<TimePeriod(start, end)>)` — строки ISO 8601 | `TimeData(instant, source)` — всегда | мгновенно |
+| `LocationFeature` | `GEO` | `GeoCondition(zones: List<GeoZone>)` | `GeoData(latitude, longitude, accuracyMeters, source, ageMillis)` | сразу по последней точке или до 20 сек |
+| `WifiNetworksFeature` | `WIFI_FOUND` | `WifiFoundCondition(networks: List<WifiNetworkCondition(name, bssid?)>)` | `WifiFoundData(networks: List<WifiNetwork>)` — из системного кеша | мгновенно, скан не запускает |
+| `NearbyBluetoothDevicesFeature` | `BT_FOUND` | `BtFoundCondition(names: List<String>)` | `BtFoundData(devices: List<NearbyBluetoothDevice>)` | скан до 10 сек, не чаще раза в 30 сек |
+| `BluetoothConnectedDevicesFeature` | `BT_CONNECTED` | `BtConnectedCondition(names: List<String>)` | `BtConnectedData(devices: List<BluetoothConnectedDevice>)` | до 2 сек на профиль |
+
+Условие выполняется, если подходит **хотя бы одно** значение из списка. Пустой список сразу даёт `False`, данные при этом не читаются.
+
+Wi-Fi-сеть подходит, если совпало имя; `bssid` проверяется, только если он указан.
+
+`NearbyBluetoothDevicesFeature.getData()` сканирует без фильтра, а такой скан при выключенном экране ничего не получает. Поэтому в фоне он вернёт `BtFoundData` с пустым списком, хотя устройства рядом могут быть. Для фоновых проверок используйте `isMeetsCondition`: он сканирует с фильтром по именам и работает при выключенном экране.
+
+### Причины `Unknown`
 
 | `UnknownReason` | Когда | Фичи |
 |---|---|---|
@@ -59,9 +121,9 @@ Wi-Fi-сеть подходит, если совпало имя; `bssid` про�
 | `READ_FAILED` | система вернула ошибку при чтении или скане | Bluetooth |
 | `NO_DATA` | данных нет: кеш Wi-Fi пуст, нет ни одной координаты не старше 2 минут | Wi-Fi, Location |
 | `NOT_ACCURATE_ENOUGH` | пользователь у границы зоны, погрешность не даёт решить | Location |
-| `NOT_VERIFIED` | есть только время, выставленное вручную, и оно внутри периода | Time |
+| `NOT_VERIFIED` | есть только время, выставленное вручную, и оно внутри хотя бы одного периода | Time |
 
-## LocationFeature
+### LocationFeature
 
 Защиты от подмены координат нет: цель — отдавать координату там, где Android её знает.
 
@@ -93,7 +155,7 @@ Wi-Fi-сеть подходит, если совпало имя; `bssid` про�
 
 В фоне фиче нужен foreground service типа `location`.
 
-## TimeFeature
+### TimeFeature
 
 Берёт время из самого надёжного доступного источника, по очереди:
 
@@ -105,11 +167,40 @@ Wi-Fi-сеть подходит, если совпало имя; `bssid` про�
 Сетевое и спутниковое время система запоминает при синхронизации и дальше отсчитывает по внутреннему таймеру, поэтому ручной перевод часов на них не влияет. После перезагрузки они недоступны до следующей синхронизации.
 
 * `getData()` — всегда возвращает время и источник (`NETWORK`, `GNSS`, `SYSTEM`, `MANUAL`). Насколько ему доверять, видно по источнику.
-* `isMeetsCondition(TimeCondition(start, end))` — текущее время внутри периода: от `start` включительно до `end` не включительно.
-
-  ```kotlin
-  timeFeature.isMeetsCondition(TimeCondition("2026-10-24T09:00:00+03:00", "2026-10-24T18:00:00+03:00"))
-  ```
+* `isMeetsCondition(TimeCondition(periods))` — текущее время входит хотя бы в один период. Период: от `start` включительно до `end` не включительно.
 
   Строки в формате ISO 8601 со смещением часового пояса: `+03:00`, `Z` для UTC, можно добавить пояс `[Europe/Moscow]`. Без смещения строка не принимается: непонятно, о каком поясе речь. Пояс телефона не используется.
-* Если есть только время, выставленное вручную: вне периода → `False`, внутри → `Unknown(NOT_VERIFIED)`, потому что ручному времени не доверяем.
+* Если есть только время, выставленное вручную: вне всех периодов → `False`, внутри хотя бы одного → `Unknown(NOT_VERIFIED)`, потому что ручному времени не доверяем.
+
+## Примеры использования
+
+### Через медиатор
+
+```kotlin
+val mediator = FeatureMediator(context) // или FeatureMediator(time, geo, wifiFound, btFound, btConnected) из DI
+
+mediator.isMeetsCondition(
+    TimeCondition(listOf(TimePeriod("2026-10-24T09:00:00+03:00", "2026-10-24T18:00:00+03:00")))
+)
+mediator.isMeetsCondition(WifiFoundCondition(listOf(WifiNetworkCondition(name = "Office"))))
+mediator.isMeetsCondition(GeoCondition(listOf(GeoZone(latitude = 55.7558, longitude = 37.6173, radiusMeters = 100))))
+
+val location = mediator.getData(SourceId.GEO) as? GeoData
+```
+
+### Прямой вызов фичи
+
+```kotlin
+val wifi = WifiNetworksFeature(context)
+when (val result = wifi.isMeetsCondition(WifiFoundCondition(listOf(WifiNetworkCondition("Office", bssid = "aa:bb:cc:dd:ee:ff"))))) {
+    ConditionResult.True -> { /* сеть рядом */ }
+    ConditionResult.False -> { /* сети нет */ }
+    is ConditionResult.Unknown -> log(result.reason)
+}
+```
+
+### Лог шагов определения координат
+
+```kotlin
+val location = LocationFeature(context, trace = { line -> logger.d("Location", line) })
+```

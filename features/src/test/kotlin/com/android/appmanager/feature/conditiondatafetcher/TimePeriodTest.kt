@@ -5,8 +5,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Instant
 
-class TimeConditionTest {
-    private val period = TimeCondition(start = "2026-10-24T09:00:00+03:00", end = "2026-10-24T18:00:00+03:00")
+class TimePeriodTest {
+    private val period = TimePeriod(start = "2026-10-24T09:00:00+03:00", end = "2026-10-24T18:00:00+03:00")
 
     @Test
     fun `start is inside, end is outside`() {
@@ -23,8 +23,8 @@ class TimeConditionTest {
 
     @Test
     fun `utc and zone id forms are accepted`() {
-        val utc = TimeCondition(start = "2026-10-24T06:00:00Z", end = "2026-10-24T15:00:00Z")
-        val zoneId = TimeCondition(
+        val utc = TimePeriod(start = "2026-10-24T06:00:00Z", end = "2026-10-24T15:00:00Z")
+        val zoneId = TimePeriod(
             start = "2026-10-24T09:00:00+03:00[Europe/Moscow]",
             end = "2026-10-24T18:00:00+03:00[Europe/Moscow]"
         )
@@ -35,11 +35,11 @@ class TimeConditionTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun `time without a time zone is rejected`() {
-        TimeCondition(start = "2026-10-24T09:00:00", end = "2026-10-24T18:00:00")
+        TimePeriod(start = "2026-10-24T09:00:00", end = "2026-10-24T18:00:00")
     }
 
     @Test(expected = IllegalArgumentException::class)
     fun `end before start is rejected`() {
-        TimeCondition(start = period.end, end = period.start)
+        TimePeriod(start = period.end, end = period.start)
     }
 }

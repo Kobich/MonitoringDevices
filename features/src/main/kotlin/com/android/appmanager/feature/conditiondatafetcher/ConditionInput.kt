@@ -11,14 +11,16 @@ import java.time.format.DateTimeParseException
  */
 sealed interface ConditionInput
 
+data class TimeCondition(val periods: List<TimePeriod>) : ConditionInput
+
 /**
  * [start] inclusive, [end] exclusive. ISO 8601 with an offset, for example `2026-10-24T09:00:00+03:00`;
  * the phone's time zone is never used.
  */
-data class TimeCondition(
+data class TimePeriod(
     val start: String,
     val end: String
-) : ConditionInput {
+) {
     private val startInstant = parse(start, "start")
     private val endInstant = parse(end, "end")
 

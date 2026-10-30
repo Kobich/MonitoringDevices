@@ -35,6 +35,7 @@ import com.android.appmanager.feature.conditiondatafetcher.BtFoundCondition
 import com.android.appmanager.feature.conditiondatafetcher.BtFoundData
 import com.android.appmanager.feature.conditiondatafetcher.GeoCondition
 import com.android.appmanager.feature.conditiondatafetcher.TimeCondition
+import com.android.appmanager.feature.conditiondatafetcher.TimePeriod
 import com.android.appmanager.feature.conditiondatafetcher.WifiFoundCondition
 import com.android.appmanager.feature.conditiondatafetcher.WifiFoundData
 import com.android.appmanager.feature.conditiondatafetcher.WifiNetworkCondition
@@ -152,7 +153,7 @@ fun FeatureTestScreen() {
                     modifier = Modifier.fillMaxWidth()
                 )
                 FeatureAction(label = "getData") { time.getData() }
-                FeatureAction(label = "isMeetsCondition") { time.isMeetsCondition(TimeCondition(start, end)) }
+                FeatureAction(label = "isMeetsCondition") { time.isMeetsCondition(TimeCondition(listOf(TimePeriod(start, end)))) }
             }
         }
     }
@@ -255,11 +256,14 @@ private fun String.toWifiNetworks(): List<WifiNetworkCondition> = toNames().map 
 private fun String.toZones(): List<GeoZone> = lines()
     .filter { it.isNotBlank() }
     .map { line ->
-        val parts = line.split(',').map { it.trim().toDoubleOrNull() }
-        require(parts.size == 3 && parts.all { it != null }) {
-            "Each zone line must be: latitude, longitude, radius ($line)"
+        val parts = line.split(',').map { it.trim() }
+        val latitude = parts.getOrNull(0)?.toDoubleOrNull()
+        val longitude = parts.getOrNull(1)?.toDoubleOrNull()
+        val radius = parts.getOrNull(2)?.toIntOrNull()
+        require(parts.size == 3 && latitude != null && longitude != null && radius != null) {
+            "Each zone line must be: latitude, longitude, radius in whole meters ($line)"
         }
-        GeoZone(latitude = parts[0]!!, longitude = parts[1]!!, radiusMeters = parts[2]!!)
+        GeoZone(latitude = latitude, longitude = longitude, radiusMeters = radius)
     }
 
 private fun nowShifted(hours: Long): String {

@@ -7,7 +7,7 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LocationJudgeTest {
-    private val zone = GeoZone(latitude = 55.7558, longitude = 37.6173, radiusMeters = 50.0)
+    private val zone = GeoZone(latitude = 55.7558, longitude = 37.6173, radiusMeters = 50)
     private val now = 1_000_000L
 
     @Test
@@ -92,7 +92,7 @@ class LocationJudgeTest {
 
     @Test
     fun `inside one of several zones - true`() {
-        val farZone = GeoZone(latitude = 59.9343, longitude = 30.3351, radiusMeters = 50.0)
+        val farZone = GeoZone(latitude = 59.9343, longitude = 30.3351, radiusMeters = 50)
         val judge = LocationJudge(listOf(farZone, zone))
 
         judge.addSample(sample(LocationSource.FUSED, metersNorth = 0.0, accuracy = 10.0), now)

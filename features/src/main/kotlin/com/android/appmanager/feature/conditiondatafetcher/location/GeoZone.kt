@@ -3,7 +3,7 @@ package com.android.appmanager.feature.conditiondatafetcher.location
 data class GeoZone(
     val latitude: Double,
     val longitude: Double,
-    val radiusMeters: Double
+    val radiusMeters: Int
 ) {
     init {
         require(latitude in -90.0..90.0) { "latitude must be in -90..90" }

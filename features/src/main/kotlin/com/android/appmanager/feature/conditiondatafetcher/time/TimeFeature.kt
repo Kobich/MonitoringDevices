@@ -19,7 +19,7 @@ import java.time.Instant
  * Network and satellite time count from their last sync, so changing the clock does not affect them;
  * after a reboot they are gone until the next sync.
  *
- * Manual time outside the period gives false, inside it gives [UnknownReason.NOT_VERIFIED].
+ * Manual time outside every period gives false, inside any of them gives [UnknownReason.NOT_VERIFIED].
  */
 class TimeFeature(context: Context) :
     DataFeature<TimeData>,
@@ -32,8 +32,10 @@ class TimeFeature(context: Context) :
     override suspend fun getData(): TimeData = readTime()
 
     override suspend fun isMeetsCondition(input: TimeCondition): ConditionResult {
+        if (input.periods.isEmpty()) return ConditionResult.False
+
         val time = readTime()
-        val isInside = time.instant in input
+        val isInside = input.periods.any { time.instant in it }
         if (isInside && time.source == TimeSource.MANUAL) return ConditionResult.Unknown(UnknownReason.NOT_VERIFIED)
         return ConditionResult.of(isInside)
     }
