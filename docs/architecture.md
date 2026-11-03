@@ -15,11 +15,34 @@
 :feature:filemanager:impl
   Реализация: просмотр приватного хранилища приложения (Context.filesDir),
   импорт / экспорт через Storage Access Framework, удаление, создание папок.
+
+:core:document:api
+  Контракты чтения документов для просмотра, без привязки к библиотекам.
+  Реализация (:core:document:impl) пока не выбрана.
 ```
 
 ```text
 app -> feature:filemanager:impl -> feature:filemanager:api
 ```
+
+## `core:document:api`
+
+```text
+DocumentSource          LocalFile(File) | Content(Uri, name, mimeType)
+DocumentType            PDF, DOCX, TEXT, IMAGE, UNSUPPORTED
+DocumentTypeResolver    формат по MIME / расширению, без чтения содержимого
+DocumentReadException   единая ошибка с reason (NOT_FOUND, CORRUPTED, PASSWORD_REQUIRED, ...)
+
+pdf/PdfReader           open(source, password) -> PdfDocument (Closeable)
+pdf/PdfDocument         pageCount, pageSize, renderPage(index, widthPx): Bitmap, pageText
+docx/DocxReader         read(source) -> RichTextDocument
+richtext/               формато-независимая модель: Paragraph, Table, Image, PageBreak, стили
+text/TextReader         read(source, maxChars) -> TextDocument (текст, кодировка, обрезан ли)
+image/ImageReader       decode(source, maxW, maxH): Bitmap, size(source)
+```
+
+Все методы `suspend`, реализация сама уходит с main-потока. DOCX отдаётся в
+`RichTextDocument`, чтобы ODT/RTF и т.п. позже ложились в ту же модель и тот же UI.
 
 `app` знает только `FileManagerFeatureApi`; реализация приходит из Koin-модуля `fileManagerFeatureModule`.
 

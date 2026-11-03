@@ -24,5 +24,6 @@ dependencyResolutionManagement {
 
 rootProject.name = "MonitoringDevices"
 include(":app")
+include(":core:document:api")
 include(":feature:filemanager:api")
 include(":feature:filemanager:impl")
