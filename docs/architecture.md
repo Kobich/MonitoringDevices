@@ -27,31 +27,56 @@ app -> feature:filemanager:impl -> feature:filemanager:api
 
 ## `core:document:api`
 
-```text
-DocumentSource          LocalFile(File) | Content(Uri, name, mimeType)
-DocumentType            PDF, TEXT_DOCUMENT, SPREADSHEET, PRESENTATION, PLAIN_TEXT, IMAGE, UNSUPPORTED
-DocumentTypeResolver    категория по MIME / расширению, без чтения содержимого
-DocumentReadException   единая ошибка с reason (NOT_FOUND, CORRUPTED, PASSWORD_REQUIRED, ...)
-
-html/HtmlDocumentRenderer  render(source, password) -> RenderedDocument (папка + страницы HTML), кэш
-pdf/PdfReader              open(source, password) -> PdfDocument: pageCount, renderPage(...): Bitmap
-text/TextReader            read(source, maxChars) -> TextDocument
-image/ImageReader          decode(source, maxW, maxH): Bitmap, size(source)
-```
-
-Маршрутизация в будущем просмотрщике:
+Один базовый ридер, от него по ридеру на формат. Результат — sealed-иерархия документов.
 
 ```text
-TEXT_DOCUMENT, SPREADSHEET, PRESENTATION -> HtmlDocumentRenderer -> WebView
-PDF                                      -> PdfReader -> страницы-Bitmap
-PLAIN_TEXT                               -> TextReader
-IMAGE                                    -> ImageReader
+DocumentReader<out D : Document>          formats, canRead(source), read(source, options): D
+ ├─ pdf/PdfReader                          PDF                      -> PdfDocument
+ ├─ word/DocxReader, DocReader,
+ │       OdtReader, RtfReader              DOCX, DOC, ODT, RTF      -> HtmlDocument
+ ├─ spreadsheet/XlsxReader, XlsReader,
+ │       OdsReader, CsvReader              XLSX, XLS, ODS, CSV      -> HtmlDocument
+ ├─ presentation/PptxReader, PptReader,
+ │       OdpReader                         PPTX, PPT, ODP           -> HtmlDocument
+ ├─ text/TextReader                        TEXT                     -> TextDocument
+ ├─ image/ImageReader                      IMAGE                    -> ImageDocument
+ └─ UniversalDocumentReader(readers)       все перечисленные        -> Document
+
+sealed Document : Closeable                name, format
+ ├─ PdfDocument      pageCount, pageSize, renderPage(index, widthPx): Bitmap, pageText
+ ├─ HtmlDocument     directory, pages: List<HtmlPage(title, file)>   -> WebView
+ ├─ TextDocument     text, charsetName, isTruncated
+ └─ ImageDocument    widthPx, heightPx, decode(maxW, maxH): Bitmap
+
+DocumentFormat     формат: category, extensions, mimeTypes; DocumentFormat.of(source)
+DocumentCategory   PDF, TEXT_DOCUMENT, SPREADSHEET, PRESENTATION, PLAIN_TEXT, IMAGE
+DocumentSource     LocalFile(File) | Content(Uri, name, mimeType)
+ReadOptions        password
+DocumentReadException(reason)   NOT_FOUND, UNSUPPORTED_FORMAT, CORRUPTED, PASSWORD_REQUIRED, ...
+cache/RenderedDocumentCache     sizeBytes(), clear() для результатов конвертации
 ```
+
+Использование в UI:
+
+```kotlin
+val document = universalReader.read(DocumentSource.LocalFile(file))
+when (document) {
+    is PdfDocument -> PdfPages(document)
+    is HtmlDocument -> HtmlPages(document)
+    is TextDocument -> PlainText(document)
+    is ImageDocument -> Picture(document)
+}
+```
+
+Каждый конкретный ридер сам объявляет свой формат (`DocxReader.formats == {DOCX}`),
+`UniversalDocumentReader` не даёт зарегистрировать два ридера на один формат.
 
 ### План реализации `:core:document:impl`
 
-- `HtmlDocumentRenderer` поверх OpenDocument.core (`app.opendocument:odr-core-android`, MPL-2.0):
-  `Odr.open(path)` -> `Html.translate(file, HtmlConfig())` -> `bringOffline(outputDir)`.
+- Офисные ридеры (`DocxReader`, `XlsxReader`, `PptxReader`, ...) поверх одного общего класса на
+  OpenDocument.core (`app.opendocument:odr-core-android`, MPL-2.0, проверена 7.7.0):
+  `Odr.open(path)` -> `decrypt(password)` при `passwordEncrypted()` ->
+  `Html.translate(file, HtmlConfig())` -> `bringOffline(outputDir)` -> `pages()` = `HtmlPage(name, path)`.
   Нативные вызовы на `Dispatchers.IO` и под `Mutex`, пока не подтверждена потокобезопасность.
 - Кэш: `cacheDir/rendered/<hash(path, size, lastModified)>/`, атомарно через временную папку.
   `Content`-источники сначала копируются во временный файл (odr принимает путь).
@@ -61,6 +86,16 @@ IMAGE                                    -> ImageReader
   Запросы к остальным хостам блокировать в `shouldInterceptRequest`, без `addJavascriptInterface`:
   содержимое документов недоверенное.
 - `PdfReader` — системный `PdfRenderer`; odr тоже умеет PDF, можно сравнить качество.
+- Размер odr-core-android 7.7.0 (`libodr_jni.so` + `libc++_shared.so`):
+
+  | ABI | в AAR (без strip) | после strip | сжато (загрузка) |
+  | --- | --- | --- | --- |
+  | arm64-v8a | 140 MB | 10.7 MB | ~3.9 MB |
+  | armeabi-v7a | 117 MB | 7.8 MB | ~3.5 MB |
+  | x86_64 / x86 | 135 / 116 MB | 11.1 / 10.5 MB | ~4.1 MB |
+
+  AGP вырезает отладочные символы только при установленном NDK — без него в APK попадут
+  неурезанные библиотеки. Публиковать AAB (или делать ABI splits), чтобы устройство получало одну ABI.
 
 ## Структура `feature:filemanager:impl`
 
