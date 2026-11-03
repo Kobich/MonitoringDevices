@@ -9,13 +9,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.engboost.monitoringdevices.feature.filemanager.api.FileManagerFeatureApi
+import com.engboost.monitoringdevices.feature.viewer.api.DocumentViewerFeatureApi
 import com.engboost.monitoringdevices.home.HomeScreen
-import com.engboost.monitoringdevices.viewer.FileViewerPlaceholderScreen
 import java.io.File
 
 @Composable
 internal fun AppNavigation(
     fileManagerFeature: FileManagerFeatureApi,
+    documentViewerFeature: DocumentViewerFeatureApi,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -42,9 +43,9 @@ internal fun AppNavigation(
             arguments = listOf(navArgument(AppDestination.ARG_PATH) { type = NavType.StringType })
         ) { backStackEntry ->
             val path = backStackEntry.arguments?.getString(AppDestination.ARG_PATH).orEmpty()
-            // To be replaced with a viewer feature built on top of :core:document.
-            FileViewerPlaceholderScreen(
+            documentViewerFeature.DocumentViewerScreen(
                 file = File(path),
+                modifier = Modifier,
                 onBackClick = { navController.popBackStack() }
             )
         }

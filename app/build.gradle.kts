@@ -41,6 +41,8 @@ android {
 
 dependencies {
     implementation(project(":feature:filemanager:impl"))
+    implementation(project(":feature:viewer:impl"))
+    implementation(project(":core:document:impl"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

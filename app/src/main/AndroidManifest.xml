@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- TEMPORARY until the minSdk decision: OpenDocument.core needs API 26, office readers
+         are enabled only there (core/document/impl DefaultDocumentReaderVariants). -->
+    <uses-sdk tools:overrideLibrary="app.opendocument.core" />
 
     <application
         android:name=".MonitoringDevicesApplication"

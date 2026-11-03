@@ -1,7 +1,9 @@
 package com.engboost.monitoringdevices
 
 import android.app.Application
+import com.engboost.monitoringdevices.core.document.impl.di.coreDocumentModule
 import com.engboost.monitoringdevices.feature.filemanager.impl.di.fileManagerFeatureModule
+import com.engboost.monitoringdevices.feature.viewer.impl.di.documentViewerFeatureModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -14,7 +16,9 @@ class MonitoringDevicesApplication : Application() {
             androidLogger()
             androidContext(this@MonitoringDevicesApplication)
             modules(
-                fileManagerFeatureModule
+                coreDocumentModule,
+                fileManagerFeatureModule,
+                documentViewerFeatureModule
             )
         }
     }

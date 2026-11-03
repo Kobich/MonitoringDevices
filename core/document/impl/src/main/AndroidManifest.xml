@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- OpenDocument.core declares minSdk 26 while the app still supports 24.
+         Its classes are touched only on API 26+, see DefaultDocumentReaderVariants. -->
+    <uses-sdk tools:overrideLibrary="app.opendocument.core" />
+
+</manifest>

@@ -23,7 +23,12 @@
 
 ```text
 app -> feature:filemanager:impl -> feature:filemanager:api
+app -> feature:viewer:impl -> feature:viewer:api, core:document:api
+app -> core:document:impl -> core:document:api, odr-core-android
 ```
+
+`:feature:viewer` показывает документ по `File`: `UniversalDocumentReader` -> `when (document)`.
+Сейчас реализован показ `HtmlDocument` (WebView); PDF, текст и картинки — заглушка.
 
 ## `core:document:api`
 
@@ -71,16 +76,41 @@ when (document) {
 Каждый конкретный ридер сам объявляет свой формат (`DocxReader.formats == {DOCX}`),
 `UniversalDocumentReader` не даёт зарегистрировать два ридера на один формат.
 
+### Сравнение: диаграммы как есть / картинкой (ВРЕМЕННО)
+
+OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xlsx/pptx). Чтобы сравнить,
+в просмотрщике для docx есть переключатель **Charts: As is / As picture**:
+
+- **As is** — `OdrDocxReader`, файл уходит в OpenDocument.core без изменений.
+- **As picture** — `ChartRasterizingDocxReader`: `DocxChartRasterizer` пишет копию docx, где каждая
+  диаграмма (`a:graphicData` с `c:chart`) заменена картинкой `pic:pic` того же размера.
+  Данные — из кэшей `c:numCache`/`c:strCache` (`ChartXmlParser`), цвета — из темы документа,
+  рисует `AndroidChartImageRenderer` (столбцы/полосы с группировкой, линии, области, круговые,
+  кольцевые, точечные; заголовок, легенда, оси). Нераспознанные диаграммы остаются как есть.
+  Логи: `adb logcat -s ChartRasterizing`.
+
+Результаты кэшируются раздельно (`variant` в ключе кэша), переключение не пересчитывает уже открытое.
+
+**Уборка после выбора.**
+Общее: удалить `core/document/api/.../comparison/`, `DefaultDocumentReaderVariants`,
+`ChartRenderingSwitch` и поле `chartRendering` во viewer; `OpenDocumentInteractor` берёт
+`UniversalDocumentReader`, `coreDocumentModule` собирает его из списка ридеров.
+
+- Остались на **As is**: удалить `chart/` и `ChartRasterizingDocxReader` с тестами.
+- Остались на **As picture**: удалить `OdrDocxReader`, `ChartRasterizingDocxReader` переименовать
+  в `OdrDocxReader`; при желании применить тот же подход к xlsx/pptx.
+
 ### План реализации `:core:document:impl`
 
-- Офисные ридеры (`DocxReader`, `XlsxReader`, `PptxReader`, ...) поверх одного общего класса на
+- Сделано: офисные ридеры (`DocxReader`, `XlsxReader`, `PptxReader`, ...) поверх одного общего класса на
   OpenDocument.core (`app.opendocument:odr-core-android`, MPL-2.0, проверена 7.7.0):
   `Odr.open(path)` -> `decrypt(password)` при `passwordEncrypted()` ->
   `Html.translate(file, HtmlConfig())` -> `bringOffline(outputDir)` -> `pages()` = `HtmlPage(name, path)`.
   Нативные вызовы на `Dispatchers.IO` и под `Mutex`, пока не подтверждена потокобезопасность.
 - Кэш: `cacheDir/rendered/<hash(path, size, lastModified)>/`, атомарно через временную папку.
   `Content`-источники сначала копируются во временный файл (odr принимает путь).
-- Требует **minSdk 26** — поднять у всех модулей при подключении.
+- Требует **minSdk 26**. Пока решение не принято: `tools:overrideLibrary` в манифестах
+  `app` и `core:document:impl`, офисные ридеры регистрируются только на API 26+.
 - Показ: WebView + `androidx.webkit.WebViewAssetLoader` с `InternalStoragePathHandler` на папку
   кэша. Так не нужны `HttpServer`, разрешение `INTERNET`, cleartext-конфиг и `allowFileAccess`.
   Запросы к остальным хостам блокировать в `shouldInterceptRequest`, без `addJavascriptInterface`:
