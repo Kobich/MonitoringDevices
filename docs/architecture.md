@@ -22,8 +22,10 @@
   Не зависит от фич и core:document; фичи и app подключают его через implementation.
 
 :core:document:api
-  Контракты чтения документов для просмотра, без привязки к библиотекам.
-  Реализация (:core:document:impl) пока не выбрана.
+  DocumentReader.read(file) -> Document. Без привязки к библиотекам.
+
+:core:document:impl
+  DocumentCore(context).reader: ридеры по форматам на системных API и OpenDocument.core.
 ```
 
 ```text
@@ -33,90 +35,82 @@ app -> feature:viewer:impl -> feature:viewer:api, core:document:api
 app -> core:document:impl -> core:document:api, odr-core-android
 ```
 
-`:feature:viewer` показывает документ по `File`: `UniversalDocumentReader` -> `when (document)`:
+`:feature:viewer` показывает документ по `File`: `DocumentReader.read(file)` -> `when (document)`:
 `HtmlDocument` — WebView, `PdfDocument` — список страниц-битмапов, `TextDocument` — текст построчно,
 `ImageDocument` — картинка с pinch-zoom, `AudioDocument` — плеер.
 
 ## `core:document:api`
 
-Главное — одна функция:
-
 ```kotlin
-val document = documentReader.read("/path/to/report.docx")   // или File, или content:// URI
-document.use {
-    when (it) {
+documentReader.read(file).use { document ->      // или read("/path/to/file")
+    when (document) {
         is PdfDocument -> ...     // pageCount, renderPage(index, widthPx): Bitmap
         is HtmlDocument -> ...    // directory + pages -> WebView
         is TextDocument -> ...    // text, charsetName, isTruncated
         is ImageDocument -> ...   // decode(maxW, maxH): Bitmap, decodeAnimation()
-        is AudioDocument -> ...   // durationMs, title, artist, loadArtwork()
+        is AudioDocument -> ...   // file, durationMs, title, artist, loadArtwork()
     }
 }
 ```
 
-```text
-DocumentReader            ГЛАВНОЕ: read(path | file | source, password), canRead(path), supportedFormats
-document/Document         sealed результат: PdfDocument, HtmlDocument, TextDocument, ImageDocument, AudioDocument
-DocumentFormat            формат по расширению / MIME: category, extensions, mimeTypes
-DocumentReadException     ошибка с reason: NOT_FOUND, UNSUPPORTED_FORMAT, CORRUPTED, PASSWORD_REQUIRED, ...
-DocumentSource            LocalFile(File) | Content(Uri, name, mimeType) — если нужен не путь
-cache/RenderedDocumentCache  sizeBytes(), clear() для результатов конвертации
+Весь API — 9 файлов:
 
-format/                   ридеры по форматам — детали, нужны только для типизированного результата
-  FormatReader<D>         formats, read(source, password): D
-  pdf/PdfReader, word/DocxReader, ..., spreadsheet/XlsxReader, ..., presentation/PptxReader, ...,
-  drawing/OdgReader, text/TextReader, text/MarkdownReader, image/ImageReader, image/SvgReader,
-  audio/AudioReader
+```text
+DocumentReader          read(file | path, password): Document
+DocumentFormat          формат по расширению файла
+DocumentReadException   reason: NOT_FOUND, UNSUPPORTED_FORMAT, CORRUPTED, PASSWORD_REQUIRED, ...
+document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocument, ImageDocument, AudioDocument
 ```
 
-`DocumentReader` в реализации — `CompositeDocumentReader`: определяет формат по имени (и MIME для
-`content://`) и вызывает `FormatReader`, зарегистрированный на этот формат; два ридера на один формат
-не допускаются. Получить его: `DocumentCore(context).reader` или через Hilt (`DocumentCoreModule`).
+Приложение офлайн и открывает только свои файлы, поэтому на входе всегда `File`: ни URI, ни MIME-типов.
 
-### Реализации в `:core:document:impl`
+## `core:document:impl`
 
-| Ридер | Форматы | Чем | Открытые вопросы (выбрать позже) |
+Наружу — только `DocumentCore(context).reader`. Внутри `CompositeDocumentReader` берёт формат по
+расширению и вызывает `FormatReader` этого формата:
+
+| Ридер | Форматы | Чем | Открытые вопросы |
 | --- | --- | --- | --- |
-| `Odr*Reader` (15 шт.) | docx, doc, odt/fodt, rtf, pages, xlsx, xls, ods/fods, csv, numbers, pptx, ppt, odp/fodp, key, odg/fodg | OpenDocument.core -> HTML; в docx и pptx диаграммы картинками | диаграммы в xlsx; только Android 8+; качество iWork/odg проверить на файлах |
-| `AndroidMarkdownReader` | md, markdown | OpenDocument.core -> HTML, при ошибке и на Android 6–7 — как текст | — |
-| `WebViewSvgReader` | svg | обёртка `<img>` в WebView (скрипты SVG не выполняются), все API | — |
-| `AndroidPdfReader` | pdf | `PdfRenderer` | пароль только на API 35+, нет текста/поиска; zoom в UI. Варианты: androidx.pdf, pdfium |
-| `AndroidTextReader` | txt, json, xml, log | свой код (`TextDecoding`) | эвристика cp1251/Latin-1 -> ICU `CharsetDetector`/juniversalchardet; подсветка md/json |
-| `AndroidImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + `ExifInterface`; GIF/анимированный WebP — `ImageDecoder` (Android 9+) | анимация на Android 6–8, большие фото (тайлинг) -> Coil/subsampling |
-| `AndroidAudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor` | — |
+| `PdfReader` | pdf | `PdfRenderer` | пароль только на Android 15+, нет поиска/выделения текста, zoom в UI |
+| `TextReader` | txt, json, xml, log | свой код (`TextDecoding`: BOM, UTF-8/16, cp1251/Latin-1) | эвристика кодировок -> ICU `CharsetDetector` |
+| `MarkdownReader` | md, markdown | OpenDocument.core -> HTML; на Android 6–7 и при ошибке — как текст | — |
+| `ImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + EXIF; GIF/WebP-анимация — `ImageDecoder` (Android 9+) | анимация на 6–8, огромные фото |
+| `SvgReader` | svg | страница с `<img>` в WebView (скрипты SVG не выполняются) | — |
+| `AudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor`, всё опционально | — |
+| `OfficeReader` | docx, pptx (диаграммы картинками); doc, odt, rtf, pages, xlsx, xls, ods, csv, numbers, ppt, odp, key, odg | OpenDocument.core -> HTML, Android 8+ | диаграммы в xlsx; качество iWork/odg на реальных файлах |
 
 Плеер в просмотрщике: интерфейс `AudioPlayer`, сейчас `MediaPlayerAudioPlayer`; пауза при уходе
-экрана в фон. Фоновое воспроизведение, уведомление, audio focus -> Media3 (ExoPlayer).
+экрана в фон. Фон, уведомление, audio focus -> Media3 (ExoPlayer).
 
-### План реализации `:core:document:impl`
+### OpenDocument.core
 
-- Сделано: офисные ридеры (`DocxReader`, `XlsxReader`, `PptxReader`, ...) поверх одного общего класса на
-  OpenDocument.core (`app.opendocument:odr-core-android`, MPL-2.0, проверена 7.7.0):
-  `Odr.open(path)` -> `decrypt(password)` при `passwordEncrypted()` ->
-  `Html.translate(file, HtmlConfig())` -> `bringOffline(outputDir, views)` -> `pages()` = `HtmlPage(name, path)`.
-  Виды: у таблиц только листы (`sheetN.html`, вкладки при >1 листе), у остальных только
-  общий вид документа (`document.html`); поштучные `slideN`/`pageN` не генерируются.
-  Нативные вызовы на `Dispatchers.IO` и под `Mutex`, пока не подтверждена потокобезопасность.
-- Кэш: `cacheDir/rendered/<hash(path, size, lastModified)>/`, атомарно через временную папку.
-  `Content`-источники сначала копируются во временный файл (odr принимает путь).
-- Библиотека требует API 26, приложение — **minSdk 23**: `tools:overrideLibrary` в манифестах
-  `app` и `core:document:impl`, офисные ридеры регистрируются только на API 26+
-  (`DocumentCore.officeReaders`), на Android 6–7 офисные форматы не поддерживаются.
-- Показ: WebView + `androidx.webkit.WebViewAssetLoader` с `InternalStoragePathHandler` на папку
-  кэша. Так не нужны `HttpServer`, разрешение `INTERNET`, cleartext-конфиг и `allowFileAccess`.
-  Запросы к остальным хостам блокировать в `shouldInterceptRequest`, без `addJavascriptInterface`:
-  содержимое документов недоверенное.
-- `PdfReader` — системный `PdfRenderer`; odr тоже умеет PDF, можно сравнить качество.
-- Размер odr-core-android 7.7.0 (`libodr_jni.so` + `libc++_shared.so`):
+- `app.opendocument:odr-core-android` 7.7.0, MPL-2.0. Единственный класс, который с ней говорит, —
+  `OdrHtmlConverter`: `Odr.open(path)` -> `decrypt(password)` -> `Html.translate(...)` ->
+  `bringOffline(outputDir, views)`. Виды: у таблиц только листы (вкладки при >1 листе), у остальных
+  общий вид документа. Ссылки на ресурсы относительные. Нативные вызовы по одному (`Mutex`).
+- Кэш `RenderCache`: `cacheDir/documents/<hash(путь, размер, время изменения, вариант)>/`, папка
+  появляется атомарно.
+- Библиотека требует Android 8 (API 26), приложение — minSdk 23: `tools:overrideLibrary` в манифестах
+  `app` и `core:document:impl`, `OfficeReader` регистрируется только на API 26+.
+- Показ: WebView + `WebViewAssetLoader` (`InternalStoragePathHandler` на папку результата): без сети,
+  без доступа к файлам; остальные запросы блокируются, JS-интерфейсов нет.
+- Размер (`libodr_jni.so` + `libc++_shared.so`) на устройстве после strip: arm64 10.7 MB
+  (~3.9 MB при загрузке из Play). В AAR символы не вырезаны (140 MB) — их вырезает AGP при
+  установленном NDK; публиковать AAB, чтобы устройство получало одну ABI.
 
-  | ABI | в AAR (без strip) | после strip | сжато (загрузка) |
-  | --- | --- | --- | --- |
-  | arm64-v8a | 140 MB | 10.7 MB | ~3.9 MB |
-  | armeabi-v7a | 117 MB | 7.8 MB | ~3.5 MB |
-  | x86_64 / x86 | 135 / 116 MB | 11.1 / 10.5 MB | ~4.1 MB |
+### Диаграммы в docx и pptx
 
-  AGP вырезает отладочные символы только при установленном NDK — без него в APK попадут
-  неурезанные библиотеки. Публиковать AAB (или делать ABI splits), чтобы устройство получало одну ABI.
+OpenDocument.core не рисует диаграммы DrawingML. `OfficeReader` для docx и pptx перед конвертацией
+пишет копию файла, где каждая диаграмма заменена картинкой того же размера и положения:
+
+- `ooxml/OoxmlPackage` — части, связи, типы контента, запись копии; `ooxml/OoxmlXml` — XML-хелперы;
+- `chart/DocxChartRasterizer`: `a:graphicData` с `c:chart` -> `pic:pic`;
+- `chart/PptxChartRasterizer`: на слайдах `p:graphicFrame` с `c:chart` -> `p:pic`;
+- данные из кэшей `c:numCache`/`c:strCache` (`ChartXmlParser`), цвета из темы документа, рисует
+  `AndroidChartImageRenderer` (столбцы/полосы, линии, области, круговые, кольцевые, точечные).
+
+Нераспознанные диаграммы остаются как есть, при ошибке рендерится исходный файл.
+Логи: `adb logcat -s OfficeReader`.
 
 ## Структура `feature:filemanager:impl`
 
@@ -200,12 +194,21 @@ components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
 
 | Модули | DI | Как |
 | --- | --- | --- |
-| `core:*` | без фреймворка | `core:document:impl` отдаёт одну публичную точку сборки `DocumentCore(context, config)`, всё остальное `internal`; `core:common-ui` без зависимостей |
+| `core:*` | без фреймворка | `core:document:impl` отдаёт одну публичную точку `DocumentCore(context).reader`, всё остальное `internal`; `core:common-ui` без зависимостей |
 | `feature:*:impl` | Hilt | `@Inject constructor`, `@HiltViewModel`, `internal` Hilt-модуль `@InstallIn(SingletonComponent)` с `@Binds` для `*FeatureApi` |
-| `app` | Hilt | `@HiltAndroidApp`, `@AndroidEntryPoint`; `di/DocumentCoreModule` создаёт `DocumentCore` как `@Singleton` и отдаёт его API-типы |
+| `app` | Hilt | `@HiltAndroidApp`, `@AndroidEntryPoint`; `di/DocumentCoreModule` отдаёт `DocumentReader` как `@Singleton` |
 
 Параметры экрана, которые приходят через API фичи (например `File` у просмотрщика), передаются
 assisted injection: `@HiltViewModel(assistedFactory = ...)` +
 `hiltViewModel<VM, VM.Factory>(key = ..., creationCallback = { it.create(file) })`.
 
 Версии: Hilt 2.60.1 (для AGP 9 нужен >= 2.59.2), KSP 2.3.13 (для встроенного Kotlin AGP 9 нужен >= 2.3.6).
+
+## Примеры файлов (ВРЕМЕННО)
+
+`app/.../sample/` при первом запуске кладёт в `filesDir` примеры: `Readme.txt`, `Quarterly report.docx`
+(таблица, 2 картинки, столбчатая и линейная диаграммы, подписи «Picture N» / «Chart N»), `Budget.csv`,
+`Samples/` (`Market share.docx`, `Sales by region.csv`, `Notes.md`, пустая папка), `Media/`
+(`Sample.pdf`, `Picture.png`, `Chord.wav`, тексты в UTF-8 и cp1251). Один раз на версию набора
+(SharedPreferences `sample_files`), новая версия перезаписывает примеры.
+Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.

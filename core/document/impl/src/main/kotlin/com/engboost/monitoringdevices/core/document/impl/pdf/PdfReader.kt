@@ -9,11 +9,9 @@ import android.os.ParcelFileDescriptor
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.core.document.api.document.PageSize
 import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
-import com.engboost.monitoringdevices.core.document.api.format.pdf.PdfReader
-import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
+import com.engboost.monitoringdevices.core.document.impl.FormatReader
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +20,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.IOException
 
 /**
@@ -29,16 +28,17 @@ import java.io.IOException
  * Limits to decide on later: passwords need Android 15 (API 35), no text extraction here
  * (`pageText` returns `null`). Alternatives: androidx.pdf, pdfium.
  */
-internal class AndroidPdfReader(
-    private val sourceFiles: DocumentSourceFiles,
+internal class PdfReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-) : PdfReader {
+) : FormatReader<PdfDocument> {
+    override val formats = setOf(DocumentFormat.PDF)
+
     private val closeScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    override suspend fun read(source: DocumentSource, password: String?): PdfDocument = withContext(ioDispatcher) {
-        val descriptor = sourceFiles.openFileDescriptor(source)
+    override suspend fun read(file: File, password: String?): PdfDocument = withContext(ioDispatcher) {
+        val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         try {
-            AndroidPdfDocument(source.name, descriptor, openRenderer(descriptor, password))
+            RendererPdfDocument(file.name, descriptor, openRenderer(descriptor, password))
         } catch (error: Throwable) {
             descriptor.close()
             throw error
@@ -70,7 +70,7 @@ internal class AndroidPdfReader(
     }
 
     /** `PdfRenderer` allows one open page at a time, so every call goes through [mutex]. */
-    private inner class AndroidPdfDocument(
+    private inner class RendererPdfDocument(
         override val name: String,
         private val descriptor: ParcelFileDescriptor,
         private val renderer: PdfRenderer
@@ -121,7 +121,7 @@ internal class AndroidPdfReader(
             if (pageIndex !in 0 until pageCount) throw IndexOutOfBoundsException("Page $pageIndex of $pageCount")
             return withContext(ioDispatcher) {
                 mutex.withLock {
-                    if (synchronized(this@AndroidPdfDocument) { isClosed }) {
+                    if (synchronized(this@RendererPdfDocument) { isClosed }) {
                         throw DocumentReadException(Reason.IO_ERROR, "Document is closed")
                     }
                     renderer.openPage(pageIndex).use(block)

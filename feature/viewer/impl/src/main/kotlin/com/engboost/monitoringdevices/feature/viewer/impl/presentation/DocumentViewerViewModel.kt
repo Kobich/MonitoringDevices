@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
+import com.engboost.monitoringdevices.core.document.api.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
 import com.engboost.monitoringdevices.core.document.api.document.Document
@@ -13,7 +14,6 @@ import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
 import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
 import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
 import com.engboost.monitoringdevices.core.document.api.document.TextDocument
-import com.engboost.monitoringdevices.feature.viewer.impl.domain.interactor.OpenDocumentInteractor
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayer
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayerFactory
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.AudioPlaybackUi
@@ -34,7 +34,7 @@ import java.io.File
 @HiltViewModel(assistedFactory = DocumentViewerViewModel.Factory::class)
 internal class DocumentViewerViewModel @AssistedInject constructor(
     @Assisted private val file: File,
-    private val interactor: OpenDocumentInteractor,
+    private val reader: DocumentReader,
     private val audioPlayerFactory: AudioPlayerFactory
 ) : ViewModel() {
 
@@ -94,7 +94,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
 
         loadJob = viewModelScope.launch {
             try {
-                val document = interactor.open(file, password)
+                val document = reader.read(file, password)
                 replaceOpenedDocument(document)
                 show(document)
             } catch (error: CancellationException) {
@@ -174,7 +174,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     private fun startAudio(document: AudioDocument) {
-        val player = audioPlayerFactory.create(document.source)
+        val player = audioPlayerFactory.create(document.file)
         audioPlayer = player
         uiState = uiState.copy(
             audioPlayback = AudioPlaybackUi(

@@ -2,18 +2,17 @@ package com.engboost.monitoringdevices.core.document.api.document
 
 import android.graphics.Bitmap
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
+import java.io.File
 
-/** Audio file metadata; playback is up to the viewer, which plays [source]. */
+/** Audio file metadata; playback is up to the viewer, which plays [file]. */
 interface AudioDocument : Document {
-    val source: DocumentSource
+    val file: File
 
     /** `null` when the container doesn't tell. */
     val durationMs: Long?
     val title: String?
     val artist: String?
     val album: String?
-    val mimeType: String?
     val sampleRateHz: Int?
     val channelCount: Int?
     val bitrateBps: Int?

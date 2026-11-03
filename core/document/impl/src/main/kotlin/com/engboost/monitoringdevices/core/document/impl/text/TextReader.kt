@@ -3,34 +3,29 @@ package com.engboost.monitoringdevices.core.document.impl.text
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.core.document.api.document.TextDocument
-import com.engboost.monitoringdevices.core.document.api.format.text.TextReader
-import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
+import com.engboost.monitoringdevices.core.document.impl.FormatReader
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.IOException
 
 /** Reads at most [maxChars] characters of a text file with charset detection. */
-internal class AndroidTextReader(
-    private val sourceFiles: DocumentSourceFiles,
+internal class TextReader(
     private val maxChars: Int = DEFAULT_MAX_CHARS,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-) : TextReader {
+) : FormatReader<TextDocument> {
+    override val formats = setOf(DocumentFormat.TEXT)
 
-    override suspend fun read(source: DocumentSource, password: String?): TextDocument {
-        return readText(source, DocumentFormat.TEXT)
-    }
+    override suspend fun read(file: File, password: String?): TextDocument = readText(file, DocumentFormat.TEXT)
 
-    /** Also used for other text-based formats shown as plain text (e.g. Markdown fallback). */
-    suspend fun readText(source: DocumentSource, format: DocumentFormat): TextDocument = withContext(ioDispatcher) {
+    /** Also used for other formats shown as plain text (Markdown fallback). */
+    suspend fun readText(file: File, format: DocumentFormat): TextDocument = withContext(ioDispatcher) {
         // UTF-8 needs at most 4 bytes per character; one extra byte tells whether the file is longer.
         val byteLimit = maxChars.toLong() * 4
         val bytes = try {
-            sourceFiles.openInputStream(source).use { input -> input.readUpTo(byteLimit + 1) }
-        } catch (error: DocumentReadException) {
-            throw error
+            file.inputStream().use { input -> input.readUpTo(byteLimit + 1) }
         } catch (error: IOException) {
             throw DocumentReadException(Reason.IO_ERROR, error.message, error)
         }
@@ -45,7 +40,7 @@ internal class AndroidTextReader(
         val isCutByChars = decoded.text.length > maxChars
 
         TextDocument(
-            name = source.name,
+            name = file.name,
             format = format,
             text = if (isCutByChars) decoded.text.take(maxChars) else decoded.text,
             charsetName = decoded.charsetName,

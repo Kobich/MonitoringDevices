@@ -35,8 +35,7 @@ internal data class FileEntryUi(
     val name: String,
     val isDirectory: Boolean,
     val kind: FileKind,
-    val details: String,
-    val mimeType: String
+    val details: String
 )
 
 @Immutable
@@ -69,7 +68,7 @@ internal data class CreateDirectoryDialogUi(
 @Immutable
 internal sealed interface ExportPickerUi {
     /** "Save as" picker for a single file. */
-    data class CreateDocument(val fileName: String, val mimeType: String) : ExportPickerUi
+    data class CreateDocument(val fileName: String) : ExportPickerUi
 
     /** Folder picker, selected items are copied inside. */
     data object PickFolder : ExportPickerUi

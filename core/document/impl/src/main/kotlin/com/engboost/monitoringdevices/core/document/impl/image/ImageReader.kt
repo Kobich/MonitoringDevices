@@ -12,13 +12,12 @@ import androidx.exifinterface.media.ExifInterface
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
-import com.engboost.monitoringdevices.core.document.api.format.image.ImageReader
-import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
+import com.engboost.monitoringdevices.core.document.impl.FormatReader
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.IOException
 
 /**
@@ -26,29 +25,30 @@ import java.io.IOException
  * downsampled for the requested size. EXIF orientation is applied. GIF and animated WebP are
  * animated with `ImageDecoder` on Android 9+, older devices show the first frame.
  */
-internal class AndroidImageReader(
-    private val sourceFiles: DocumentSourceFiles,
+internal class ImageReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-) : ImageReader {
+) : FormatReader<ImageDocument> {
+    override val formats = setOf(DocumentFormat.IMAGE)
 
-    override suspend fun read(source: DocumentSource, password: String?): ImageDocument = withContext(ioDispatcher) {
+
+    override suspend fun read(file: File, password: String?): ImageDocument = withContext(ioDispatcher) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-        readStream(source) { input -> BitmapFactory.decodeStream(input, null, bounds) }
+        readStream(file) { input -> BitmapFactory.decodeStream(input, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
-            throw DocumentReadException(Reason.CORRUPTED, "Can't read image ${source.name}")
+            throw DocumentReadException(Reason.CORRUPTED, "Can't read image ${file.name}")
         }
 
         val orientation = runCatching {
-            readStream(source) { input ->
+            readStream(file) { input ->
                 ExifInterface(input).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
             }
         }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
 
-        val header = runCatching { readStream(source) { input -> input.readHeader() } }.getOrDefault(ByteArray(0))
+        val header = runCatching { readStream(file) { input -> input.readHeader() } }.getOrDefault(ByteArray(0))
 
-        AndroidImageDocument(
-            name = source.name,
-            source = source,
+        FileImageDocument(
+            name = file.name,
+            file = file,
             rawWidth = bounds.outWidth,
             rawHeight = bounds.outHeight,
             orientation = orientation,
@@ -56,9 +56,9 @@ internal class AndroidImageReader(
         )
     }
 
-    private inner class AndroidImageDocument(
+    private inner class FileImageDocument(
         override val name: String,
-        private val source: DocumentSource,
+        private val file: File,
         private val rawWidth: Int,
         private val rawHeight: Int,
         private val orientation: Int,
@@ -78,7 +78,7 @@ internal class AndroidImageReader(
             val options = BitmapFactory.Options().apply {
                 inSampleSize = BitmapSampling.sampleSize(rawWidth, rawHeight, maxRawWidth, maxRawHeight)
             }
-            val decoded = readStream(source) { input -> BitmapFactory.decodeStream(input, null, options) }
+            val decoded = readStream(file) { input -> BitmapFactory.decodeStream(input, null, options) }
                 ?: throw DocumentReadException(Reason.CORRUPTED, "Can't decode image $name")
 
             transform(decoded, maxRawWidth, maxRawHeight)
@@ -92,7 +92,7 @@ internal class AndroidImageReader(
         @RequiresApi(Build.VERSION_CODES.P)
         private fun decodeAnimatedDrawable(maxWidthPx: Int, maxHeightPx: Int): Drawable? {
             val drawable = try {
-                ImageDecoder.decodeDrawable(sourceFiles.imageDecoderSource(source)) { decoder, info, _ ->
+                ImageDecoder.decodeDrawable(ImageDecoder.createSource(file)) { decoder, info, _ ->
                     val scale = minOf(1f, maxWidthPx.toFloat() / info.size.width, maxHeightPx.toFloat() / info.size.height)
                     if (scale < 1f) {
                         decoder.setTargetSize(
@@ -141,11 +141,9 @@ internal class AndroidImageReader(
         }
     }
 
-    private fun <T> readStream(source: DocumentSource, block: (java.io.InputStream) -> T): T {
+    private fun <T> readStream(file: File, block: (java.io.InputStream) -> T): T {
         return try {
-            sourceFiles.openInputStream(source).use(block)
-        } catch (error: DocumentReadException) {
-            throw error
+            file.inputStream().use(block)
         } catch (error: IOException) {
             throw DocumentReadException(Reason.IO_ERROR, error.message, error)
         } catch (error: OutOfMemoryError) {

@@ -9,11 +9,9 @@ import app.opendocument.core.OdrException
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
 import com.engboost.monitoringdevices.core.document.api.document.HtmlPage
-import com.engboost.monitoringdevices.core.document.impl.cache.DiskRenderedDocumentCache
-import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
+import com.engboost.monitoringdevices.core.document.impl.cache.RenderCache
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -22,50 +20,38 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * The only class that talks to OpenDocument.core: office file -> HTML folder.
- * Native calls are serialized with a mutex until the library's thread safety is confirmed.
+ * The only class that talks to OpenDocument.core: office file -> folder with HTML pages.
+ * Native calls run one at a time (mutex) until the library's thread safety is confirmed.
  */
 internal class OdrHtmlConverter(
-    private val cache: DiskRenderedDocumentCache,
-    private val sourceFiles: DocumentSourceFiles,
+    private val cache: RenderCache,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
     private val mutex = Mutex()
 
     /**
-     * @param variant part of the cache key, different preprocessing must use different values.
-     * @param prepare turns the source file into the file actually rendered (e.g. with charts
-     * replaced by pictures); may write into the given work folder.
+     * @param variant part of the cache key: different [prepare] steps need different values.
+     * @param prepare turns [file] into the file actually rendered (e.g. charts replaced by
+     * pictures); may write into the given work folder.
      */
     suspend fun convert(
-        source: DocumentSource,
+        file: File,
         format: DocumentFormat,
         password: String?,
         variant: String,
-        prepare: (sourceFile: File, workDirectory: File) -> File = { sourceFile, _ -> sourceFile }
+        prepare: (file: File, workDirectory: File) -> File = { original, _ -> original }
     ): HtmlDocument = withContext(ioDispatcher) {
         mutex.withLock {
-            val identity = sourceFiles.identity(source)
-            val entry = cache.find(identity, variant) ?: run {
+            val entry = cache.find(file, variant) ?: run {
                 val workDirectory = cache.newWorkDirectory()
                 try {
-                    sourceFiles.withFile(source, workDirectory) { sourceFile ->
-                        val input = prepare(sourceFile, workDirectory)
-                        cache.store(identity, variant) { outputDirectory ->
-                            render(input, password, outputDirectory)
-                        }
-                    }
+                    val input = prepare(file, workDirectory)
+                    cache.store(file, variant) { outputDirectory -> render(input, password, outputDirectory) }
                 } finally {
                     workDirectory.deleteRecursively()
                 }
             }
-
-            HtmlDocument(
-                name = source.name,
-                format = format,
-                directory = entry.directory,
-                pages = entry.pages
-            )
+            HtmlDocument(name = file.name, format = format, directory = entry.directory, pages = entry.pages)
         }
     }
 

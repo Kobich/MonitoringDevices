@@ -148,7 +148,7 @@ internal class FileManagerViewModel @Inject constructor(
         val singleFile = entries.singleOrNull()?.takeIf { entry -> !entry.isDirectory }
         val destination = interactor.exportDestination(paths, isSingleFile = singleFile != null)
         val picker = if (destination == ExportDestination.DOCUMENT && singleFile != null) {
-            ExportPickerUi.CreateDocument(fileName = singleFile.name, mimeType = singleFile.mimeType)
+            ExportPickerUi.CreateDocument(fileName = singleFile.name)
         } else {
             ExportPickerUi.PickFolder
         }

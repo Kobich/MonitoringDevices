@@ -1,13 +1,11 @@
 package com.engboost.monitoringdevices.feature.viewer.impl.data.player
 
-import android.content.Context
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayer
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayerFactory
-import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.io.File
 import java.io.IOException
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -15,8 +13,7 @@ import kotlin.coroutines.resumeWithException
 
 /** Must be used from the main thread: `MediaPlayer` callbacks arrive on the creating looper. */
 internal class MediaPlayerAudioPlayer(
-    private val context: Context,
-    private val source: DocumentSource
+    private val file: File
 ) : AudioPlayer {
     private val player = MediaPlayer().apply {
         setAudioAttributes(
@@ -38,10 +35,7 @@ internal class MediaPlayerAudioPlayer(
         get() = isPrepared && player.isPlaying
 
     override suspend fun prepare() {
-        when (source) {
-            is DocumentSource.LocalFile -> player.setDataSource(source.file.path)
-            is DocumentSource.Content -> player.setDataSource(context, source.uri)
-        }
+        player.setDataSource(file.path)
         suspendCancellableCoroutine { continuation ->
             player.setOnPreparedListener {
                 isPrepared = true
@@ -80,8 +74,6 @@ internal class MediaPlayerAudioPlayer(
     }
 }
 
-internal class MediaPlayerAudioPlayerFactory @Inject constructor(
-    @ApplicationContext private val context: Context
-) : AudioPlayerFactory {
-    override fun create(source: DocumentSource): AudioPlayer = MediaPlayerAudioPlayer(context, source)
+internal class MediaPlayerAudioPlayerFactory @Inject constructor() : AudioPlayerFactory {
+    override fun create(file: File): AudioPlayer = MediaPlayerAudioPlayer(file)
 }

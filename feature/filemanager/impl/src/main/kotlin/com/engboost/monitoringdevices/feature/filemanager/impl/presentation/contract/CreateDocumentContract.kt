@@ -5,22 +5,18 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
-
-internal data class CreateDocumentRequest(
-    val fileName: String,
-    val mimeType: String
-)
+import com.engboost.monitoringdevices.feature.filemanager.impl.util.mimeTypeOf
 
 /**
- * Like `ActivityResultContracts.CreateDocument`, but the MIME type is passed per launch
- * instead of being fixed when the launcher is registered.
+ * System "Save as" picker for a file named like the input. Unlike
+ * `ActivityResultContracts.CreateDocument`, the MIME type follows each file name.
  */
-internal class CreateDocumentContract : ActivityResultContract<CreateDocumentRequest, Uri?>() {
-    override fun createIntent(context: Context, input: CreateDocumentRequest): Intent {
+internal class CreateDocumentContract : ActivityResultContract<String, Uri?>() {
+    override fun createIntent(context: Context, input: String): Intent {
         return Intent(Intent.ACTION_CREATE_DOCUMENT)
             .addCategory(Intent.CATEGORY_OPENABLE)
-            .setType(input.mimeType)
-            .putExtra(Intent.EXTRA_TITLE, input.fileName)
+            .setType(mimeTypeOf(input))
+            .putExtra(Intent.EXTRA_TITLE, input)
     }
 
     override fun parseResult(resultCode: Int, intent: Intent?): Uri? {

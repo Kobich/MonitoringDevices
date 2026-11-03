@@ -8,9 +8,7 @@ internal data class FileEntry(
     val sizeBytes: Long,
     /** Number of direct children, always 0 for files. */
     val childCount: Int,
-    val lastModifiedMillis: Long,
-    /** MIME type guessed by the file extension, `null` for folders. */
-    val mimeType: String?
+    val lastModifiedMillis: Long
 )
 
 internal data class DirectoryContent(

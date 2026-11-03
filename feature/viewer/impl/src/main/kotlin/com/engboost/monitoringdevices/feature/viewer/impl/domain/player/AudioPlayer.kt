@@ -1,6 +1,6 @@
 package com.engboost.monitoringdevices.feature.viewer.impl.domain.player
 
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
+import java.io.File
 
 /**
  * Playback of a single audio file while the viewer is open. Implemented with the platform
@@ -23,5 +23,5 @@ internal interface AudioPlayer {
 }
 
 internal fun interface AudioPlayerFactory {
-    fun create(source: DocumentSource): AudioPlayer
+    fun create(file: File): AudioPlayer
 }

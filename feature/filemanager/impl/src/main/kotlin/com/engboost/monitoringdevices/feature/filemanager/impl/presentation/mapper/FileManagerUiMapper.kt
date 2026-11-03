@@ -38,8 +38,7 @@ internal class FileManagerUiMapper {
             name = entry.name,
             isDirectory = entry.isDirectory,
             kind = FileKind.of(entry.name, entry.isDirectory),
-            details = "$primaryDetails · ${dateFormat.format(Date(entry.lastModifiedMillis))}",
-            mimeType = entry.mimeType ?: DIRECTORY_MIME_TYPE
+            details = "$primaryDetails · ${dateFormat.format(Date(entry.lastModifiedMillis))}"
         )
     }
 
@@ -101,7 +100,6 @@ internal class FileManagerUiMapper {
 
     private companion object {
         const val ROOT_TITLE = "App files"
-        const val DIRECTORY_MIME_TYPE = "inode/directory"
         const val BYTES_IN_KB = 1024
         val SIZE_UNITS = listOf("KB", "MB", "GB", "TB")
     }

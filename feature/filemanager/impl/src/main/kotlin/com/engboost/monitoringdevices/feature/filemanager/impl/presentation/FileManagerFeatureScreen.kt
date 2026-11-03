@@ -16,7 +16,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentContract
-import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentRequest
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.ExportPickerUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.screen.FileManagerScreen
 import java.io.File
@@ -63,7 +62,7 @@ internal fun FileManagerFeatureScreen(
         viewModel.onExportPickerShown()
         when (picker) {
             is ExportPickerUi.CreateDocument -> exportFileLauncher.launchOrReport(
-                CreateDocumentRequest(fileName = picker.fileName, mimeType = picker.mimeType),
+                picker.fileName,
                 viewModel::onPickerUnavailable
             )
 

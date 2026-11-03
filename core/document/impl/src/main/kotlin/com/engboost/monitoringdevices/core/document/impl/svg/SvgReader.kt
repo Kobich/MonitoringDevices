@@ -3,12 +3,10 @@ package com.engboost.monitoringdevices.core.document.impl.svg
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
-import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
 import com.engboost.monitoringdevices.core.document.api.document.HtmlPage
-import com.engboost.monitoringdevices.core.document.api.format.image.SvgReader
-import com.engboost.monitoringdevices.core.document.impl.cache.DiskRenderedDocumentCache
-import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
+import com.engboost.monitoringdevices.core.document.impl.FormatReader
+import com.engboost.monitoringdevices.core.document.impl.cache.RenderCache
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -19,34 +17,23 @@ import java.io.IOException
  * SVG has no platform decoder, but every WebView renders it. The file is shown through an
  * `<img>` tag in a small page, so scripts inside the SVG never run. Works on every API level.
  */
-internal class WebViewSvgReader(
-    private val cache: DiskRenderedDocumentCache,
-    private val sourceFiles: DocumentSourceFiles,
+internal class SvgReader(
+    private val cache: RenderCache,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
-) : SvgReader {
+) : FormatReader<HtmlDocument> {
+    override val formats = setOf(DocumentFormat.SVG)
 
-    override suspend fun read(source: DocumentSource, password: String?): HtmlDocument = withContext(ioDispatcher) {
-        val identity = sourceFiles.identity(source)
-        val entry = cache.find(identity, VARIANT) ?: try {
-            cache.store(identity, VARIANT) { directory ->
-                sourceFiles.openInputStream(source).use { input ->
-                    File(directory, IMAGE_NAME).outputStream().use { output -> input.copyTo(output) }
-                }
+    override suspend fun read(file: File, password: String?): HtmlDocument = withContext(ioDispatcher) {
+        val entry = try {
+            cache.find(file, VARIANT) ?: cache.store(file, VARIANT) { directory ->
+                file.copyTo(File(directory, IMAGE_NAME))
                 val page = File(directory, PAGE_NAME).apply { writeText(PAGE_HTML) }
-                listOf(HtmlPage(title = source.name, file = page))
+                listOf(HtmlPage(title = file.name, file = page))
             }
-        } catch (error: DocumentReadException) {
-            throw error
         } catch (error: IOException) {
             throw DocumentReadException(Reason.IO_ERROR, error.message, error)
         }
-
-        HtmlDocument(
-            name = source.name,
-            format = DocumentFormat.SVG,
-            directory = entry.directory,
-            pages = entry.pages
-        )
+        HtmlDocument(name = file.name, format = DocumentFormat.SVG, directory = entry.directory, pages = entry.pages)
     }
 
     private companion object {
