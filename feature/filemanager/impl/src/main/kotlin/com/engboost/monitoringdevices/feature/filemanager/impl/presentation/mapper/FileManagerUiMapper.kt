@@ -1,5 +1,6 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.presentation.mapper
 
+import com.engboost.monitoringdevices.core.commonui.icons.FileKind
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryNameError
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.FileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
@@ -36,6 +37,7 @@ internal class FileManagerUiMapper {
             path = entry.path.value,
             name = entry.name,
             isDirectory = entry.isDirectory,
+            kind = FileKind.of(entry.name, entry.isDirectory),
             details = "$primaryDetails · ${dateFormat.format(Date(entry.lastModifiedMillis))}",
             mimeType = entry.mimeType ?: DIRECTORY_MIME_TYPE
         )

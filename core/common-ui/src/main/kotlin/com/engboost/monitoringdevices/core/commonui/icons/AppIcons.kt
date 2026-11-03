@@ -3,6 +3,7 @@ package com.engboost.monitoringdevices.core.commonui.icons
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
@@ -15,6 +16,7 @@ import androidx.compose.ui.unit.dp
 /**
  * Every icon used in the app, so features don't depend on where an icon comes from
  * (Material set or our own vector). Use with `Icon(imageVector = AppIcons.Folder, ...)`.
+ * Colored file type icons are in [FileTypeIcons].
  */
 object AppIcons {
     val Back: ImageVector get() = Icons.AutoMirrored.Filled.ArrowBack
@@ -22,6 +24,7 @@ object AppIcons {
     val Delete: ImageVector get() = Icons.Filled.Delete
     val More: ImageVector get() = Icons.Filled.MoreVert
     val Add: ImageVector get() = Icons.Filled.Add
+    val Check: ImageVector get() = Icons.Filled.Check
 
     val Folder: ImageVector by lazy {
         icon(

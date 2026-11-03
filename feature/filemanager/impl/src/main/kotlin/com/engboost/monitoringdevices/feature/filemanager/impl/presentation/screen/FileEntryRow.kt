@@ -1,22 +1,33 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.presentation.screen
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextOverflow
-import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
+import androidx.compose.ui.unit.dp
+import com.engboost.monitoringdevices.core.commonui.components.SelectionIndicator
+import com.engboost.monitoringdevices.core.commonui.icons.FileTypeIcon
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 
-/** Stateless row: the ViewModel decides what tap and long press mean in the current mode. */
+/**
+ * Stateless row: the ViewModel decides what tap and long press mean in the current mode.
+ * In selection mode a round mark slides in to the left of the file icon.
+ */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun FileEntryRow(
@@ -37,24 +48,26 @@ internal fun FileEntryRow(
             Text(text = entry.details, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         leadingContent = {
-            Icon(
-                imageVector = if (entry.isDirectory) AppIcons.Folder else AppIcons.File,
-                contentDescription = if (entry.isDirectory) "Folder" else "File",
-                tint = if (entry.isDirectory) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.onSurfaceVariant
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AnimatedVisibility(
+                    visible = isSelectionMode,
+                    enter = expandHorizontally(expandFrom = Alignment.Start) + fadeIn(),
+                    exit = shrinkHorizontally(shrinkTowards = Alignment.Start) + fadeOut()
+                ) {
+                    SelectionIndicator(
+                        selected = isSelected,
+                        modifier = Modifier.padding(end = 14.dp)
+                    )
                 }
-            )
-        },
-        trailingContent = if (isSelectionMode) {
-            { Checkbox(checked = isSelected, onCheckedChange = null) }
-        } else {
-            null
+                FileTypeIcon(
+                    kind = entry.kind,
+                    contentDescription = if (entry.isDirectory) "Folder" else "File"
+                )
+            }
         },
         colors = ListItemDefaults.colors(
             containerColor = if (isSelected) {
-                MaterialTheme.colorScheme.secondaryContainer
+                MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f)
             } else {
                 MaterialTheme.colorScheme.surface
             }

@@ -170,6 +170,7 @@ presentation/
 | Тап по папке | открыть папку | выделить / снять выделение |
 | Тап по файлу | открыть файл (`onFileOpen(File)` наружу) | выделить / снять выделение |
 | Зажатие | войти в режим выбора, элемент выделен | выделить / снять выделение |
+| Вид строки | значок типа файла | круглая отметка выезжает слева от значка |
 | Снятие последнего выделения, ✕, Back | — | выход в обычный режим |
 | Back / стрелка | вверх; в корне — выход из фичи | выход из режима выбора |
 | Хлебные крошки | переход в папку | недоступны |
@@ -212,9 +213,13 @@ Screen -> callback -> ViewModel
 
 ```text
 theme/        MonitoringDevicesTheme, цвета, типографика
-icons/        AppIcons: Back, Close, Delete, More, Add (Material) + свои Folder, File (ImageVector)
+icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + свои Folder, File (ImageVector)
+              FileKind.of(name, isDirectory): FOLDER, PDF, DOCUMENT, SPREADSHEET, PRESENTATION,
+                TEXT, IMAGE, AUDIO, VIDEO, ARCHIVE, OTHER (по расширению)
+              FileTypeIcons / FileTypeIcon(kind, size): цветные векторные значки файлов
 components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
               CenteredContent { ... }, LoadingContent(text), MessageContent(title, text, actionLabel)
+              SelectionIndicator(selected): круглая отметка выбора с анимацией
 ```
 
 Правила: значки в фичах только через `AppIcons` (не `Icons.*` и не drawable в фиче);

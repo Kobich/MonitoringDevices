@@ -1,6 +1,7 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model
 
 import androidx.compose.runtime.Immutable
+import com.engboost.monitoringdevices.core.commonui.icons.FileKind
 import java.io.File
 
 @Immutable
@@ -33,6 +34,7 @@ internal data class FileEntryUi(
     val path: String,
     val name: String,
     val isDirectory: Boolean,
+    val kind: FileKind,
     val details: String,
     val mimeType: String
 )
