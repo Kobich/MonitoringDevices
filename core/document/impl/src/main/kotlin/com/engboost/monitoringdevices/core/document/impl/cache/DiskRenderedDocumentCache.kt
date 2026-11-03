@@ -93,7 +93,7 @@ internal class DiskRenderedDocumentCache(
 
     private companion object {
         /** Bump when the output layout or renderer configuration changes. */
-        const val CACHE_VERSION = 1
+        const val CACHE_VERSION = 2
         const val MANIFEST_NAME = "pages.tsv"
     }
 }

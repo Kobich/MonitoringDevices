@@ -134,7 +134,9 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xls
 - Сделано: офисные ридеры (`DocxReader`, `XlsxReader`, `PptxReader`, ...) поверх одного общего класса на
   OpenDocument.core (`app.opendocument:odr-core-android`, MPL-2.0, проверена 7.7.0):
   `Odr.open(path)` -> `decrypt(password)` при `passwordEncrypted()` ->
-  `Html.translate(file, HtmlConfig())` -> `bringOffline(outputDir)` -> `pages()` = `HtmlPage(name, path)`.
+  `Html.translate(file, HtmlConfig())` -> `bringOffline(outputDir, views)` -> `pages()` = `HtmlPage(name, path)`.
+  Виды: у таблиц только листы (`sheetN.html`, вкладки при >1 листе), у остальных только
+  общий вид документа (`document.html`); поштучные `slideN`/`pageN` не генерируются.
   Нативные вызовы на `Dispatchers.IO` и под `Mutex`, пока не подтверждена потокобезопасность.
 - Кэш: `cacheDir/rendered/<hash(path, size, lastModified)>/`, атомарно через временную папку.
   `Content`-источники сначала копируются во временный файл (odr принимает путь).

@@ -3,6 +3,7 @@ package com.engboost.monitoringdevices.core.document.impl.office
 import app.opendocument.core.DecodedFile
 import app.opendocument.core.Html
 import app.opendocument.core.HtmlConfig
+import app.opendocument.core.HtmlView
 import app.opendocument.core.Odr
 import app.opendocument.core.OdrException
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
@@ -78,14 +79,19 @@ internal class OdrHtmlConverter(
                         editable = false
                     }
                     Html.translate(readable, config).use { service ->
-                        return service.bringOffline(outputDirectory.path)
-                            .pages()
-                            .map { page ->
-                                val file = File(page.path).let { file ->
-                                    if (file.isAbsolute) file else File(outputDirectory, page.path)
+                        val views = service.listViews()
+                        try {
+                            return service.bringOffline(outputDirectory.path, selectViews(views))
+                                .pages()
+                                .map { page ->
+                                    val file = File(page.path).let { file ->
+                                        if (file.isAbsolute) file else File(outputDirectory, page.path)
+                                    }
+                                    HtmlPage(title = page.name, file = file)
                                 }
-                                HtmlPage(title = page.name, file = file)
-                            }
+                        } finally {
+                            views.forEach { view -> runCatching { view.close() } }
+                        }
                     }
                 } finally {
                     if (readable !== decoded) readable.close()
@@ -94,6 +100,20 @@ internal class OdrHtmlConverter(
         } catch (error: OdrException) {
             throw error.toReadException()
         }
+    }
+
+    /**
+     * The library offers a view of the whole document (`document.html`) plus one view per
+     * sheet, slide or page (`sheetN.html`, ...). Showing all of them duplicates content,
+     * so spreadsheets get their sheets (shown as tabs) and everything else the whole document.
+     */
+    private fun selectViews(views: List<HtmlView>): List<HtmlView> {
+        fun List<HtmlView>.withFilePrefix(prefix: String) =
+            filter { view -> File(view.path()).name.startsWith(prefix) }
+
+        val sheets = views.withFilePrefix(SHEET_FILE_PREFIX)
+        if (sheets.isNotEmpty()) return sheets
+        return views.withFilePrefix(DOCUMENT_FILE_PREFIX).ifEmpty { views }
     }
 
     private fun decrypted(decoded: DecodedFile, password: String?): DecodedFile {
@@ -121,5 +141,11 @@ internal class OdrHtmlConverter(
             else -> Reason.CORRUPTED
         }
         return DocumentReadException(reason, message, this)
+    }
+
+    private companion object {
+        // Default output names of HtmlConfig: document.html, sheet{index}.html, slide{index}.html, page{index}.html.
+        const val DOCUMENT_FILE_PREFIX = "document"
+        const val SHEET_FILE_PREFIX = "sheet"
     }
 }
