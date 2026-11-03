@@ -10,9 +10,8 @@ import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
-import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
-import com.engboost.monitoringdevices.core.document.api.reader.audio.AudioReader
+import com.engboost.monitoringdevices.core.document.api.format.audio.AudioReader
 import com.engboost.monitoringdevices.core.document.impl.image.BitmapSampling
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -28,7 +27,7 @@ internal class AndroidAudioReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : AudioReader {
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): AudioDocument = withContext(ioDispatcher) {
+    override suspend fun read(source: DocumentSource, password: String?): AudioDocument = withContext(ioDispatcher) {
         if (source is DocumentSource.LocalFile && !source.file.isFile) {
             throw DocumentReadException(Reason.NOT_FOUND, "${source.name} not found")
         }

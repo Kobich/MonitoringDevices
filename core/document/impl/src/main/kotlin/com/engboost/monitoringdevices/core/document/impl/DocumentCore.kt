@@ -2,10 +2,10 @@ package com.engboost.monitoringdevices.core.document.impl
 
 import android.content.Context
 import android.os.Build
+import com.engboost.monitoringdevices.core.document.api.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.cache.RenderedDocumentCache
 import com.engboost.monitoringdevices.core.document.api.document.Document
-import com.engboost.monitoringdevices.core.document.api.reader.DocumentReader
-import com.engboost.monitoringdevices.core.document.api.reader.UniversalDocumentReader
+import com.engboost.monitoringdevices.core.document.api.format.FormatReader
 import com.engboost.monitoringdevices.core.document.impl.audio.AndroidAudioReader
 import com.engboost.monitoringdevices.core.document.impl.cache.DiskRenderedDocumentCache
 import com.engboost.monitoringdevices.core.document.impl.chart.AndroidChartImageRenderer
@@ -42,7 +42,7 @@ import java.io.File
  *
  * ```
  * val core = DocumentCore(context)
- * val document = core.reader.read(DocumentSource.LocalFile(file))
+ * val document = core.reader.read("/path/to/report.docx")
  * ```
  */
 class DocumentCore(
@@ -63,11 +63,11 @@ class DocumentCore(
     /** On-disk output of converted documents (office files to HTML). */
     val cache: RenderedDocumentCache = diskCache
 
-    /** Opens any supported file. */
-    val reader: UniversalDocumentReader = UniversalDocumentReader(platformReaders(config) + officeReaders())
+    /** Opens any supported file: `reader.read(path)`. */
+    val reader: DocumentReader = CompositeDocumentReader(platformReaders(config) + officeReaders(), sourceFiles)
 
     /** PDF, text, images, SVG and audio on platform APIs, available on every API level. */
-    private fun platformReaders(config: DocumentCoreConfig): List<DocumentReader<Document>> {
+    private fun platformReaders(config: DocumentCoreConfig): List<FormatReader<Document>> {
         val textReader = AndroidTextReader(sourceFiles, maxChars = config.maxTextChars)
         return listOf(
             AndroidPdfReader(sourceFiles),
@@ -80,7 +80,7 @@ class DocumentCore(
     }
 
     /** Office formats via OpenDocument.core, API 26+. */
-    private fun officeReaders(): List<DocumentReader<Document>> {
+    private fun officeReaders(): List<FormatReader<Document>> {
         val converter = officeConverter ?: return emptyList()
         val chartRenderer = AndroidChartImageRenderer()
         return listOf(

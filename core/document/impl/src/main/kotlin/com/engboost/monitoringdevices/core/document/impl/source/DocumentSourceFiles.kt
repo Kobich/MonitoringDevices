@@ -1,6 +1,7 @@
 package com.engboost.monitoringdevices.core.document.impl.source
 
 import android.content.Context
+import android.net.Uri
 import android.graphics.ImageDecoder
 import android.os.Build
 import android.os.ParcelFileDescriptor
@@ -17,6 +18,25 @@ import java.io.InputStream
 internal class DocumentSourceFiles(
     private val context: Context
 ) {
+    /** Absolute path, `file://` or `content://` URI to a source. */
+    fun sourceOf(path: String): DocumentSource {
+        return when {
+            path.startsWith("content://") -> {
+                val uri = Uri.parse(path)
+                DocumentSource.Content(
+                    uri = uri,
+                    name = runCatching { DocumentFile.fromSingleUri(context, uri)?.name }.getOrNull()
+                        ?: uri.lastPathSegment
+                        ?: "document",
+                    mimeType = runCatching { context.contentResolver.getType(uri) }.getOrNull()
+                )
+            }
+
+            path.startsWith("file://") -> DocumentSource.LocalFile(File(Uri.parse(path).path.orEmpty()))
+            else -> DocumentSource.LocalFile(File(path))
+        }
+    }
+
     /** Stable key of the source content, used for caching. */
     fun identity(source: DocumentSource): String {
         return when (source) {

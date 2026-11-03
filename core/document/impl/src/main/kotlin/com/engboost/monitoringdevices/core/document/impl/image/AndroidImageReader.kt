@@ -13,9 +13,8 @@ import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
-import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
-import com.engboost.monitoringdevices.core.document.api.reader.image.ImageReader
+import com.engboost.monitoringdevices.core.document.api.format.image.ImageReader
 import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +31,7 @@ internal class AndroidImageReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : ImageReader {
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): ImageDocument = withContext(ioDispatcher) {
+    override suspend fun read(source: DocumentSource, password: String?): ImageDocument = withContext(ioDispatcher) {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         readStream(source) { input -> BitmapFactory.decodeStream(input, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {

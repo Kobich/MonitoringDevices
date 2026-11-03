@@ -4,7 +4,7 @@ import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import java.io.Closeable
 
 /**
- * Result of [com.engboost.monitoringdevices.core.document.api.reader.DocumentReader.read].
+ * Result of [com.engboost.monitoringdevices.core.document.api.DocumentReader.read].
  * Sealed, so the viewer handles every kind with an exhaustive `when`:
  *
  * ```

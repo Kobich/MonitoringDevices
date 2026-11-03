@@ -4,9 +4,8 @@ import android.util.Log
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
-import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.Document
-import com.engboost.monitoringdevices.core.document.api.reader.text.MarkdownReader
+import com.engboost.monitoringdevices.core.document.api.format.text.MarkdownReader
 import com.engboost.monitoringdevices.core.document.impl.office.OdrHtmlConverter
 
 /**
@@ -18,7 +17,7 @@ internal class AndroidMarkdownReader(
     private val textReader: AndroidTextReader
 ) : MarkdownReader {
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): Document {
+    override suspend fun read(source: DocumentSource, password: String?): Document {
         if (converter != null) {
             try {
                 return converter.convert(

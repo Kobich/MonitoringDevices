@@ -10,10 +10,9 @@ import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
-import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.PageSize
 import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
-import com.engboost.monitoringdevices.core.document.api.reader.pdf.PdfReader
+import com.engboost.monitoringdevices.core.document.api.format.pdf.PdfReader
 import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -36,10 +35,10 @@ internal class AndroidPdfReader(
 ) : PdfReader {
     private val closeScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): PdfDocument = withContext(ioDispatcher) {
+    override suspend fun read(source: DocumentSource, password: String?): PdfDocument = withContext(ioDispatcher) {
         val descriptor = sourceFiles.openFileDescriptor(source)
         try {
-            AndroidPdfDocument(source.name, descriptor, openRenderer(descriptor, options.password))
+            AndroidPdfDocument(source.name, descriptor, openRenderer(descriptor, password))
         } catch (error: Throwable) {
             descriptor.close()
             throw error

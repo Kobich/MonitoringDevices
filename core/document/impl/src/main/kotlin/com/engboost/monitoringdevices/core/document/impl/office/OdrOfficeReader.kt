@@ -2,9 +2,8 @@ package com.engboost.monitoringdevices.core.document.impl.office
 
 import android.util.Log
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
-import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
-import com.engboost.monitoringdevices.core.document.api.reader.DocumentReader
+import com.engboost.monitoringdevices.core.document.api.format.FormatReader
 import com.engboost.monitoringdevices.core.document.impl.chart.ChartRasterizer
 import java.io.File
 
@@ -19,20 +18,20 @@ import java.io.File
 internal abstract class OdrOfficeReader(
     private val converter: OdrHtmlConverter,
     private val chartRasterizer: ChartRasterizer? = null
-) : DocumentReader<HtmlDocument> {
+) : FormatReader<HtmlDocument> {
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): HtmlDocument {
+    override suspend fun read(source: DocumentSource, password: String?): HtmlDocument {
         val rasterizer = chartRasterizer ?: return converter.convert(
             source = source,
             format = formats.single(),
-            password = options.password,
+            password = password,
             variant = VARIANT_AS_IS
         )
 
         return converter.convert(
             source = source,
             format = formats.single(),
-            password = options.password,
+            password = password,
             variant = VARIANT_CHARTS_AS_PICTURES
         ) { sourceFile, workDirectory ->
             val output = File(workDirectory, "charts-as-pictures.${sourceFile.extension}")

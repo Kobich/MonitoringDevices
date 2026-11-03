@@ -4,9 +4,8 @@ import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
-import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.TextDocument
-import com.engboost.monitoringdevices.core.document.api.reader.text.TextReader
+import com.engboost.monitoringdevices.core.document.api.format.text.TextReader
 import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +19,7 @@ internal class AndroidTextReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : TextReader {
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): TextDocument {
+    override suspend fun read(source: DocumentSource, password: String?): TextDocument {
         return readText(source, DocumentFormat.TEXT)
     }
 

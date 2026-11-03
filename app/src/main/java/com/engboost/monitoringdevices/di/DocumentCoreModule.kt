@@ -1,8 +1,8 @@
 package com.engboost.monitoringdevices.di
 
 import android.content.Context
+import com.engboost.monitoringdevices.core.document.api.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.cache.RenderedDocumentCache
-import com.engboost.monitoringdevices.core.document.api.reader.UniversalDocumentReader
 import com.engboost.monitoringdevices.core.document.impl.DocumentCore
 import dagger.Module
 import dagger.Provides
@@ -21,7 +21,7 @@ object DocumentCoreModule {
     fun provideDocumentCore(@ApplicationContext context: Context): DocumentCore = DocumentCore(context)
 
     @Provides
-    fun provideDocumentReader(core: DocumentCore): UniversalDocumentReader = core.reader
+    fun provideDocumentReader(core: DocumentCore): DocumentReader = core.reader
 
     @Provides
     fun provideRenderedDocumentCache(core: DocumentCore): RenderedDocumentCache = core.cache

@@ -1,6 +1,6 @@
 package com.engboost.monitoringdevices.core.document.impl.office.spreadsheet
 
-import com.engboost.monitoringdevices.core.document.api.reader.spreadsheet.OdsReader
+import com.engboost.monitoringdevices.core.document.api.format.spreadsheet.OdsReader
 import com.engboost.monitoringdevices.core.document.impl.office.OdrHtmlConverter
 import com.engboost.monitoringdevices.core.document.impl.office.OdrOfficeReader
 

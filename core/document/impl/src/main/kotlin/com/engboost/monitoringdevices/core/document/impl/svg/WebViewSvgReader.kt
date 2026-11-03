@@ -4,10 +4,9 @@ import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
-import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
 import com.engboost.monitoringdevices.core.document.api.document.HtmlPage
-import com.engboost.monitoringdevices.core.document.api.reader.image.SvgReader
+import com.engboost.monitoringdevices.core.document.api.format.image.SvgReader
 import com.engboost.monitoringdevices.core.document.impl.cache.DiskRenderedDocumentCache
 import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
 import kotlinx.coroutines.CoroutineDispatcher
@@ -26,7 +25,7 @@ internal class WebViewSvgReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : SvgReader {
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): HtmlDocument = withContext(ioDispatcher) {
+    override suspend fun read(source: DocumentSource, password: String?): HtmlDocument = withContext(ioDispatcher) {
         val identity = sourceFiles.identity(source)
         val entry = cache.find(identity, VARIANT) ?: try {
             cache.store(identity, VARIANT) { directory ->

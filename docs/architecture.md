@@ -39,81 +39,39 @@ app -> core:document:impl -> core:document:api, odr-core-android
 
 ## `core:document:api`
 
-Один базовый ридер, от него по ридеру на формат. Результат — sealed-иерархия документов.
-
-```text
-DocumentReader<out D : Document>          formats, canRead(source), read(source, options): D
- ├─ pdf/PdfReader                          PDF                      -> PdfDocument
- ├─ word/DocxReader, DocReader, OdtReader,
- │       RtfReader, PagesReader            DOCX, DOC, ODT, RTF, PAGES -> HtmlDocument
- ├─ spreadsheet/XlsxReader, XlsReader, OdsReader,
- │       CsvReader, NumbersReader          XLSX, XLS, ODS, CSV, NUMBERS -> HtmlDocument
- ├─ presentation/PptxReader, PptReader,
- │       OdpReader, KeynoteReader          PPTX, PPT, ODP, KEYNOTE  -> HtmlDocument
- ├─ drawing/OdgReader                      ODG                      -> HtmlDocument
- ├─ text/TextReader                        TEXT                     -> TextDocument
- ├─ text/MarkdownReader                    MARKDOWN                 -> HtmlDocument | TextDocument
- ├─ image/ImageReader                      IMAGE                    -> ImageDocument
- ├─ image/SvgReader                        SVG                      -> HtmlDocument
- ├─ audio/AudioReader                      AUDIO                    -> AudioDocument
- └─ UniversalDocumentReader(readers)       все перечисленные        -> Document
-
-sealed Document : Closeable                name, format
- ├─ PdfDocument      pageCount, pageSize, renderPage(index, widthPx): Bitmap, pageText
- ├─ HtmlDocument     directory, pages: List<HtmlPage(title, file)>   -> WebView
- ├─ TextDocument     text, charsetName, isTruncated
- ├─ ImageDocument    widthPx, heightPx, decode(maxW, maxH): Bitmap
- └─ AudioDocument    source, durationMs, title, artist, album, sampleRateHz, channelCount, loadArtwork()
-
-DocumentFormat     формат: category, extensions, mimeTypes; DocumentFormat.of(source)
-DocumentCategory   PDF, TEXT_DOCUMENT, SPREADSHEET, PRESENTATION, PLAIN_TEXT, IMAGE
-DocumentSource     LocalFile(File) | Content(Uri, name, mimeType)
-ReadOptions        password
-DocumentReadException(reason)   NOT_FOUND, UNSUPPORTED_FORMAT, CORRUPTED, PASSWORD_REQUIRED, ...
-cache/RenderedDocumentCache     sizeBytes(), clear() для результатов конвертации
-```
-
-Использование в UI:
+Главное — одна функция:
 
 ```kotlin
-val document = universalReader.read(DocumentSource.LocalFile(file))
-when (document) {
-    is PdfDocument -> PdfPages(document)
-    is HtmlDocument -> HtmlPages(document)
-    is TextDocument -> PlainText(document)
-    is ImageDocument -> Picture(document)
+val document = documentReader.read("/path/to/report.docx")   // или File, или content:// URI
+document.use {
+    when (it) {
+        is PdfDocument -> ...     // pageCount, renderPage(index, widthPx): Bitmap
+        is HtmlDocument -> ...    // directory + pages -> WebView
+        is TextDocument -> ...    // text, charsetName, isTruncated
+        is ImageDocument -> ...   // decode(maxW, maxH): Bitmap, decodeAnimation()
+        is AudioDocument -> ...   // durationMs, title, artist, loadArtwork()
+    }
 }
 ```
 
-Каждый конкретный ридер сам объявляет свой формат (`DocxReader.formats == {DOCX}`),
-`UniversalDocumentReader` не даёт зарегистрировать два ридера на один формат.
+```text
+DocumentReader            ГЛАВНОЕ: read(path | file | source, password), canRead(path), supportedFormats
+document/Document         sealed результат: PdfDocument, HtmlDocument, TextDocument, ImageDocument, AudioDocument
+DocumentFormat            формат по расширению / MIME: category, extensions, mimeTypes
+DocumentReadException     ошибка с reason: NOT_FOUND, UNSUPPORTED_FORMAT, CORRUPTED, PASSWORD_REQUIRED, ...
+DocumentSource            LocalFile(File) | Content(Uri, name, mimeType) — если нужен не путь
+cache/RenderedDocumentCache  sizeBytes(), clear() для результатов конвертации
 
-### Диаграммы в docx и pptx
+format/                   ридеры по форматам — детали, нужны только для типизированного результата
+  FormatReader<D>         formats, read(source, password): D
+  pdf/PdfReader, word/DocxReader, ..., spreadsheet/XlsxReader, ..., presentation/PptxReader, ...,
+  drawing/OdgReader, text/TextReader, text/MarkdownReader, image/ImageReader, image/SvgReader,
+  audio/AudioReader
+```
 
-OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэтому `OdrDocxReader` и `OdrPptxReader`
-перед конвертацией пишут копию файла, где каждая диаграмма заменена картинкой того же размера и
-положения (общая логика в `OdrOfficeReader`, опциональный `ChartRasterizer`):
-
-- работа с пакетом Office (части, связи, типы контента, запись копии) — `ooxml/OoxmlPackage`,
-  XML-хелперы и пространства имён — `ooxml/OoxmlXml`;
-- docx — `DocxChartRasterizer`: `a:graphicData` с `c:chart` -> `pic:pic`;
-- pptx — `PptxChartRasterizer`: на каждом слайде `p:graphicFrame` с `c:chart` -> `p:pic`
-  (id, имя, позиция и размер сохраняются; диаграммы в макетах/мастерах не трогаются).
- Данные — из кэшей
-`c:numCache`/`c:strCache` (`ChartXmlParser`), цвета — из темы документа, рисует
-`AndroidChartImageRenderer` (столбцы/полосы с группировкой, линии, области, круговые, кольцевые,
-точечные; заголовок, легенда, оси). Нераспознанные диаграммы остаются как есть, при ошибке
-рендерится исходный файл. Логи: `adb logcat -s OdrOfficeReader`.
-Диаграммы в xlsx пока не рисуются (тот же подход применим).
-
-**Примеры файлов (ВРЕМЕННО).** `app/.../sample/` при первом запуске кладёт в `filesDir`:
-`Readme.txt`, `Quarterly report.docx` (таблица, 2 картинки, столбчатая и линейная диаграммы,
-у каждой подпись «Picture N» / «Chart N»), `Budget.csv`, папку `Samples/` с `Market share.docx`
-(картинка, круговая и полосовая диаграммы), `Sales by region.csv`,
-`Notes.md` и пустой папкой, папку `Media/` с `Sample.pdf`, `Picture.png`, `Chord.wav` и текстами
-в UTF-8 и cp1251. Один раз на версию набора (флаг в SharedPreferences `sample_files`), новая версия
-перезаписывает примеры.
-Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
+`DocumentReader` в реализации — `CompositeDocumentReader`: определяет формат по имени (и MIME для
+`content://`) и вызывает `FormatReader`, зарегистрированный на этот формат; два ридера на один формат
+не допускаются. Получить его: `DocumentCore(context).reader` или через Hilt (`DocumentCoreModule`).
 
 ### Реализации в `:core:document:impl`
 

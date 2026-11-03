@@ -11,7 +11,7 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * Needs `UniversalDocumentReader` (`:core:document:api`) from the host app's graph,
+ * Needs `DocumentReader` (`:core:document:api`) from the host app's graph,
  * see `DocumentCoreModule` in `:app`.
  */
 @Module
