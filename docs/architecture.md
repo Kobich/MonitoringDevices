@@ -112,7 +112,7 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xls
 `ChartRenderingSwitch` и поле `chartRendering` во viewer; `OpenDocumentInteractor` берёт
 `UniversalDocumentReader`, `DocumentCore` собирает его из списка ридеров.
 
-- Остались на **As is**: удалить `chart/` и `ChartRasterizingDocxReader` с тестами.
+- Остались на **As is**: удалить `chart/` и `ChartRasterizingDocxReader`.
 - Остались на **As picture**: удалить `OdrDocxReader`, `ChartRasterizingDocxReader` переименовать
   в `OdrDocxReader`; при желании применить тот же подход к xlsx/pptx.
 
@@ -216,15 +216,6 @@ Screen -> callback -> ViewModel
 
 Модифицирующие операции выполняются по одной (`isBusy`), после каждой папка перечитывается.
 Папка также перечитывается на `ON_RESUME`.
-
-## Тесты
-
-`feature/filemanager/impl/src/test` — JVM unit-тесты `StoragePath`, `InternalFileSource`,
-`FileManagerInteractor`:
-
-```shell
-./gradlew :feature:filemanager:impl:testDebugUnitTest
-```
 
 ## `core:common-ui`
 

@@ -29,6 +29,4 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.exifinterface)
     implementation(libs.kotlinx.coroutines.core)
-
-    testImplementation(libs.junit)
 }
