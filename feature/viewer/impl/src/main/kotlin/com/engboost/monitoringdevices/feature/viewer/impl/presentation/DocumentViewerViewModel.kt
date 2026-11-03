@@ -7,7 +7,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
-import com.engboost.monitoringdevices.core.document.api.comparison.ChartRendering
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
 import com.engboost.monitoringdevices.core.document.api.document.Document
 import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
@@ -55,7 +54,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         DocumentViewerUiState(
             title = file.name,
             content = ViewerContent.Loading,
-            chartRendering = ChartRendering.AS_IS.takeIf { interactor.hasChartVariants(file) },
             passwordDialog = null,
             audioPlayback = null
         )
@@ -67,12 +65,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     // region Document
-
-    fun onChartRenderingSelected(chartRendering: ChartRendering) {
-        if (uiState.chartRendering == null || uiState.chartRendering == chartRendering) return
-        uiState = uiState.copy(chartRendering = chartRendering)
-        load()
-    }
 
     fun onPageSelected(index: Int) {
         val content = uiState.content as? ViewerContent.Html ?: return
@@ -99,11 +91,10 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private fun load() {
         loadJob?.cancel()
         uiState = uiState.copy(content = ViewerContent.Loading)
-        val chartRendering = uiState.chartRendering ?: ChartRendering.AS_IS
 
         loadJob = viewModelScope.launch {
             try {
-                val document = interactor.open(file, chartRendering, password)
+                val document = interactor.open(file, password)
                 replaceOpenedDocument(document)
                 show(document)
             } catch (error: CancellationException) {

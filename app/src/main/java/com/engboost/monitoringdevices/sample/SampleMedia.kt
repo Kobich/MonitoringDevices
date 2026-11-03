@@ -46,21 +46,45 @@ internal object SampleMedia {
         }
     }
 
-    fun png(): ByteArray {
-        val bitmap = Bitmap.createBitmap(1200, 800, Bitmap.Config.ARGB_8888)
+    /** Gradient picture with a big label, clearly a photo-like image and not a chart. */
+    fun png(
+        label: String = "Sample image",
+        startColor: Int = 0xFF2F6FE4.toInt(),
+        endColor: Int = 0xFF8E44D9.toInt(),
+        width: Int = 1200,
+        height: Int = 800
+    ): ByteArray {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         try {
             val canvas = Canvas(bitmap)
+            val w = width.toFloat()
+            val h = height.toFloat()
             val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader = LinearGradient(0f, 0f, 1200f, 800f, 0xFF2F6FE4.toInt(), 0xFF8E44D9.toInt(), Shader.TileMode.CLAMP)
+                shader = LinearGradient(0f, 0f, w, h, startColor, endColor, Shader.TileMode.CLAMP)
             }
-            canvas.drawRect(0f, 0f, 1200f, 800f, paint)
+            canvas.drawRect(0f, 0f, w, h, paint)
             paint.shader = null
-            paint.color = 0x55FFFFFF
-            canvas.drawCircle(900f, 250f, 140f, paint)
+
+            // Sun and hills, so it reads as a picture at a glance.
+            paint.color = 0x66FFFFFF
+            canvas.drawCircle(w * 0.75f, h * 0.3f, h * 0.16f, paint)
+            paint.color = 0x55000000
+            canvas.drawPath(
+                android.graphics.Path().apply {
+                    moveTo(0f, h)
+                    lineTo(w * 0.3f, h * 0.55f)
+                    lineTo(w * 0.5f, h * 0.75f)
+                    lineTo(w * 0.7f, h * 0.5f)
+                    lineTo(w, h)
+                    close()
+                },
+                paint
+            )
+
             paint.color = Color.WHITE
-            paint.textSize = 72f
+            paint.textSize = h * 0.09f
             paint.isFakeBoldText = true
-            canvas.drawText("Sample image", 80f, 700f, paint)
+            canvas.drawText(label, w * 0.06f, h * 0.18f, paint)
             return ByteArrayOutputStream().use { output ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
                 output.toByteArray()

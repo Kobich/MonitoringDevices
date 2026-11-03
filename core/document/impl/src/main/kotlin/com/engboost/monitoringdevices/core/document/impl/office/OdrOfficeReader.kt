@@ -6,7 +6,7 @@ import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
 import com.engboost.monitoringdevices.core.document.api.reader.DocumentReader
 
 /**
- * Base of all office readers backed by OpenDocument.core. A concrete reader only names
+ * Base of office readers backed by OpenDocument.core. A concrete reader only names
  * its API interface (e.g. `DocxReader`), which fixes the format.
  */
 internal abstract class OdrOfficeReader(

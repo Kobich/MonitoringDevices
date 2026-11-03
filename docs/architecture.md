@@ -85,42 +85,31 @@ when (document) {
 Каждый конкретный ридер сам объявляет свой формат (`DocxReader.formats == {DOCX}`),
 `UniversalDocumentReader` не даёт зарегистрировать два ридера на один формат.
 
-### Сравнение: диаграммы как есть / картинкой (ВРЕМЕННО)
+### Диаграммы в docx
 
-OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xlsx/pptx). Чтобы сравнить,
-в просмотрщике для docx есть переключатель **Charts: As is / As picture**:
-
-- **As is** — `OdrDocxReader`, файл уходит в OpenDocument.core без изменений.
-- **As picture** — `ChartRasterizingDocxReader`: `DocxChartRasterizer` пишет копию docx, где каждая
-  диаграмма (`a:graphicData` с `c:chart`) заменена картинкой `pic:pic` того же размера.
-  Данные — из кэшей `c:numCache`/`c:strCache` (`ChartXmlParser`), цвета — из темы документа,
-  рисует `AndroidChartImageRenderer` (столбцы/полосы с группировкой, линии, области, круговые,
-  кольцевые, точечные; заголовок, легенда, оси). Нераспознанные диаграммы остаются как есть.
-  Логи: `adb logcat -s ChartRasterizing`.
-
-Результаты кэшируются раздельно (`variant` в ключе кэша), переключение не пересчитывает уже открытое.
+OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэтому `OdrDocxReader` перед конвертацией
+пропускает файл через `DocxChartRasterizer`: копия docx, где каждая диаграмма (`a:graphicData`
+с `c:chart`) заменена картинкой `pic:pic` того же размера. Данные — из кэшей
+`c:numCache`/`c:strCache` (`ChartXmlParser`), цвета — из темы документа, рисует
+`AndroidChartImageRenderer` (столбцы/полосы с группировкой, линии, области, круговые, кольцевые,
+точечные; заголовок, легенда, оси). Нераспознанные диаграммы остаются как есть, при ошибке
+рендерится исходный файл. Логи: `adb logcat -s OdrDocxReader`.
+Тот же подход можно применить к xlsx/pptx.
 
 **Примеры файлов (ВРЕМЕННО).** `app/.../sample/` при первом запуске кладёт в `filesDir`:
-`Readme.txt`, `Quarterly report.docx` (таблица, столбчатая и линейная диаграммы), `Budget.csv`,
-папку `Samples/` с `Market share.docx` (круговая и полосовая диаграммы), `Sales by region.csv`,
+`Readme.txt`, `Quarterly report.docx` (таблица, 2 картинки, столбчатая и линейная диаграммы,
+у каждой подпись «Picture N» / «Chart N»), `Budget.csv`, папку `Samples/` с `Market share.docx`
+(картинка, круговая и полосовая диаграммы), `Sales by region.csv`,
 `Notes.md` и пустой папкой, папку `Media/` с `Sample.pdf`, `Picture.png`, `Chord.wav` и текстами
-в UTF-8 и cp1251. Один раз на версию набора, флаг в SharedPreferences `sample_files`.
+в UTF-8 и cp1251. Один раз на версию набора (флаг в SharedPreferences `sample_files`), новая версия
+перезаписывает примеры.
 Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
-
-**Уборка после выбора.**
-Общее: удалить `core/document/api/.../comparison/`, `DefaultDocumentReaderVariants`,
-`ChartRenderingSwitch` и поле `chartRendering` во viewer; `OpenDocumentInteractor` берёт
-`UniversalDocumentReader`, `DocumentCore` собирает его из списка ридеров.
-
-- Остались на **As is**: удалить `chart/` и `ChartRasterizingDocxReader`.
-- Остались на **As picture**: удалить `OdrDocxReader`, `ChartRasterizingDocxReader` переименовать
-  в `OdrDocxReader`; при желании применить тот же подход к xlsx/pptx.
 
 ### Реализации в `:core:document:impl`
 
 | Ридер | Форматы | Чем | Открытые вопросы (выбрать позже) |
 | --- | --- | --- | --- |
-| `Odr*Reader` (11 шт.) | docx, doc, odt, rtf, xlsx, xls, ods, csv, pptx, ppt, odp | OpenDocument.core -> HTML | диаграммы (сравнение), minSdk 26 |
+| `Odr*Reader` (11 шт.) | docx, doc, odt, rtf, xlsx, xls, ods, csv, pptx, ppt, odp | OpenDocument.core -> HTML; в docx диаграммы картинками | диаграммы в xlsx/pptx, minSdk 26 |
 | `AndroidPdfReader` | pdf | `PdfRenderer` | пароль только на API 35+, нет текста/поиска; zoom в UI. Варианты: androidx.pdf, pdfium |
 | `AndroidTextReader` | txt, md, json, xml, log | свой код (`TextDecoding`) | эвристика cp1251/Latin-1 -> ICU `CharsetDetector`/juniversalchardet; подсветка md/json |
 | `AndroidImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + `ExifInterface` | анимация GIF/WebP, большие фото (тайлинг) -> Coil/subsampling |

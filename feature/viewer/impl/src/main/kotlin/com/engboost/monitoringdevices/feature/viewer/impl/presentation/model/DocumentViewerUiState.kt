@@ -1,7 +1,6 @@
 package com.engboost.monitoringdevices.feature.viewer.impl.presentation.model
 
 import androidx.compose.runtime.Immutable
-import com.engboost.monitoringdevices.core.document.api.comparison.ChartRendering
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
 import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
 import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
@@ -12,8 +11,6 @@ import com.engboost.monitoringdevices.core.document.api.document.TextDocument
 internal data class DocumentViewerUiState(
     val title: String,
     val content: ViewerContent,
-    /** `null` when the file has no chart variants to compare. */
-    val chartRendering: ChartRendering?,
     val passwordDialog: PasswordDialogUi?,
     /** Present while an audio document is shown. */
     val audioPlayback: AudioPlaybackUi?

@@ -32,7 +32,6 @@ internal fun DocumentViewerFeatureScreen(
     DocumentViewerScreen(
         state = viewModel.uiState,
         onBackClick = onBackClick,
-        onChartRenderingSelected = viewModel::onChartRenderingSelected,
         onPageSelected = viewModel::onPageSelected,
         onPlayPauseClick = viewModel::onPlayPauseClick,
         onSeek = viewModel::onSeek,

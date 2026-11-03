@@ -43,15 +43,19 @@ internal class SampleFilesSeeder(
         media.writeSample("Old encoding (cp1251).txt", RUSSIAN_TEXT.toByteArray(charset("windows-1251")))
     }
 
+    /** A new sample set version replaces older copies of the samples. */
     private fun File.writeSample(name: String, content: ByteArray) {
-        val file = File(this, name)
-        if (!file.exists()) file.writeBytes(content)
+        File(this, name).writeBytes(content)
     }
 
     private fun quarterlyReport() = SampleDocx.build(
         listOf(
             Block.Heading("Quarterly report"),
-            Block.Paragraph("Sample document with a table and two charts. Switch \"Charts\" in the viewer to compare how they are shown."),
+            Block.Paragraph(
+                "Sample document with a table, two pictures and two charts. " +
+                    "Each one has a caption above it: \"Picture\" is an image embedded in the file, " +
+                    "\"Chart\" is drawn by the app from the chart data."
+            ),
             Block.Table(
                 listOf(
                     listOf("Quarter", "North", "South", "West"),
@@ -61,6 +65,14 @@ internal class SampleFilesSeeder(
                     listOf("Q4", "4.5", "2.8", "5.0")
                 )
             ),
+            Block.Caption("Picture 1. Embedded image (PNG)"),
+            Block.Picture(
+                png = SampleMedia.png(label = "Picture 1"),
+                widthCm = 15.0,
+                heightCm = 10.0,
+                description = "Picture 1"
+            ),
+            Block.Caption("Chart 1. Column chart"),
             Block.ChartBlock(
                 Chart(
                     type = Chart.Type.COLUMN,
@@ -74,6 +86,20 @@ internal class SampleFilesSeeder(
                 )
             ),
             Block.Paragraph("Text between the charts."),
+            Block.Caption("Picture 2. Embedded image (PNG), smaller"),
+            Block.Picture(
+                png = SampleMedia.png(
+                    label = "Picture 2",
+                    startColor = 0xFF1E8E3E.toInt(),
+                    endColor = 0xFF0E9AA7.toInt(),
+                    width = 1000,
+                    height = 500
+                ),
+                widthCm = 10.0,
+                heightCm = 5.0,
+                description = "Picture 2"
+            ),
+            Block.Caption("Chart 2. Line chart"),
             Block.ChartBlock(
                 Chart(
                     type = Chart.Type.LINE,
@@ -92,6 +118,18 @@ internal class SampleFilesSeeder(
     private fun marketShare() = SampleDocx.build(
         listOf(
             Block.Heading("Market share"),
+            Block.Caption("Picture 1. Embedded image (PNG)"),
+            Block.Picture(
+                png = SampleMedia.png(
+                    label = "Picture 1",
+                    startColor = 0xFFE8710A.toInt(),
+                    endColor = 0xFFE5483B.toInt()
+                ),
+                widthCm = 12.0,
+                heightCm = 8.0,
+                description = "Picture 1"
+            ),
+            Block.Caption("Chart 1. Pie chart"),
             Block.ChartBlock(
                 Chart(
                     type = Chart.Type.PIE,
@@ -100,6 +138,7 @@ internal class SampleFilesSeeder(
                     series = listOf("Share" to listOf(45.0, 25.0, 18.0, 12.0))
                 )
             ),
+            Block.Caption("Chart 2. Bar chart"),
             Block.ChartBlock(
                 Chart(
                     type = Chart.Type.BAR,
@@ -117,7 +156,7 @@ internal class SampleFilesSeeder(
     private companion object {
         const val TAG = "SampleFiles"
         const val PREFERENCES = "sample_files"
-        const val KEY_SEEDED = "seeded_v2"
+        const val KEY_SEEDED = "seeded_v3"
 
         const val README = "Sample files created on the first launch.\nThey are temporary and will be removed before release.\n"
         const val BUDGET_CSV = "Item,January,February,March\nRent,1200,1200,1200\nSalaries,5400,5400,5600\nMarketing,800,950,700\nOther,300,250,400\n"

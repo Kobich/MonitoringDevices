@@ -1,9 +1,10 @@
 package com.engboost.monitoringdevices.core.document.impl
 
 import android.content.Context
+import android.os.Build
 import com.engboost.monitoringdevices.core.document.api.cache.RenderedDocumentCache
-import com.engboost.monitoringdevices.core.document.api.comparison.ChartRendering
-import com.engboost.monitoringdevices.core.document.api.comparison.DocumentReaderVariants
+import com.engboost.monitoringdevices.core.document.api.document.Document
+import com.engboost.monitoringdevices.core.document.api.reader.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.reader.UniversalDocumentReader
 import com.engboost.monitoringdevices.core.document.impl.audio.AndroidAudioReader
 import com.engboost.monitoringdevices.core.document.impl.cache.DiskRenderedDocumentCache
@@ -11,6 +12,17 @@ import com.engboost.monitoringdevices.core.document.impl.chart.AndroidChartImage
 import com.engboost.monitoringdevices.core.document.impl.chart.DocxChartRasterizer
 import com.engboost.monitoringdevices.core.document.impl.image.AndroidImageReader
 import com.engboost.monitoringdevices.core.document.impl.office.OdrHtmlConverter
+import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrOdpReader
+import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrPptReader
+import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrPptxReader
+import com.engboost.monitoringdevices.core.document.impl.office.spreadsheet.OdrCsvReader
+import com.engboost.monitoringdevices.core.document.impl.office.spreadsheet.OdrOdsReader
+import com.engboost.monitoringdevices.core.document.impl.office.spreadsheet.OdrXlsReader
+import com.engboost.monitoringdevices.core.document.impl.office.spreadsheet.OdrXlsxReader
+import com.engboost.monitoringdevices.core.document.impl.office.word.OdrDocReader
+import com.engboost.monitoringdevices.core.document.impl.office.word.OdrDocxReader
+import com.engboost.monitoringdevices.core.document.impl.office.word.OdrOdtReader
+import com.engboost.monitoringdevices.core.document.impl.office.word.OdrRtfReader
 import com.engboost.monitoringdevices.core.document.impl.pdf.AndroidPdfReader
 import com.engboost.monitoringdevices.core.document.impl.source.DocumentSourceFiles
 import com.engboost.monitoringdevices.core.document.impl.text.AndroidTextReader
@@ -37,20 +49,39 @@ class DocumentCore(
     /** On-disk output of converted documents (office files to HTML). */
     val cache: RenderedDocumentCache = diskCache
 
-    /** TEMPORARY: chart comparison, see [ChartRendering]. */
-    val readerVariants: DocumentReaderVariants = DefaultDocumentReaderVariants(
-        converter = OdrHtmlConverter(diskCache, sourceFiles),
-        rasterizer = DocxChartRasterizer(AndroidChartImageRenderer()),
-        platformReaders = listOf(
-            AndroidPdfReader(sourceFiles),
-            AndroidTextReader(sourceFiles, maxChars = config.maxTextChars),
-            AndroidImageReader(sourceFiles),
-            AndroidAudioReader(appContext)
-        )
+    /** Opens any supported file. */
+    val reader: UniversalDocumentReader = UniversalDocumentReader(platformReaders(config) + officeReaders())
+
+    /** PDF, text, images and audio on platform APIs, available on every API level. */
+    private fun platformReaders(config: DocumentCoreConfig): List<DocumentReader<Document>> = listOf(
+        AndroidPdfReader(sourceFiles),
+        AndroidTextReader(sourceFiles, maxChars = config.maxTextChars),
+        AndroidImageReader(sourceFiles),
+        AndroidAudioReader(appContext)
     )
 
-    /** Opens any supported file. */
-    val reader: UniversalDocumentReader = readerVariants.reader(ChartRendering.AS_IS)
+    /**
+     * Office formats via OpenDocument.core. The library needs API 26: on older devices
+     * its classes are never loaded and these formats are simply unsupported.
+     */
+    private fun officeReaders(): List<DocumentReader<Document>> {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return emptyList()
+
+        val converter = OdrHtmlConverter(diskCache, sourceFiles)
+        return listOf(
+            OdrDocxReader(converter, DocxChartRasterizer(AndroidChartImageRenderer())),
+            OdrDocReader(converter),
+            OdrOdtReader(converter),
+            OdrRtfReader(converter),
+            OdrXlsxReader(converter),
+            OdrXlsReader(converter),
+            OdrOdsReader(converter),
+            OdrCsvReader(converter),
+            OdrPptxReader(converter),
+            OdrPptReader(converter),
+            OdrOdpReader(converter)
+        )
+    }
 }
 
 data class DocumentCoreConfig(
