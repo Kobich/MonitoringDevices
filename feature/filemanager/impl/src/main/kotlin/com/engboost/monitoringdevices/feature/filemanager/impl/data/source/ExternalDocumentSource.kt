@@ -3,13 +3,15 @@ package com.engboost.monitoringdevices.feature.filemanager.impl.data.source
 import android.content.Context
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import javax.inject.Inject
 
 /** Storage Access Framework documents picked by the user. */
-internal class ExternalDocumentSource(
-    private val context: Context
+internal class ExternalDocumentSource @Inject constructor(
+    @ApplicationContext private val context: Context
 ) {
     fun displayName(uri: Uri): String? {
         return DocumentFile.fromSingleUri(context, uri)?.name

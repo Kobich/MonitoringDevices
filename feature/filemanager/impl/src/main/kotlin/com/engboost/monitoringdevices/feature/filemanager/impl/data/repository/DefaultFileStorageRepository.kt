@@ -16,13 +16,14 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import javax.inject.Inject
 import kotlin.coroutines.coroutineContext
 
-internal class DefaultFileStorageRepository(
+internal class DefaultFileStorageRepository @Inject constructor(
     private val internalSource: InternalFileSource,
-    private val documentSource: ExternalDocumentSource,
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
+    private val documentSource: ExternalDocumentSource
 ) : FileStorageRepository {
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
     override suspend fun exists(path: StoragePath): Boolean = io {
         internalSource.resolve(path).exists()

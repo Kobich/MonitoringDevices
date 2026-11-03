@@ -7,8 +7,9 @@ import com.engboost.monitoringdevices.core.document.api.comparison.ChartRenderin
 import com.engboost.monitoringdevices.core.document.api.comparison.DocumentReaderVariants
 import com.engboost.monitoringdevices.core.document.api.document.Document
 import java.io.File
+import javax.inject.Inject
 
-internal class OpenDocumentInteractor(
+internal class OpenDocumentInteractor @Inject constructor(
     // TEMPORARY: after the chart comparison this becomes a plain UniversalDocumentReader.
     private val readerVariants: DocumentReaderVariants
 ) {

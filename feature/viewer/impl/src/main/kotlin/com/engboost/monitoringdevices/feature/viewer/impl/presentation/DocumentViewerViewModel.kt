@@ -21,6 +21,10 @@ import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.Aud
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.DocumentViewerUiState
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.PasswordDialogUi
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.ViewerContent
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -28,11 +32,18 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 
-internal class DocumentViewerViewModel(
-    private val file: File,
+@HiltViewModel(assistedFactory = DocumentViewerViewModel.Factory::class)
+internal class DocumentViewerViewModel @AssistedInject constructor(
+    @Assisted private val file: File,
     private val interactor: OpenDocumentInteractor,
     private val audioPlayerFactory: AudioPlayerFactory
 ) : ViewModel() {
+
+    @AssistedFactory
+    interface Factory {
+        fun create(file: File): DocumentViewerViewModel
+    }
+
     private var loadJob: Job? = null
     private var openedDocument: Document? = null
     private var password: String? = null

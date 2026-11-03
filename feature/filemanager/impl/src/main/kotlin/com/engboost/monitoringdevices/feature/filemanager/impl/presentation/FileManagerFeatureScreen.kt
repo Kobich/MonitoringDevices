@@ -13,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -20,7 +21,6 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.cont
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentRequest
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.ExportPickerUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.screen.FileManagerScreen
-import org.koin.compose.viewmodel.koinViewModel
 import java.io.File
 
 @Composable
@@ -28,7 +28,7 @@ internal fun FileManagerFeatureScreen(
     onBackClick: () -> Unit,
     onFileOpen: (File) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: FileManagerViewModel = koinViewModel()
+    viewModel: FileManagerViewModel = hiltViewModel()
 ) {
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }

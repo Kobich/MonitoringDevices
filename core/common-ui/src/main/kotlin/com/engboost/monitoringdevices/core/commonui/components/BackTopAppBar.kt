@@ -6,15 +6,18 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
 
-/** Top bar with a single-line title and a navigation button (Back by default). */
+/**
+ * Top bar with a single-line title and a navigation button (Back by default).
+ * Doesn't expose experimental Material 3 types, so callers need no opt-in.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackTopAppBar(
@@ -23,7 +26,8 @@ fun BackTopAppBar(
     modifier: Modifier = Modifier,
     navigationIcon: ImageVector = AppIcons.Back,
     navigationContentDescription: String = "Back",
-    colors: TopAppBarColors = TopAppBarDefaults.topAppBarColors(),
+    /** [Color.Unspecified] keeps the theme default. */
+    containerColor: Color = Color.Unspecified,
     actions: @Composable RowScope.() -> Unit = {}
 ) {
     TopAppBar(
@@ -34,7 +38,11 @@ fun BackTopAppBar(
             }
         },
         actions = actions,
-        colors = colors,
+        colors = if (containerColor == Color.Unspecified) {
+            TopAppBarDefaults.topAppBarColors()
+        } else {
+            TopAppBarDefaults.topAppBarColors(containerColor = containerColor)
+        },
         modifier = modifier
     )
 }

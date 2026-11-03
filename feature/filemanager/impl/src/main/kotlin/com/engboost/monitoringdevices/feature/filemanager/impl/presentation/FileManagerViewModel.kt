@@ -19,9 +19,11 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.mode
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileManagerUiState
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.SelectionUi
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Gestures:
@@ -30,11 +32,13 @@ import kotlinx.coroutines.launch
  * - selection mode: tap or long press toggles an item, deselecting the last one
  *   (or Close / Back) returns to browse mode.
  */
-internal class FileManagerViewModel(
+@HiltViewModel
+internal class FileManagerViewModel @Inject constructor(
     private val interactor: FileManagerInteractor,
-    private val savedStateHandle: SavedStateHandle,
-    private val uiMapper: FileManagerUiMapper = FileManagerUiMapper()
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+    private val uiMapper = FileManagerUiMapper()
+
     // Kept in SavedStateHandle to survive process death, e.g. while a system picker is open.
     private var currentPath: StoragePath
         get() = StoragePath(savedStateHandle.get<String>(KEY_CURRENT_PATH).orEmpty())

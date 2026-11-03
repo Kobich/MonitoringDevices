@@ -10,8 +10,9 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.Stor
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.TransferSummary
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.repository.FileStorageRepository
 import java.io.File
+import javax.inject.Inject
 
-internal class FileManagerInteractor(
+internal class FileManagerInteractor @Inject constructor(
     private val repository: FileStorageRepository
 ) {
     /**

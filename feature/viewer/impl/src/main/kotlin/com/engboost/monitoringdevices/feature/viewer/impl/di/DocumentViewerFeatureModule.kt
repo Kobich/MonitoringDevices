@@ -4,17 +4,24 @@ import com.engboost.monitoringdevices.feature.viewer.api.DocumentViewerFeatureAp
 import com.engboost.monitoringdevices.feature.viewer.impl.DocumentViewerFeatureImpl
 import com.engboost.monitoringdevices.feature.viewer.impl.data.player.MediaPlayerAudioPlayerFactory
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayerFactory
-import com.engboost.monitoringdevices.feature.viewer.impl.domain.interactor.OpenDocumentInteractor
-import com.engboost.monitoringdevices.feature.viewer.impl.presentation.DocumentViewerViewModel
-import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
-import org.koin.dsl.module
+import dagger.Binds
+import dagger.Module
+import dagger.hilt.InstallIn
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
-val documentViewerFeatureModule = module {
-    single<DocumentViewerFeatureApi> { DocumentViewerFeatureImpl() }
-    factory { OpenDocumentInteractor(get()) }
-    single<AudioPlayerFactory> { MediaPlayerAudioPlayerFactory(androidContext()) }
-    viewModel { parameters ->
-        DocumentViewerViewModel(file = parameters.get(), interactor = get(), audioPlayerFactory = get())
-    }
+/**
+ * Needs `DocumentReaderVariants` (`:core:document:api`) from the host app's graph,
+ * see `DocumentCoreModule` in `:app`.
+ */
+@Module
+@InstallIn(SingletonComponent::class)
+internal abstract class DocumentViewerFeatureModule {
+
+    @Binds
+    @Singleton
+    abstract fun bindFeatureApi(impl: DocumentViewerFeatureImpl): DocumentViewerFeatureApi
+
+    @Binds
+    abstract fun bindAudioPlayerFactory(impl: MediaPlayerAudioPlayerFactory): AudioPlayerFactory
 }

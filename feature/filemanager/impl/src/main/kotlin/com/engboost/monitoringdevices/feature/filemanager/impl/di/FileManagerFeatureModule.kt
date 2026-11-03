@@ -1,26 +1,39 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.di
 
+import android.content.Context
 import com.engboost.monitoringdevices.feature.filemanager.api.FileManagerFeatureApi
 import com.engboost.monitoringdevices.feature.filemanager.impl.FileManagerFeatureImpl
 import com.engboost.monitoringdevices.feature.filemanager.impl.data.repository.DefaultFileStorageRepository
-import com.engboost.monitoringdevices.feature.filemanager.impl.data.source.ExternalDocumentSource
 import com.engboost.monitoringdevices.feature.filemanager.impl.data.source.InternalFileSource
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.interactor.FileManagerInteractor
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.repository.FileStorageRepository
-import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.FileManagerViewModel
-import org.koin.android.ext.koin.androidContext
-import org.koin.core.module.dsl.viewModel
-import org.koin.dsl.module
+import dagger.Binds
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
-val fileManagerFeatureModule = module {
-    single<FileManagerFeatureApi> { FileManagerFeatureImpl() }
+@Module
+@InstallIn(SingletonComponent::class)
+internal abstract class FileManagerFeatureModule {
 
-    // Root of the browsable storage. Context.dataDir would also expose
-    // databases/, shared_prefs/ and cache/.
-    single { InternalFileSource(rootDirectory = androidContext().filesDir) }
-    single { ExternalDocumentSource(context = androidContext()) }
-    single<FileStorageRepository> { DefaultFileStorageRepository(get(), get()) }
+    @Binds
+    @Singleton
+    abstract fun bindFeatureApi(impl: FileManagerFeatureImpl): FileManagerFeatureApi
 
-    factory { FileManagerInteractor(get()) }
-    viewModel { FileManagerViewModel(get(), get()) }
+    @Binds
+    abstract fun bindRepository(impl: DefaultFileStorageRepository): FileStorageRepository
+
+    companion object {
+        /**
+         * Root of the browsable storage. Context.dataDir would also expose
+         * databases/, shared_prefs/ and cache/.
+         */
+        @Provides
+        @Singleton
+        fun provideInternalFileSource(@ApplicationContext context: Context): InternalFileSource {
+            return InternalFileSource(rootDirectory = context.filesDir)
+        }
+    }
 }

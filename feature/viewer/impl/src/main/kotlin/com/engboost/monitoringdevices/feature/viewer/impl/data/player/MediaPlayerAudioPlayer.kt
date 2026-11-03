@@ -6,8 +6,10 @@ import android.media.MediaPlayer
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayer
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayerFactory
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.IOException
+import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -78,8 +80,8 @@ internal class MediaPlayerAudioPlayer(
     }
 }
 
-internal class MediaPlayerAudioPlayerFactory(
-    private val context: Context
+internal class MediaPlayerAudioPlayerFactory @Inject constructor(
+    @ApplicationContext private val context: Context
 ) : AudioPlayerFactory {
     override fun create(source: DocumentSource): AudioPlayer = MediaPlayerAudioPlayer(context, source)
 }

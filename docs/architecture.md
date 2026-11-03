@@ -7,7 +7,7 @@
 
 ```text
 :app
-  Точка входа, DI-сборка (Koin), навигация (Navigation Compose): home -> file_manager.
+  Точка входа, Hilt (@HiltAndroidApp, DocumentCoreModule), навигация (Navigation Compose).
 
 :feature:filemanager:api
   FileManagerFeatureApi — внешний контракт фичи (Composable-экран + onBackClick).
@@ -110,7 +110,7 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xls
 **Уборка после выбора.**
 Общее: удалить `core/document/api/.../comparison/`, `DefaultDocumentReaderVariants`,
 `ChartRenderingSwitch` и поле `chartRendering` во viewer; `OpenDocumentInteractor` берёт
-`UniversalDocumentReader`, `coreDocumentModule` собирает его из списка ридеров.
+`UniversalDocumentReader`, `DocumentCore` собирает его из списка ридеров.
 
 - Остались на **As is**: удалить `chart/` и `ChartRasterizingDocxReader` с тестами.
 - Остались на **As picture**: удалить `OdrDocxReader`, `ChartRasterizingDocxReader` переименовать
@@ -161,7 +161,7 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xls
 ```text
 FileManagerFeatureImpl            реализация FileManagerFeatureApi
 di/
-  FileManagerFeatureModule        Koin-граф фичи; здесь задаётся корень хранилища
+  FileManagerFeatureModule        Hilt-модуль фичи: биндинги API и репозитория, корень хранилища
 domain/
   model/                          StoragePath, FileEntry, DirectoryContent, TransferSummary, ошибки имени
   repository/FileStorageRepository  контракт доступа к хранилищу
@@ -242,3 +242,17 @@ components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
 Правила: значки в фичах только через `AppIcons` (не `Icons.*` и не drawable в фиче);
 компонент переносится сюда, как только нужен второй фиче; без бизнес-логики и без зависимостей
 от `feature:*` / `core:document`.
+
+## DI
+
+| Модули | DI | Как |
+| --- | --- | --- |
+| `core:*` | без фреймворка | `core:document:impl` отдаёт одну публичную точку сборки `DocumentCore(context, config)`, всё остальное `internal`; `core:common-ui` без зависимостей |
+| `feature:*:impl` | Hilt | `@Inject constructor`, `@HiltViewModel`, `internal` Hilt-модуль `@InstallIn(SingletonComponent)` с `@Binds` для `*FeatureApi` |
+| `app` | Hilt | `@HiltAndroidApp`, `@AndroidEntryPoint`; `di/DocumentCoreModule` создаёт `DocumentCore` как `@Singleton` и отдаёт его API-типы |
+
+Параметры экрана, которые приходят через API фичи (например `File` у просмотрщика), передаются
+assisted injection: `@HiltViewModel(assistedFactory = ...)` +
+`hiltViewModel<VM, VM.Factory>(key = ..., creationCallback = { it.create(file) })`.
+
+Версии: Hilt 2.60.1 (для AGP 9 нужен >= 2.59.2), KSP 2.3.13 (для встроенного Kotlin AGP 9 нужен >= 2.3.6).
