@@ -91,6 +91,12 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xls
 
 Результаты кэшируются раздельно (`variant` в ключе кэша), переключение не пересчитывает уже открытое.
 
+**Примеры файлов (ВРЕМЕННО).** `app/.../sample/` при первом запуске кладёт в `filesDir`:
+`Readme.txt`, `Quarterly report.docx` (таблица, столбчатая и линейная диаграммы), `Budget.csv`,
+папку `Samples/` с `Market share.docx` (круговая и полосовая диаграммы), `Sales by region.csv`,
+`Notes.md` и пустой папкой. Один раз, флаг в SharedPreferences `sample_files`.
+Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
+
 **Уборка после выбора.**
 Общее: удалить `core/document/api/.../comparison/`, `DefaultDocumentReaderVariants`,
 `ChartRenderingSwitch` и поле `chartRendering` во viewer; `OpenDocumentInteractor` берёт
