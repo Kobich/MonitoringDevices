@@ -10,6 +10,7 @@ import com.engboost.monitoringdevices.core.document.impl.audio.AndroidAudioReade
 import com.engboost.monitoringdevices.core.document.impl.cache.DiskRenderedDocumentCache
 import com.engboost.monitoringdevices.core.document.impl.chart.AndroidChartImageRenderer
 import com.engboost.monitoringdevices.core.document.impl.chart.DocxChartRasterizer
+import com.engboost.monitoringdevices.core.document.impl.chart.PptxChartRasterizer
 import com.engboost.monitoringdevices.core.document.impl.image.AndroidImageReader
 import com.engboost.monitoringdevices.core.document.impl.office.OdrHtmlConverter
 import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrOdpReader
@@ -68,8 +69,9 @@ class DocumentCore(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return emptyList()
 
         val converter = OdrHtmlConverter(diskCache, sourceFiles)
+        val chartRenderer = AndroidChartImageRenderer()
         return listOf(
-            OdrDocxReader(converter, DocxChartRasterizer(AndroidChartImageRenderer())),
+            OdrDocxReader(converter, DocxChartRasterizer(chartRenderer)),
             OdrDocReader(converter),
             OdrOdtReader(converter),
             OdrRtfReader(converter),
@@ -77,7 +79,7 @@ class DocumentCore(
             OdrXlsReader(converter),
             OdrOdsReader(converter),
             OdrCsvReader(converter),
-            OdrPptxReader(converter),
+            OdrPptxReader(converter, PptxChartRasterizer(chartRenderer)),
             OdrPptReader(converter),
             OdrOdpReader(converter)
         )

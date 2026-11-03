@@ -1,7 +1,10 @@
 package com.engboost.monitoringdevices.core.document.impl.source
 
 import android.content.Context
+import android.graphics.ImageDecoder
+import android.os.Build
 import android.os.ParcelFileDescriptor
+import androidx.annotation.RequiresApi
 import androidx.documentfile.provider.DocumentFile
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentSource
@@ -76,6 +79,14 @@ internal class DocumentSourceFiles(
             }
         } catch (error: FileNotFoundException) {
             throw DocumentReadException(DocumentReadException.Reason.NOT_FOUND, error.message, error)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.P)
+    fun imageDecoderSource(source: DocumentSource): ImageDecoder.Source {
+        return when (source) {
+            is DocumentSource.LocalFile -> ImageDecoder.createSource(source.file)
+            is DocumentSource.Content -> ImageDecoder.createSource(context.contentResolver, source.uri)
         }
     }
 

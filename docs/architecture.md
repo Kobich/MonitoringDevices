@@ -85,16 +85,21 @@ when (document) {
 Каждый конкретный ридер сам объявляет свой формат (`DocxReader.formats == {DOCX}`),
 `UniversalDocumentReader` не даёт зарегистрировать два ридера на один формат.
 
-### Диаграммы в docx
+### Диаграммы в docx и pptx
 
-OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэтому `OdrDocxReader` перед конвертацией
-пропускает файл через `DocxChartRasterizer`: копия docx, где каждая диаграмма (`a:graphicData`
-с `c:chart`) заменена картинкой `pic:pic` того же размера. Данные — из кэшей
+OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэтому `OdrDocxReader` и `OdrPptxReader`
+перед конвертацией пишут копию файла, где каждая диаграмма заменена картинкой того же размера и
+положения (общая логика в `OdrOfficeReader`, работа с пакетом в `OoxmlPackage`):
+
+- docx — `DocxChartRasterizer`: `a:graphicData` с `c:chart` -> `pic:pic`;
+- pptx — `PptxChartRasterizer`: на каждом слайде `p:graphicFrame` с `c:chart` -> `p:pic`
+  (id, имя, позиция и размер сохраняются; диаграммы в макетах/мастерах не трогаются).
+ Данные — из кэшей
 `c:numCache`/`c:strCache` (`ChartXmlParser`), цвета — из темы документа, рисует
 `AndroidChartImageRenderer` (столбцы/полосы с группировкой, линии, области, круговые, кольцевые,
 точечные; заголовок, легенда, оси). Нераспознанные диаграммы остаются как есть, при ошибке
-рендерится исходный файл. Логи: `adb logcat -s OdrDocxReader`.
-Тот же подход можно применить к xlsx/pptx.
+рендерится исходный файл. Логи: `adb logcat -s OdrOfficeReader`.
+Диаграммы в xlsx пока не рисуются (тот же подход применим).
 
 **Примеры файлов (ВРЕМЕННО).** `app/.../sample/` при первом запуске кладёт в `filesDir`:
 `Readme.txt`, `Quarterly report.docx` (таблица, 2 картинки, столбчатая и линейная диаграммы,
@@ -109,10 +114,10 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэт
 
 | Ридер | Форматы | Чем | Открытые вопросы (выбрать позже) |
 | --- | --- | --- | --- |
-| `Odr*Reader` (11 шт.) | docx, doc, odt, rtf, xlsx, xls, ods, csv, pptx, ppt, odp | OpenDocument.core -> HTML; в docx диаграммы картинками | диаграммы в xlsx/pptx, minSdk 26 |
+| `Odr*Reader` (11 шт.) | docx, doc, odt, rtf, xlsx, xls, ods, csv, pptx, ppt, odp | OpenDocument.core -> HTML; в docx и pptx диаграммы картинками | диаграммы в xlsx; только Android 8+ |
 | `AndroidPdfReader` | pdf | `PdfRenderer` | пароль только на API 35+, нет текста/поиска; zoom в UI. Варианты: androidx.pdf, pdfium |
 | `AndroidTextReader` | txt, md, json, xml, log | свой код (`TextDecoding`) | эвристика cp1251/Latin-1 -> ICU `CharsetDetector`/juniversalchardet; подсветка md/json |
-| `AndroidImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + `ExifInterface` | анимация GIF/WebP, большие фото (тайлинг) -> Coil/subsampling |
+| `AndroidImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + `ExifInterface`; GIF/анимированный WebP — `ImageDecoder` (Android 9+) | анимация на Android 6–8, большие фото (тайлинг) -> Coil/subsampling |
 | `AndroidAudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor` | — |
 
 Плеер в просмотрщике: интерфейс `AudioPlayer`, сейчас `MediaPlayerAudioPlayer`; пауза при уходе
@@ -129,8 +134,9 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэт
   Нативные вызовы на `Dispatchers.IO` и под `Mutex`, пока не подтверждена потокобезопасность.
 - Кэш: `cacheDir/rendered/<hash(path, size, lastModified)>/`, атомарно через временную папку.
   `Content`-источники сначала копируются во временный файл (odr принимает путь).
-- Требует **minSdk 26**. Пока решение не принято: `tools:overrideLibrary` в манифестах
-  `app` и `core:document:impl`, офисные ридеры регистрируются только на API 26+.
+- Библиотека требует API 26, приложение — **minSdk 23**: `tools:overrideLibrary` в манифестах
+  `app` и `core:document:impl`, офисные ридеры регистрируются только на API 26+
+  (`DocumentCore.officeReaders`), на Android 6–7 офисные форматы не поддерживаются.
 - Показ: WebView + `androidx.webkit.WebViewAssetLoader` с `InternalStoragePathHandler` на папку
   кэша. Так не нужны `HttpServer`, разрешение `INTERNET`, cleartext-конфиг и `allowFileAccess`.
   Запросы к остальным хостам блокировать в `shouldInterceptRequest`, без `addJavascriptInterface`:

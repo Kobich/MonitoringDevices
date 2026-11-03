@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- TEMPORARY until the minSdk decision: OpenDocument.core needs API 26, office readers
-         are enabled only there (core/document/impl DefaultDocumentReaderVariants). -->
+    <!-- The app supports API 23, OpenDocument.core needs 26: office readers are enabled
+         only on API 26+ (core/document/impl DocumentCore.officeReaders). -->
     <uses-sdk tools:overrideLibrary="app.opendocument.core" />
 
     <application

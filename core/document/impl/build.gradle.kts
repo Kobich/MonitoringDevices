@@ -10,8 +10,8 @@ android {
 
     defaultConfig {
         // OpenDocument.core needs API 26: it is merged with tools:overrideLibrary and
-        // office readers are registered only on API 26+ (see DefaultDocumentReaderVariants).
-        minSdk = 24
+        // office readers are registered only on API 26+ (see DocumentCore.officeReaders).
+        minSdk = 23
     }
 
     compileOptions {

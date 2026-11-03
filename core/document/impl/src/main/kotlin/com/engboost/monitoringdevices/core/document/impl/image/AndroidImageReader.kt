@@ -2,7 +2,12 @@ package com.engboost.monitoringdevices.core.document.impl.image
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.ImageDecoder
 import android.graphics.Matrix
+import android.graphics.drawable.AnimatedImageDrawable
+import android.graphics.drawable.Drawable
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.exifinterface.media.ExifInterface
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
@@ -18,9 +23,9 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 
 /**
- * Still images with `BitmapFactory`: only bounds are read on open, pixels are decoded
- * downsampled for the requested size. EXIF orientation is applied. Animated GIF/WebP show
- * their first frame (an image library such as Coil can take over later).
+ * Images with `BitmapFactory`: only bounds are read on open, pixels are decoded
+ * downsampled for the requested size. EXIF orientation is applied. GIF and animated WebP are
+ * animated with `ImageDecoder` on Android 9+, older devices show the first frame.
  */
 internal class AndroidImageReader(
     private val sourceFiles: DocumentSourceFiles,
@@ -40,12 +45,15 @@ internal class AndroidImageReader(
             }
         }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
 
+        val header = runCatching { readStream(source) { input -> input.readHeader() } }.getOrDefault(ByteArray(0))
+
         AndroidImageDocument(
             name = source.name,
             source = source,
             rawWidth = bounds.outWidth,
             rawHeight = bounds.outHeight,
-            orientation = orientation
+            orientation = orientation,
+            isAnimated = isGif(header) || isAnimatedWebp(header)
         )
     }
 
@@ -54,7 +62,8 @@ internal class AndroidImageReader(
         private val source: DocumentSource,
         private val rawWidth: Int,
         private val rawHeight: Int,
-        private val orientation: Int
+        private val orientation: Int,
+        override val isAnimated: Boolean
     ) : ImageDocument {
         override val format: DocumentFormat = DocumentFormat.IMAGE
 
@@ -74,6 +83,32 @@ internal class AndroidImageReader(
                 ?: throw DocumentReadException(Reason.CORRUPTED, "Can't decode image $name")
 
             transform(decoded, maxRawWidth, maxRawHeight)
+        }
+
+        override suspend fun decodeAnimation(maxWidthPx: Int, maxHeightPx: Int): Drawable? {
+            if (!isAnimated || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+            return withContext(ioDispatcher) { decodeAnimatedDrawable(maxWidthPx, maxHeightPx) }
+        }
+
+        @RequiresApi(Build.VERSION_CODES.P)
+        private fun decodeAnimatedDrawable(maxWidthPx: Int, maxHeightPx: Int): Drawable? {
+            val drawable = try {
+                ImageDecoder.decodeDrawable(sourceFiles.imageDecoderSource(source)) { decoder, info, _ ->
+                    val scale = minOf(1f, maxWidthPx.toFloat() / info.size.width, maxHeightPx.toFloat() / info.size.height)
+                    if (scale < 1f) {
+                        decoder.setTargetSize(
+                            (info.size.width * scale).toInt().coerceAtLeast(1),
+                            (info.size.height * scale).toInt().coerceAtLeast(1)
+                        )
+                    }
+                }
+            } catch (error: IOException) {
+                throw DocumentReadException(Reason.CORRUPTED, error.message, error)
+            } catch (error: OutOfMemoryError) {
+                throw DocumentReadException(Reason.TOO_LARGE, "Not enough memory for the animation", error)
+            }
+            // A single-frame GIF decodes to a plain bitmap drawable: show it as a still image.
+            return drawable.takeIf { it is AnimatedImageDrawable }
         }
 
         /** Exact downscale to the limits plus EXIF rotation/mirroring, in one pass. */
@@ -119,7 +154,34 @@ internal class AndroidImageReader(
         }
     }
 
+    private fun java.io.InputStream.readHeader(): ByteArray {
+        val header = ByteArray(HEADER_SIZE)
+        var read = 0
+        while (read < HEADER_SIZE) {
+            val count = read(header, read, HEADER_SIZE - read)
+            if (count < 0) break
+            read += count
+        }
+        return header.copyOf(read)
+    }
+
     private companion object {
+        const val HEADER_SIZE = 32
+
+        fun isGif(header: ByteArray): Boolean = header.startsWith("GIF8")
+
+        /** RIFF....WEBPVP8X with the animation flag (0x02) in the VP8X flags byte. */
+        fun isAnimatedWebp(header: ByteArray): Boolean {
+            if (header.size < 21) return false
+            return header.startsWith("RIFF") &&
+                String(header, 8, 8, Charsets.US_ASCII) == "WEBPVP8X" &&
+                header[20].toInt() and 0x02 != 0
+        }
+
+        private fun ByteArray.startsWith(prefix: String): Boolean {
+            return size >= prefix.length && String(this, 0, prefix.length, Charsets.US_ASCII) == prefix
+        }
+
         val SIDEWAYS_ORIENTATIONS = setOf(
             ExifInterface.ORIENTATION_TRANSPOSE,
             ExifInterface.ORIENTATION_ROTATE_90,
