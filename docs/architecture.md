@@ -29,22 +29,38 @@ app -> feature:filemanager:impl -> feature:filemanager:api
 
 ```text
 DocumentSource          LocalFile(File) | Content(Uri, name, mimeType)
-DocumentType            PDF, DOCX, TEXT, IMAGE, UNSUPPORTED
-DocumentTypeResolver    формат по MIME / расширению, без чтения содержимого
+DocumentType            PDF, TEXT_DOCUMENT, SPREADSHEET, PRESENTATION, PLAIN_TEXT, IMAGE, UNSUPPORTED
+DocumentTypeResolver    категория по MIME / расширению, без чтения содержимого
 DocumentReadException   единая ошибка с reason (NOT_FOUND, CORRUPTED, PASSWORD_REQUIRED, ...)
 
-pdf/PdfReader           open(source, password) -> PdfDocument (Closeable)
-pdf/PdfDocument         pageCount, pageSize, renderPage(index, widthPx): Bitmap, pageText
-docx/DocxReader         read(source) -> RichTextDocument
-richtext/               формато-независимая модель: Paragraph, Table, Image, PageBreak, стили
-text/TextReader         read(source, maxChars) -> TextDocument (текст, кодировка, обрезан ли)
-image/ImageReader       decode(source, maxW, maxH): Bitmap, size(source)
+html/HtmlDocumentRenderer  render(source, password) -> RenderedDocument (папка + страницы HTML), кэш
+pdf/PdfReader              open(source, password) -> PdfDocument: pageCount, renderPage(...): Bitmap
+text/TextReader            read(source, maxChars) -> TextDocument
+image/ImageReader          decode(source, maxW, maxH): Bitmap, size(source)
 ```
 
-Все методы `suspend`, реализация сама уходит с main-потока. DOCX отдаётся в
-`RichTextDocument`, чтобы ODT/RTF и т.п. позже ложились в ту же модель и тот же UI.
+Маршрутизация в будущем просмотрщике:
 
-`app` знает только `FileManagerFeatureApi`; реализация приходит из Koin-модуля `fileManagerFeatureModule`.
+```text
+TEXT_DOCUMENT, SPREADSHEET, PRESENTATION -> HtmlDocumentRenderer -> WebView
+PDF                                      -> PdfReader -> страницы-Bitmap
+PLAIN_TEXT                               -> TextReader
+IMAGE                                    -> ImageReader
+```
+
+### План реализации `:core:document:impl`
+
+- `HtmlDocumentRenderer` поверх OpenDocument.core (`app.opendocument:odr-core-android`, MPL-2.0):
+  `Odr.open(path)` -> `Html.translate(file, HtmlConfig())` -> `bringOffline(outputDir)`.
+  Нативные вызовы на `Dispatchers.IO` и под `Mutex`, пока не подтверждена потокобезопасность.
+- Кэш: `cacheDir/rendered/<hash(path, size, lastModified)>/`, атомарно через временную папку.
+  `Content`-источники сначала копируются во временный файл (odr принимает путь).
+- Требует **minSdk 26** — поднять у всех модулей при подключении.
+- Показ: WebView + `androidx.webkit.WebViewAssetLoader` с `InternalStoragePathHandler` на папку
+  кэша. Так не нужны `HttpServer`, разрешение `INTERNET`, cleartext-конфиг и `allowFileAccess`.
+  Запросы к остальным хостам блокировать в `shouldInterceptRequest`, без `addJavascriptInterface`:
+  содержимое документов недоверенное.
+- `PdfReader` — системный `PdfRenderer`; odr тоже умеет PDF, можно сравнить качество.
 
 ## Структура `feature:filemanager:impl`
 
