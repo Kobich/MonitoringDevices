@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.ui.theme
+package com.engboost.monitoringdevices.core.commonui.theme
 
 import android.app.Activity
 import android.os.Build

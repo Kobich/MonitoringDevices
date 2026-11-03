@@ -27,6 +27,7 @@ android {
 
 dependencies {
     api(project(":feature:filemanager:api"))
+    implementation(project(":core:common-ui"))
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

@@ -12,9 +12,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
-import com.engboost.monitoringdevices.feature.filemanager.impl.R
+import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 
 /** Stateless row: the ViewModel decides what tap and long press mean in the current mode. */
@@ -39,7 +38,7 @@ internal fun FileEntryRow(
         },
         leadingContent = {
             Icon(
-                painter = painterResource(if (entry.isDirectory) R.drawable.ic_folder else R.drawable.ic_file),
+                imageVector = if (entry.isDirectory) AppIcons.Folder else AppIcons.File,
                 contentDescription = if (entry.isDirectory) "Folder" else "File",
                 tint = if (entry.isDirectory) {
                     MaterialTheme.colorScheme.primary

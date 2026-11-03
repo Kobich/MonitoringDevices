@@ -1,6 +1,5 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.presentation.screen
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,12 +13,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,7 +26,6 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -43,8 +35,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.engboost.monitoringdevices.core.commonui.components.BackTopAppBar
+import com.engboost.monitoringdevices.core.commonui.components.LoadingContent
+import com.engboost.monitoringdevices.core.commonui.components.MessageContent
+import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileManagerUiState
@@ -131,13 +126,13 @@ internal fun FileManagerScreen(
             HorizontalDivider()
 
             when {
-                state.isLoading && state.entries.isEmpty() -> CenteredContent {
-                    CircularProgressIndicator()
-                }
+                state.isLoading && state.entries.isEmpty() -> LoadingContent()
 
-                state.entries.isEmpty() -> CenteredContent {
-                    EmptyFolderMessage()
-                }
+                state.entries.isEmpty() -> MessageContent(
+                    title = "Folder is empty",
+                    text = "Use the menu in the top bar to import files or create a folder. " +
+                        "Long press an item to select it."
+                )
 
                 else -> LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -158,7 +153,6 @@ internal fun FileManagerScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun BrowseTopBar(
     title: String,
@@ -168,15 +162,9 @@ private fun BrowseTopBar(
     onImportDirectoryClick: () -> Unit,
     onCreateDirectoryClick: () -> Unit
 ) {
-    TopAppBar(
-        title = {
-            Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        },
-        navigationIcon = {
-            IconButton(onClick = onBackClick) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-            }
-        },
+    BackTopAppBar(
+        title = title,
+        onNavigationClick = onBackClick,
         actions = {
             StorageActionsMenu(
                 enabled = isActionsEnabled,
@@ -200,20 +188,18 @@ private fun SelectionTopBar(
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
 
-    TopAppBar(
-        title = { Text(text = "$selectedCount selected") },
-        navigationIcon = {
-            IconButton(onClick = onCloseClick) {
-                Icon(imageVector = Icons.Filled.Close, contentDescription = "Close selection")
-            }
-        },
+    BackTopAppBar(
+        title = "$selectedCount selected",
+        onNavigationClick = onCloseClick,
+        navigationIcon = AppIcons.Close,
+        navigationContentDescription = "Close selection",
         actions = {
             IconButton(onClick = onDeleteClick, enabled = isActionsEnabled) {
-                Icon(imageVector = Icons.Filled.Delete, contentDescription = "Delete selected")
+                Icon(imageVector = AppIcons.Delete, contentDescription = "Delete selected")
             }
             Box {
                 IconButton(onClick = { isMenuExpanded = true }, enabled = isActionsEnabled) {
-                    Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "Selection actions")
+                    Icon(imageVector = AppIcons.More, contentDescription = "Selection actions")
                 }
                 DropdownMenu(expanded = isMenuExpanded, onDismissRequest = { isMenuExpanded = false }) {
                     DropdownMenuItem(
@@ -250,7 +236,7 @@ private fun StorageActionsMenu(
 
     Box {
         IconButton(onClick = { isExpanded = true }, enabled = enabled) {
-            Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "Storage actions")
+            Icon(imageVector = AppIcons.More, contentDescription = "Storage actions")
         }
         DropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
             DropdownMenuItem(
@@ -308,32 +294,5 @@ private fun Breadcrumbs(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun CenteredContent(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        content()
-    }
-}
-
-@Composable
-private fun EmptyFolderMessage() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(text = "Folder is empty", style = MaterialTheme.typography.titleMedium)
-        Text(
-            text = "Use the menu in the top bar to import files or create a folder. Long press an item to select it.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }

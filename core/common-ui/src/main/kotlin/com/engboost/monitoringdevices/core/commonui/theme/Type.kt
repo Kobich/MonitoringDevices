@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.ui.theme
+package com.engboost.monitoringdevices.core.commonui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

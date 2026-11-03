@@ -40,6 +40,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:common-ui"))
     implementation(project(":feature:filemanager:impl"))
     implementation(project(":feature:viewer:impl"))
     implementation(project(":core:document:impl"))

@@ -9,7 +9,7 @@ import androidx.compose.material3.Surface
 import com.engboost.monitoringdevices.feature.filemanager.api.FileManagerFeatureApi
 import com.engboost.monitoringdevices.feature.viewer.api.DocumentViewerFeatureApi
 import com.engboost.monitoringdevices.navigation.AppNavigation
-import com.engboost.monitoringdevices.ui.theme.MonitoringDevicesTheme
+import com.engboost.monitoringdevices.core.commonui.theme.MonitoringDevicesTheme
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 

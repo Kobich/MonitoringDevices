@@ -27,6 +27,7 @@ android {
 
 dependencies {
     api(project(":feature:viewer:api"))
+    implementation(project(":core:common-ui"))
     implementation(project(":core:document:api"))
 
     implementation(platform(libs.androidx.compose.bom))

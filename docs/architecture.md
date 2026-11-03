@@ -16,12 +16,18 @@
   Реализация: просмотр приватного хранилища приложения (Context.filesDir),
   импорт / экспорт через Storage Access Framework, удаление, создание папок.
 
+:core:common-ui
+  Общий UI для переиспользования: тема (MonitoringDevicesTheme), значки (AppIcons),
+  компоненты (BackTopAppBar, CenteredContent, LoadingContent, MessageContent).
+  Не зависит от фич и core:document; фичи и app подключают его через implementation.
+
 :core:document:api
   Контракты чтения документов для просмотра, без привязки к библиотекам.
   Реализация (:core:document:impl) пока не выбрана.
 ```
 
 ```text
+app, feature:*:impl -> core:common-ui
 app -> feature:filemanager:impl -> feature:filemanager:api
 app -> feature:viewer:impl -> feature:viewer:api, core:document:api
 app -> core:document:impl -> core:document:api, odr-core-android
@@ -201,3 +207,16 @@ Screen -> callback -> ViewModel
 ```shell
 ./gradlew :feature:filemanager:impl:testDebugUnitTest
 ```
+
+## `core:common-ui`
+
+```text
+theme/        MonitoringDevicesTheme, цвета, типографика
+icons/        AppIcons: Back, Close, Delete, More, Add (Material) + свои Folder, File (ImageVector)
+components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
+              CenteredContent { ... }, LoadingContent(text), MessageContent(title, text, actionLabel)
+```
+
+Правила: значки в фичах только через `AppIcons` (не `Icons.*` и не drawable в фиче);
+компонент переносится сюда, как только нужен второй фиче; без бизнес-логики и без зависимостей
+от `feature:*` / `core:document`.

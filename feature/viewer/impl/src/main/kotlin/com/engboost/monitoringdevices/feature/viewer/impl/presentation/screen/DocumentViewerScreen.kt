@@ -1,33 +1,26 @@
 package com.engboost.monitoringdevices.feature.viewer.impl.presentation.screen
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.engboost.monitoringdevices.core.commonui.components.BackTopAppBar
+import com.engboost.monitoringdevices.core.commonui.components.LoadingContent
+import com.engboost.monitoringdevices.core.commonui.components.MessageContent
 import com.engboost.monitoringdevices.core.document.api.comparison.ChartRendering
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.DocumentViewerUiState
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.ViewerContent
@@ -51,14 +44,7 @@ internal fun DocumentViewerScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = { Text(text = state.title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
+            BackTopAppBar(title = state.title, onNavigationClick = onBackClick)
         }
     ) { innerPadding ->
         Column(
@@ -76,10 +62,7 @@ internal fun DocumentViewerScreen(
             }
 
             when (val content = state.content) {
-                ViewerContent.Loading -> CenteredMessage {
-                    CircularProgressIndicator()
-                    Text(text = "Rendering document…", style = MaterialTheme.typography.bodyMedium)
-                }
+                ViewerContent.Loading -> LoadingContent(text = "Rendering document…")
 
                 is ViewerContent.Html -> HtmlDocumentContent(
                     document = content.document,
@@ -88,24 +71,15 @@ internal fun DocumentViewerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                is ViewerContent.NotImplemented -> CenteredMessage {
-                    Text(
-                        text = "Viewing ${content.kind} files is not implemented yet",
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center
-                    )
-                }
+                is ViewerContent.NotImplemented -> MessageContent(
+                    title = "Viewing ${content.kind} files is not implemented yet"
+                )
 
-                is ViewerContent.Error -> CenteredMessage {
-                    Text(
-                        text = content.message,
-                        style = MaterialTheme.typography.titleMedium,
-                        textAlign = TextAlign.Center
-                    )
-                    Button(onClick = onRetryClick) {
-                        Text(text = "Retry")
-                    }
-                }
+                is ViewerContent.Error -> MessageContent(
+                    title = content.message,
+                    actionLabel = "Retry",
+                    onActionClick = onRetryClick
+                )
             }
         }
     }
@@ -140,23 +114,6 @@ private fun ChartRenderingSwitch(
                     Text(text = label)
                 }
             }
-        }
-    }
-}
-
-@Composable
-private fun CenteredMessage(content: @Composable () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            content()
         }
     }
 }
