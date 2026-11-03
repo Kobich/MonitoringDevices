@@ -102,7 +102,7 @@ internal class ChartXmlParser {
 
     private fun parseSeries(ser: Element, type: PlotType, theme: ChartTheme): ChartSeries {
         val name = ser.child(NS_CHART, "tx")?.let { tx ->
-            tx.path(NS_CHART, "strRef", "strCache")?.let(::points)?.values?.firstOrNull()
+            tx.path(NS_CHART, "strRef", "strCache")?.let(::points)?.firstOrNull()
                 ?: tx.child(NS_CHART, "v")?.textContent
         }
         val values = (ser.child(NS_CHART, "val") ?: ser.child(NS_CHART, "yVal"))?.let(::numberValues).orEmpty()
@@ -111,16 +111,16 @@ internal class ChartXmlParser {
         val shapeProperties = ser.child(NS_CHART, "spPr")
         // Lines are colored by their outline, everything else by its fill.
         val color = if (type == PlotType.LINE || type == PlotType.SCATTER) {
-            shapeProperties?.path(NS_DRAWING, "ln", "solidFill")?.let { fill -> fillColor(fill, theme) }
-                ?: shapeProperties?.child(NS_DRAWING, "solidFill")?.let { fill -> fillColor(fill, theme) }
+            shapeProperties?.path(NS_DRAWING, "ln", "solidFill")?.let { fill -> colorOf(fill, theme) }
+                ?: shapeProperties?.child(NS_DRAWING, "solidFill")?.let { fill -> colorOf(fill, theme) }
         } else {
-            shapeProperties?.child(NS_DRAWING, "solidFill")?.let { fill -> fillColor(fill, theme) }
+            shapeProperties?.child(NS_DRAWING, "solidFill")?.let { fill -> colorOf(fill, theme) }
         }
 
         val pointColors = ser.children(NS_CHART, "dPt").mapNotNull { point ->
             val index = point.child(NS_CHART, "idx")?.valAttribute()?.toIntOrNull() ?: return@mapNotNull null
             val fill = point.path(NS_CHART, "spPr")?.child(NS_DRAWING, "solidFill") ?: return@mapNotNull null
-            fillColor(fill, theme)?.let { pointColor -> index to pointColor }
+            colorOf(fill, theme)?.let { pointColor -> index to pointColor }
         }.toMap()
 
         return ChartSeries(
@@ -139,7 +139,7 @@ internal class ChartXmlParser {
             ?: cat.child(NS_CHART, "strLit")
             ?: cat.child(NS_CHART, "numLit")
             ?: return emptyList()
-        return points(cache).values.map { value -> value.orEmpty() }
+        return points(cache).map { value -> value.orEmpty() }
     }
 
     private fun numberValues(element: Element): List<Double?> {
@@ -147,13 +147,11 @@ internal class ChartXmlParser {
             ?: element.child(NS_CHART, "numLit")
             ?: element.path(NS_CHART, "strRef", "strCache")
             ?: return emptyList()
-        return points(cache).values.map { value -> value?.toDoubleOrNull() }
+        return points(cache).map { value -> value?.toDoubleOrNull() }
     }
 
-    private class Points(val values: List<String?>)
-
     /** `c:pt idx=..` entries placed by index, missing points stay `null`. */
-    private fun points(cache: Element): Points {
+    private fun points(cache: Element): List<String?> {
         val declaredCount = cache.child(NS_CHART, "ptCount")?.valAttribute()?.toIntOrNull()
         val points = cache.children(NS_CHART, "pt").mapNotNull { pt ->
             val index = pt.getAttribute("idx").toIntOrNull() ?: return@mapNotNull null
@@ -162,7 +160,7 @@ internal class ChartXmlParser {
         val count = maxOf(declaredCount ?: 0, (points.maxOfOrNull { it.first } ?: -1) + 1)
         val values = arrayOfNulls<String>(count.coerceAtMost(MAX_POINTS))
         points.forEach { (index, value) -> if (index in values.indices) values[index] = value }
-        return Points(values.toList())
+        return values.toList()
     }
 
     private fun richText(title: Element): String? {
@@ -170,12 +168,8 @@ internal class ChartXmlParser {
             paragraph.descendants(NS_DRAWING, "t").joinToString("") { it.textContent }
         }.trim()
         return text.ifEmpty {
-            title.path(NS_CHART, "tx", "strRef", "strCache")?.let(::points)?.values?.firstOrNull()
+            title.path(NS_CHART, "tx", "strRef", "strCache")?.let(::points)?.firstOrNull()
         }
-    }
-
-    private fun fillColor(solidFill: Element, theme: ChartTheme): Int? {
-        return colorOf(solidFill, theme)
     }
 
     /** `a:srgbClr` or `a:schemeClr accentN` directly inside [element]. */

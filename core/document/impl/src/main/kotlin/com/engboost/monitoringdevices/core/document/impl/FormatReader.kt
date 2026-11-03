@@ -8,5 +8,6 @@ import java.io.File
 internal interface FormatReader<out D : Document> {
     val formats: Set<DocumentFormat>
 
-    suspend fun read(file: File, password: String?): D
+    /** @param format one of [formats], already detected from the file extension. */
+    suspend fun read(file: File, format: DocumentFormat, password: String?): D
 }

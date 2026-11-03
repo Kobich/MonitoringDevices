@@ -20,8 +20,7 @@ internal class OfficeReader(
     private val chartRasterizer: ChartRasterizer? = null
 ) : FormatReader<HtmlDocument> {
 
-    override suspend fun read(file: File, password: String?): HtmlDocument {
-        val format = DocumentFormat.of(file) ?: formats.first()
+    override suspend fun read(file: File, format: DocumentFormat, password: String?): HtmlDocument {
         val rasterizer = chartRasterizer
             ?: return converter.convert(file, format, password, variant = VARIANT_AS_IS)
 

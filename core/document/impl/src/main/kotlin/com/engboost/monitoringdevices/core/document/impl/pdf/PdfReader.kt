@@ -12,6 +12,8 @@ import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Re
 import com.engboost.monitoringdevices.core.document.api.document.PageSize
 import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
 import com.engboost.monitoringdevices.core.document.impl.FormatReader
+import com.engboost.monitoringdevices.core.document.impl.mapReadErrors
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -25,8 +27,8 @@ import java.io.IOException
 
 /**
  * PDF with the platform `PdfRenderer`: no dependencies, good quality.
- * Limits to decide on later: passwords need Android 15 (API 35), no text extraction here
- * (`pageText` returns `null`). Alternatives: androidx.pdf, pdfium.
+ * Limits to decide on later: passwords need Android 15 (API 35), no text extraction.
+ * Alternatives: androidx.pdf, pdfium.
  */
 internal class PdfReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -35,10 +37,21 @@ internal class PdfReader(
 
     private val closeScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    override suspend fun read(file: File, password: String?): PdfDocument = withContext(ioDispatcher) {
+    override suspend fun read(file: File, format: DocumentFormat, password: String?): PdfDocument {
+        var opened: PdfDocument? = null
+        try {
+            return withContext(ioDispatcher) { open(file, password).also { document -> opened = document } }
+        } catch (error: CancellationException) {
+            // withContext drops a result that is ready when the caller is cancelled: close it here.
+            opened?.close()
+            throw error
+        }
+    }
+
+    private fun open(file: File, password: String?): PdfDocument {
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         try {
-            RendererPdfDocument(file.name, descriptor, openRenderer(descriptor, password))
+            return RendererPdfDocument(file.name, descriptor, openRenderer(descriptor, password))
         } catch (error: Throwable) {
             descriptor.close()
             throw error
@@ -91,17 +104,11 @@ internal class PdfReader(
             val height = (width.toLong() * page.height.coerceAtLeast(1) / page.width.coerceAtLeast(1))
                 .toInt()
                 .coerceIn(1, MAX_SIDE_PX)
-            val bitmap = try {
-                Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            } catch (error: OutOfMemoryError) {
-                throw DocumentReadException(Reason.TOO_LARGE, "Not enough memory to render the page", error)
-            }
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(Color.WHITE)
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
             bitmap
         }
-
-        override suspend fun pageText(pageIndex: Int): String? = null
 
         /** Returns at once; the renderer is released after a page that is rendering now. */
         override fun close() {
@@ -124,7 +131,7 @@ internal class PdfReader(
                     if (synchronized(this@RendererPdfDocument) { isClosed }) {
                         throw DocumentReadException(Reason.IO_ERROR, "Document is closed")
                     }
-                    renderer.openPage(pageIndex).use(block)
+                    mapReadErrors { renderer.openPage(pageIndex).use(block) }
                 }
             }
         }

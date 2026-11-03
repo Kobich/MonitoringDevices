@@ -6,16 +6,12 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.Typeface
 import java.io.ByteArrayOutputStream
 import java.text.DecimalFormat
 import kotlin.math.abs
 import kotlin.math.ceil
-import kotlin.math.floor
-import kotlin.math.log10
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.pow
 
 /** Draws charts with `android.graphics`, following the look of Word's default chart style. */
 internal class AndroidChartImageRenderer : ChartImageRenderer {
@@ -46,8 +42,8 @@ private class ChartPainter(
     private val gridColor = 0xFFD9D9D9.toInt()
     private val axisColor = 0xFFBFBFBF.toInt()
 
-    private val titlePaint = textPaint(14.0, bold = false)
-    private val labelPaint = textPaint(9.0, bold = false)
+    private val titlePaint = textPaint(14.0)
+    private val labelPaint = textPaint(9.0)
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
@@ -242,7 +238,7 @@ private class ChartPainter(
         }
     }
 
-    private inner class CategoryAxis(
+    private class CategoryAxis(
         val plot: RectF,
         val horizontal: Boolean,
         val min: Double,
@@ -517,18 +513,6 @@ private class ChartPainter(
         return if (plot.varyColors && plot.series.size == 1) theme.accent(point) else seriesColor(series, seriesIndex)
     }
 
-    /** About five round steps covering [low]..[high], like Word's automatic axis. */
-    private fun niceTicks(low: Double, high: Double): List<Double> {
-        val range = if (high > low) high - low else 1.0
-        val rough = range / 5
-        val magnitude = 10.0.pow(floor(log10(rough)))
-        val step = listOf(1.0, 2.0, 2.5, 5.0, 10.0).map { it * magnitude }.first { it >= rough }
-        val start = floor(low / step) * step
-        val end = ceil(high / step) * step
-        val count = ((end - start) / step).toInt().coerceIn(1, 20)
-        return (0..count).map { index -> start + index * step }
-    }
-
     private fun formatNumber(value: Double): String = numberFormat.format(if (abs(value) < 1e-9) 0.0 else value)
 
     private fun ellipsize(text: String, paint: Paint, maxWidth: Float): String {
@@ -538,10 +522,9 @@ private class ChartPainter(
         return if (end == 0) "" else text.substring(0, end) + "…"
     }
 
-    private fun textPaint(points: Double, bold: Boolean) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private fun textPaint(points: Double) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = textColor
         textSize = pt(points)
         textAlign = Paint.Align.CENTER
-        typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
     }
 }

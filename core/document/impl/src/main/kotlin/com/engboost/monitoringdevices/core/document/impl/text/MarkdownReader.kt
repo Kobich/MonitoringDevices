@@ -2,11 +2,11 @@ package com.engboost.monitoringdevices.core.document.impl.text
 
 import android.util.Log
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
-import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.document.Document
 import com.engboost.monitoringdevices.core.document.impl.FormatReader
 import com.engboost.monitoringdevices.core.document.impl.office.OdrHtmlConverter
 import java.io.File
+import java.io.IOException
 
 /**
  * Markdown formatted by OpenDocument.core; plain text when the library isn't available
@@ -18,15 +18,16 @@ internal class MarkdownReader(
 ) : FormatReader<Document> {
     override val formats = setOf(DocumentFormat.MARKDOWN)
 
-    override suspend fun read(file: File, password: String?): Document {
+    override suspend fun read(file: File, format: DocumentFormat, password: String?): Document {
         if (converter != null) {
             try {
-                return converter.convert(file, DocumentFormat.MARKDOWN, password = null, variant = VARIANT)
-            } catch (error: DocumentReadException) {
+                return converter.convert(file, format, password = null, variant = VARIANT)
+            } catch (error: IOException) {
+                // DocumentReadException is an IOException too: any failure falls back to plain text.
                 Log.w(TAG, "Formatted Markdown failed for ${file.name}, showing plain text", error)
             }
         }
-        return textReader.readText(file, DocumentFormat.MARKDOWN)
+        return textReader.read(file, format, password = null)
     }
 
     private companion object {

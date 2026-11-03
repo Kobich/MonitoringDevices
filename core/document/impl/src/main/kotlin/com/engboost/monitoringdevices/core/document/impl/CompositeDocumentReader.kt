@@ -22,7 +22,9 @@ internal class CompositeDocumentReader(
 
         val format = DocumentFormat.of(file)
         val reader = readers.firstOrNull { reader -> format in reader.formats }
-            ?: throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "Can't open ${file.name}")
-        return reader.read(file, password)
+        if (format == null || reader == null) {
+            throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "Can't open ${file.name}")
+        }
+        return mapReadErrors { reader.read(file, format, password) }
     }
 }

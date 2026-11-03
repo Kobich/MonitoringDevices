@@ -16,9 +16,8 @@ interface AudioDocument : Document {
     val sampleRateHz: Int?
     val channelCount: Int?
     val bitrateBps: Int?
-    val hasArtwork: Boolean
 
-    /** Embedded cover downsampled to fit [maxSizePx], or `null`. The caller owns the bitmap. */
+    /** Embedded cover downsampled to fit [maxSizePx], or `null` if there is none. The caller owns the bitmap. */
     @Throws(DocumentReadException::class)
     suspend fun loadArtwork(maxSizePx: Int): Bitmap?
 }

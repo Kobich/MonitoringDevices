@@ -26,7 +26,4 @@ import java.io.File
 interface DocumentReader {
     @Throws(DocumentReadException::class)
     suspend fun read(file: File, password: String? = null): Document
-
-    @Throws(DocumentReadException::class)
-    suspend fun read(path: String, password: String? = null): Document = read(File(path), password)
 }

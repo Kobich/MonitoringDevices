@@ -1,8 +1,6 @@
 package com.engboost.monitoringdevices.core.document.impl.svg
 
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
-import com.engboost.monitoringdevices.core.document.api.DocumentReadException
-import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
 import com.engboost.monitoringdevices.core.document.api.document.HtmlPage
 import com.engboost.monitoringdevices.core.document.impl.FormatReader
@@ -11,7 +9,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.IOException
 
 /**
  * SVG has no platform decoder, but every WebView renders it. The file is shown through an
@@ -23,17 +20,13 @@ internal class SvgReader(
 ) : FormatReader<HtmlDocument> {
     override val formats = setOf(DocumentFormat.SVG)
 
-    override suspend fun read(file: File, password: String?): HtmlDocument = withContext(ioDispatcher) {
-        val entry = try {
-            cache.find(file, VARIANT) ?: cache.store(file, VARIANT) { directory ->
-                file.copyTo(File(directory, IMAGE_NAME))
-                val page = File(directory, PAGE_NAME).apply { writeText(PAGE_HTML) }
-                listOf(HtmlPage(title = file.name, file = page))
-            }
-        } catch (error: IOException) {
-            throw DocumentReadException(Reason.IO_ERROR, error.message, error)
+    override suspend fun read(file: File, format: DocumentFormat, password: String?): HtmlDocument = withContext(ioDispatcher) {
+        val entry = cache.find(file, VARIANT) ?: cache.store(file, VARIANT) { directory ->
+            file.copyTo(File(directory, IMAGE_NAME))
+            val page = File(directory, PAGE_NAME).apply { writeText(PAGE_HTML) }
+            listOf(HtmlPage(title = file.name, file = page))
         }
-        HtmlDocument(name = file.name, format = DocumentFormat.SVG, directory = entry.directory, pages = entry.pages)
+        HtmlDocument(name = file.name, format = format, directory = entry.directory, pages = entry.pages)
     }
 
     private companion object {

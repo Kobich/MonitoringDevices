@@ -4,17 +4,29 @@ import com.engboost.monitoringdevices.core.document.api.document.HtmlPage
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Converted documents on disk: one folder per (file version, variant) with a small manifest
  * of pages. A folder appears atomically (rename), so an interrupted conversion leaves nothing.
+ *
+ * The cache keeps at most [maxBytes]: after each new entry the least recently used ones are removed,
+ * together with temporary folders left by a previous process that was killed mid-conversion.
  */
-internal class RenderCache(private val rootDirectory: File) {
+internal class RenderCache(
+    private val rootDirectory: File,
+    private val maxBytes: Long = DEFAULT_MAX_BYTES
+) {
 
     class Entry(
         val directory: File,
         val pages: List<HtmlPage>
     )
+
+    /** Temporary folders of this process start with it; others are leftovers and get deleted. */
+    private val temporaryPrefix = "$TEMPORARY_MARKER${UUID.randomUUID()}-"
+    private val temporaryCounter = AtomicInteger()
 
     fun find(file: File, variant: String): Entry? {
         val directory = entryDirectory(file, variant)
@@ -26,17 +38,20 @@ internal class RenderCache(private val rootDirectory: File) {
             .map { line ->
                 HtmlPage(title = line.substringBefore('\t'), file = File(directory, line.substringAfter('\t')))
             }
-        return Entry(directory, pages).takeIf { pages.isNotEmpty() && pages.all { page -> page.file.isFile } }
+        if (pages.isEmpty() || !pages.all { page -> page.file.isFile }) return null
+
+        directory.setLastModified(System.currentTimeMillis()) // Recently used: trimmed last.
+        return Entry(directory, pages)
     }
 
     /** Runs [render] in an empty temporary folder; on success the folder becomes the entry. */
     fun store(file: File, variant: String, render: (outputDirectory: File) -> List<HtmlPage>): Entry {
         val target = entryDirectory(file, variant)
-        val temporary = File(rootDirectory, "${target.name}.tmp-${System.nanoTime()}")
-        if (!temporary.mkdirs()) throw IOException("Can't create ${temporary.path}")
-
+        val temporary = newTemporaryDirectory()
         try {
-            val manifest = render(temporary).joinToString(separator = "\n") { page ->
+            val pages = render(temporary)
+            if (pages.isEmpty()) throw IOException("Rendered document has no pages")
+            val manifest = pages.joinToString(separator = "\n") { page ->
                 val relativePath = page.file.relativeTo(temporary).invariantSeparatorsPath
                 "${page.title.replace('\t', ' ').replace('\n', ' ')}\t$relativePath"
             }
@@ -48,23 +63,48 @@ internal class RenderCache(private val rootDirectory: File) {
             temporary.deleteRecursively()
             throw error
         }
-        return find(file, variant) ?: throw IOException("Rendered document has no pages")
+        trim(keep = target)
+        return find(file, variant) ?: throw IOException("Can't read the stored ${target.path}")
     }
 
     /** Scratch folder for intermediate files; the caller deletes it. */
-    fun newWorkDirectory(): File = File(rootDirectory, "work-${System.nanoTime()}").apply { mkdirs() }
+    fun newWorkDirectory(): File = newTemporaryDirectory()
+
+    private fun newTemporaryDirectory(): File {
+        val directory = File(rootDirectory, "$temporaryPrefix${temporaryCounter.incrementAndGet()}")
+        if (!directory.mkdirs()) throw IOException("Can't create ${directory.path}")
+        return directory
+    }
 
     /** A changed file (size or modification time) gets a new entry. */
     private fun entryDirectory(file: File, variant: String): File {
         val key = "$CACHE_VERSION|$variant|${file.canonicalPath}|${file.length()}|${file.lastModified()}"
-        val hash = MessageDigest.getInstance("SHA-1").digest(key.toByteArray())
-            .joinToString(separator = "") { byte -> "%02x".format(byte) }
-        return File(rootDirectory, hash)
+        return File(rootDirectory, sha1(key))
+    }
+
+    private fun trim(keep: File) {
+        val (temporary, entries) = rootDirectory.listFiles().orEmpty()
+            .partition { child -> child.name.startsWith(TEMPORARY_MARKER) }
+        temporary.filterNot { child -> child.name.startsWith(temporaryPrefix) }
+            .forEach { leftover -> leftover.deleteRecursively() }
+
+        var totalBytes = 0L
+        entries.sortedByDescending { entry -> entry.lastModified() }.forEach { entry ->
+            totalBytes += entry.walkBottomUp().filter { it.isFile }.sumOf { it.length() }
+            if (totalBytes > maxBytes && entry != keep) entry.deleteRecursively()
+        }
     }
 
     private companion object {
         /** Bump when the output layout or renderer configuration changes. */
         const val CACHE_VERSION = 3
         const val MANIFEST_NAME = "pages.tsv"
+        const val TEMPORARY_MARKER = "tmp-"
+        const val DEFAULT_MAX_BYTES = 200L * 1024 * 1024
+
+        fun sha1(text: String): String {
+            return MessageDigest.getInstance("SHA-1").digest(text.toByteArray())
+                .joinToString(separator = "") { byte -> "%02x".format(byte) }
+        }
     }
 }

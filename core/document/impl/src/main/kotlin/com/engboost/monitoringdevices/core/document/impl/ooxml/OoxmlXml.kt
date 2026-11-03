@@ -98,6 +98,15 @@ internal object OoxmlXml {
         return segments.joinToString("/")
     }
 
+    /** Inverse of [resolveTarget]: [targetPath] relative to the folder of [partPath]. */
+    fun relativeTarget(partPath: String, targetPath: String): String {
+        val from = partPath.substringBeforeLast('/', missingDelimiterValue = "").split('/').filter { it.isNotEmpty() }
+        val to = targetPath.split('/')
+        val common = from.zip(to).takeWhile { (a, b) -> a == b }.size
+        return (List(from.size - common) { ".." } + to.drop(common)).joinToString("/")
+    }
+
+    /** `word/document.xml` -> `word/_rels/document.xml.rels`. */
     fun relationshipsPath(partPath: String): String {
         val folder = partPath.substringBeforeLast('/', missingDelimiterValue = "")
         val name = partPath.substringAfterLast('/')

@@ -41,18 +41,24 @@ internal class OdrHtmlConverter(
         variant: String,
         prepare: (file: File, workDirectory: File) -> File = { original, _ -> original }
     ): HtmlDocument = withContext(ioDispatcher) {
-        mutex.withLock {
-            val entry = cache.find(file, variant) ?: run {
+        // A document opened with a password is cached under that password only: opening it again
+        // without one misses the cache, so the library asks for the password again.
+        // The cache key is hashed, the password itself is not written anywhere.
+        val cacheVariant = if (password == null) variant else "$variant|password:$password"
+
+        // A ready document doesn't wait for another one being converted.
+        val entry = cache.find(file, cacheVariant) ?: mutex.withLock {
+            cache.find(file, cacheVariant) ?: run {
                 val workDirectory = cache.newWorkDirectory()
                 try {
                     val input = prepare(file, workDirectory)
-                    cache.store(file, variant) { outputDirectory -> render(input, password, outputDirectory) }
+                    cache.store(file, cacheVariant) { outputDirectory -> render(input, password, outputDirectory) }
                 } finally {
                     workDirectory.deleteRecursively()
                 }
             }
-            HtmlDocument(name = file.name, format = format, directory = entry.directory, pages = entry.pages)
         }
+        HtmlDocument(name = file.name, format = format, directory = entry.directory, pages = entry.pages)
     }
 
     private fun render(input: File, password: String?, outputDirectory: File): List<HtmlPage> {

@@ -2,7 +2,7 @@ package com.engboost.monitoringdevices.core.document.api
 
 import java.io.File
 
-/** Supported formats, recognized by file extension. */
+/** Supported formats, one entry per file type, recognized by file extension. */
 enum class DocumentFormat(vararg extensions: String) {
     PDF("pdf"),
 
@@ -26,10 +26,26 @@ enum class DocumentFormat(vararg extensions: String) {
 
     ODG("odg", "fodg"),
 
-    TEXT("txt", "log", "json", "xml"),
-    IMAGE("png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "heif"),
+    TXT("txt"),
+    LOG("log"),
+    JSON("json"),
+    XML("xml"),
+
+    PNG("png"),
+    JPEG("jpg", "jpeg"),
+    GIF("gif"),
+    WEBP("webp"),
+    BMP("bmp"),
+    HEIF("heic", "heif"),
     SVG("svg"),
-    AUDIO("mp3", "wav", "m4a", "aac", "ogg", "oga", "opus", "flac");
+
+    MP3("mp3"),
+    WAV("wav"),
+    M4A("m4a"),
+    AAC("aac"),
+    OGG("ogg", "oga"),
+    OPUS("opus"),
+    FLAC("flac");
 
     val extensions: Set<String> = extensions.toSet()
 

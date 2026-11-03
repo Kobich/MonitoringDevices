@@ -69,7 +69,7 @@ internal class OoxmlPackage(private val zip: ZipFile) {
             .map { index -> "$mediaFolder/chart-image-$index.png" }
             .first { path -> zip.getEntry(path) == null && path !in addedFiles }
         addedFiles[mediaPath] = png
-        return relationships.add(REL_IMAGE, relativeTarget(partPath, mediaPath))
+        return relationships.add(REL_IMAGE, OoxmlXml.relativeTarget(partPath, mediaPath))
     }
 
     fun writeTo(output: File) {
@@ -150,14 +150,6 @@ internal class OoxmlPackage(private val zip: ZipFile) {
                 root.firstChild
             )
         }
-    }
-
-    /** Target of [targetPath] relative to the folder of [partPath], as relationships store it. */
-    private fun relativeTarget(partPath: String, targetPath: String): String {
-        val from = partPath.substringBeforeLast('/', missingDelimiterValue = "").split('/').filter { it.isNotEmpty() }
-        val to = targetPath.split('/')
-        val common = from.zip(to).takeWhile { (a, b) -> a == b }.size
-        return (List(from.size - common) { ".." } + to.drop(common)).joinToString("/")
     }
 
     companion object {

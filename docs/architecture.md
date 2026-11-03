@@ -42,7 +42,7 @@ app -> core:document:impl -> core:document:api, odr-core-android
 ## `core:document:api`
 
 ```kotlin
-documentReader.read(file).use { document ->      // или read("/path/to/file")
+documentReader.read(file).use { document ->
     when (document) {
         is PdfDocument -> ...     // pageCount, renderPage(index, widthPx): Bitmap
         is HtmlDocument -> ...    // directory + pages -> WebView
@@ -56,8 +56,8 @@ documentReader.read(file).use { document ->      // или read("/path/to/file")
 Весь API — 9 файлов:
 
 ```text
-DocumentReader          read(file | path, password): Document
-DocumentFormat          формат по расширению файла
+DocumentReader          read(file, password): Document
+DocumentFormat          формат по расширению файла, по одному значению на тип файла (PNG, JPEG, MP3, DOCX, ...)
 DocumentReadException   reason: NOT_FOUND, UNSUPPORTED_FORMAT, CORRUPTED, PASSWORD_REQUIRED, ...
 document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocument, ImageDocument, AudioDocument
 ```
@@ -67,14 +67,17 @@ document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocum
 ## `core:document:impl`
 
 Наружу — только `DocumentCore(context).reader`. Внутри `CompositeDocumentReader` берёт формат по
-расширению и вызывает `FormatReader` этого формата:
+расширению и вызывает `FormatReader.read(file, format, password)` этого формата. Ошибки, которые ридер
+не перевёл сам (`IOException`, нехватка памяти), он превращает в `DocumentReadException` (`mapReadErrors`),
+так что наружу уходит только `DocumentReadException`; методы документов (`renderPage`, `decode`, ...)
+делают то же самое.
 
 | Ридер | Форматы | Чем | Открытые вопросы |
 | --- | --- | --- | --- |
 | `PdfReader` | pdf | `PdfRenderer` | пароль только на Android 15+, нет поиска/выделения текста, zoom в UI |
 | `TextReader` | txt, json, xml, log | свой код (`TextDecoding`: BOM, UTF-8/16, cp1251/Latin-1) | эвристика кодировок -> ICU `CharsetDetector` |
 | `MarkdownReader` | md, markdown | OpenDocument.core -> HTML; на Android 6–7 и при ошибке — как текст | — |
-| `ImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + EXIF; GIF/WebP-анимация — `ImageDecoder` (Android 9+) | анимация на 6–8, огромные фото |
+| `ImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + EXIF, декод с уменьшением под рамку; GIF/WebP-анимация — `ImageDecoder` (Android 9+); HEIF — Android 9+ | анимация на 6–8 |
 | `SvgReader` | svg | страница с `<img>` в WebView (скрипты SVG не выполняются) | — |
 | `AudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor`, всё опционально | — |
 | `OfficeReader` | docx, pptx (диаграммы картинками); doc, odt, rtf, pages, xlsx, xls, ods, csv, numbers, ppt, odp, key, odg | OpenDocument.core -> HTML, Android 8+ | диаграммы в xlsx; качество iWork/odg на реальных файлах |
@@ -89,7 +92,11 @@ document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocum
   `bringOffline(outputDir, views)`. Виды: у таблиц только листы (вкладки при >1 листе), у остальных
   общий вид документа. Ссылки на ресурсы относительные. Нативные вызовы по одному (`Mutex`).
 - Кэш `RenderCache`: `cacheDir/documents/<hash(путь, размер, время изменения, вариант)>/`, папка
-  появляется атомарно.
+  появляется атомарно. Не больше 200 MB: после каждой новой записи удаляются давно не открытые и
+  временные папки, оставшиеся от убитого процесса. Документ, открытый с паролем, кэшируется под этим
+  паролем (входит в хэш ключа), поэтому без пароля он заново спросит пароль. Расшифрованный HTML
+  лежит в приватном `cacheDir`.
+- Готовый документ берётся из кэша без ожидания `Mutex`: им ждут только конвертации.
 - Библиотека требует Android 8 (API 26), приложение — minSdk 23: `tools:overrideLibrary` в манифестах
   `app` и `core:document:impl`, `OfficeReader` регистрируется только на API 26+.
 - Показ: WebView + `WebViewAssetLoader` (`InternalStoragePathHandler` на папку результата): без сети,
@@ -111,6 +118,16 @@ OpenDocument.core не рисует диаграммы DrawingML. `OfficeReader`
 
 Нераспознанные диаграммы остаются как есть, при ошибке рендерится исходный файл.
 Логи: `adb logcat -s OfficeReader`.
+
+### Тесты
+
+JVM unit-тесты на чистую логику без Android: `DocumentFormat`, `CompositeDocumentReader` (выбор
+ридера, перевод ошибок), `TextDecoding`, `BitmapSampling`, `RenderCache`, `OoxmlXml`,
+`ChartXmlParser`, `DocxChartRasterizer` (рендерер подменяется через `ChartImageRenderer`), `niceTicks`.
+
+```shell
+./gradlew :core:document:api:testDebugUnitTest :core:document:impl:testDebugUnitTest
+```
 
 ## Структура `feature:filemanager:impl`
 

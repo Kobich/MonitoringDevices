@@ -6,9 +6,12 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
 import com.engboost.monitoringdevices.core.document.api.DocumentFormat
+import com.engboost.monitoringdevices.core.document.api.DocumentReadException
+import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
 import com.engboost.monitoringdevices.core.document.impl.FormatReader
 import com.engboost.monitoringdevices.core.document.impl.image.BitmapSampling
+import com.engboost.monitoringdevices.core.document.impl.mapReadErrors
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,22 +25,30 @@ import java.io.File
 internal class AudioReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : FormatReader<AudioDocument> {
-    override val formats = setOf(DocumentFormat.AUDIO)
+    override val formats = setOf(
+        DocumentFormat.MP3,
+        DocumentFormat.WAV,
+        DocumentFormat.M4A,
+        DocumentFormat.AAC,
+        DocumentFormat.OGG,
+        DocumentFormat.OPUS,
+        DocumentFormat.FLAC
+    )
 
-    override suspend fun read(file: File, password: String?): AudioDocument = withContext(ioDispatcher) {
+    override suspend fun read(file: File, format: DocumentFormat, password: String?): AudioDocument = withContext(ioDispatcher) {
         val tags = runCatching { readTags(file) }.getOrNull() ?: Tags()
         val track = runCatching { readTrack(file) }.getOrNull()
 
         FileAudioDocument(
             file = file,
+            format = format,
             durationMs = tags.durationMs ?: track?.durationUs?.div(1000),
             title = tags.title,
             artist = tags.artist,
             album = tags.album,
             sampleRateHz = track?.sampleRateHz,
             channelCount = track?.channelCount,
-            bitrateBps = tags.bitrateBps,
-            hasArtwork = tags.hasArtwork
+            bitrateBps = tags.bitrateBps
         )
     }
 
@@ -46,8 +57,7 @@ internal class AudioReader(
         val title: String? = null,
         val artist: String? = null,
         val album: String? = null,
-        val bitrateBps: Int? = null,
-        val hasArtwork: Boolean = false
+        val bitrateBps: Int? = null
     )
 
     private class Track(
@@ -65,8 +75,7 @@ internal class AudioReader(
             artist = text(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                 ?: text(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST),
             album = text(MediaMetadataRetriever.METADATA_KEY_ALBUM),
-            bitrateBps = text(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull(),
-            hasArtwork = retriever.embeddedPicture != null
+            bitrateBps = text(MediaMetadataRetriever.METADATA_KEY_BITRATE)?.toIntOrNull()
         )
     }
 
@@ -103,26 +112,31 @@ internal class AudioReader(
 
     private inner class FileAudioDocument(
         override val file: File,
+        override val format: DocumentFormat,
         override val durationMs: Long?,
         override val title: String?,
         override val artist: String?,
         override val album: String?,
         override val sampleRateHz: Int?,
         override val channelCount: Int?,
-        override val bitrateBps: Int?,
-        override val hasArtwork: Boolean
+        override val bitrateBps: Int?
     ) : AudioDocument {
         override val name: String = file.name
-        override val format: DocumentFormat = DocumentFormat.AUDIO
 
         override suspend fun loadArtwork(maxSizePx: Int): Bitmap? = withContext(ioDispatcher) {
-            if (!hasArtwork) return@withContext null
-            val bytes = withRetriever(file) { retriever -> retriever.embeddedPicture } ?: return@withContext null
+            val bytes = try {
+                withRetriever(file) { retriever -> retriever.embeddedPicture } ?: return@withContext null
+            } catch (error: RuntimeException) {
+                // MediaMetadataRetriever reports unreadable files with IllegalArgumentException / RuntimeException.
+                throw DocumentReadException(Reason.CORRUPTED, error.message, error)
+            }
 
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            val sample = BitmapSampling.sampleSize(bounds.outWidth, bounds.outHeight, maxSizePx, maxSizePx)
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+            mapReadErrors {
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                val sample = BitmapSampling.sampleSize(bounds.outWidth, bounds.outHeight, maxSizePx, maxSizePx)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+            }
         }
     }
 }

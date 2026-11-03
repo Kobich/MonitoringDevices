@@ -17,10 +17,6 @@ interface PdfDocument : Document {
     /** Renders a page scaled to [widthPx] on a white background. The caller owns the bitmap. */
     @Throws(DocumentReadException::class)
     suspend fun renderPage(pageIndex: Int, widthPx: Int): Bitmap
-
-    /** Plain text of a page, or `null` if the implementation can't extract text. */
-    @Throws(DocumentReadException::class)
-    suspend fun pageText(pageIndex: Int): String?
 }
 
 data class PageSize(

@@ -14,24 +14,36 @@ import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
 import com.engboost.monitoringdevices.core.document.impl.FormatReader
+import com.engboost.monitoringdevices.core.document.impl.mapReadErrors
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 
 /**
  * Images with `BitmapFactory`: only bounds are read on open, pixels are decoded
  * downsampled for the requested size. EXIF orientation is applied. GIF and animated WebP are
  * animated with `ImageDecoder` on Android 9+, older devices show the first frame.
+ * HEIF needs Android 9+ as well.
  */
 internal class ImageReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : FormatReader<ImageDocument> {
-    override val formats = setOf(DocumentFormat.IMAGE)
+    override val formats = setOf(
+        DocumentFormat.PNG,
+        DocumentFormat.JPEG,
+        DocumentFormat.GIF,
+        DocumentFormat.WEBP,
+        DocumentFormat.BMP,
+        DocumentFormat.HEIF
+    )
 
-
-    override suspend fun read(file: File, password: String?): ImageDocument = withContext(ioDispatcher) {
+    override suspend fun read(file: File, format: DocumentFormat, password: String?): ImageDocument = withContext(ioDispatcher) {
+        if (format == DocumentFormat.HEIF && Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+            throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "HEIF images need Android 9 or newer")
+        }
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         readStream(file) { input -> BitmapFactory.decodeStream(input, null, bounds) }
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) {
@@ -48,6 +60,7 @@ internal class ImageReader(
 
         FileImageDocument(
             name = file.name,
+            format = format,
             file = file,
             rawWidth = bounds.outWidth,
             rawHeight = bounds.outHeight,
@@ -58,35 +71,38 @@ internal class ImageReader(
 
     private inner class FileImageDocument(
         override val name: String,
+        override val format: DocumentFormat,
         private val file: File,
         private val rawWidth: Int,
         private val rawHeight: Int,
         private val orientation: Int,
         override val isAnimated: Boolean
     ) : ImageDocument {
-        override val format: DocumentFormat = DocumentFormat.IMAGE
-
         private val isRotatedSideways = orientation in SIDEWAYS_ORIENTATIONS
         override val widthPx: Int = if (isRotatedSideways) rawHeight else rawWidth
         override val heightPx: Int = if (isRotatedSideways) rawWidth else rawHeight
 
         override suspend fun decode(maxWidthPx: Int, maxHeightPx: Int): Bitmap = withContext(ioDispatcher) {
-            // Limits apply to the displayed (rotated) image.
-            val maxRawWidth = if (isRotatedSideways) maxHeightPx else maxWidthPx
-            val maxRawHeight = if (isRotatedSideways) maxWidthPx else maxHeightPx
+            mapReadErrors {
+                // Limits apply to the displayed (rotated) image.
+                val maxRawWidth = (if (isRotatedSideways) maxHeightPx else maxWidthPx).coerceAtLeast(1)
+                val maxRawHeight = (if (isRotatedSideways) maxWidthPx else maxHeightPx).coerceAtLeast(1)
 
-            val options = BitmapFactory.Options().apply {
-                inSampleSize = BitmapSampling.sampleSize(rawWidth, rawHeight, maxRawWidth, maxRawHeight)
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = BitmapSampling.sampleSize(rawWidth, rawHeight, maxRawWidth, maxRawHeight)
+                }
+                val decoded = readStream(file) { input -> BitmapFactory.decodeStream(input, null, options) }
+                    ?: throw DocumentReadException(Reason.CORRUPTED, "Can't decode image $name")
+
+                transform(decoded, maxRawWidth, maxRawHeight)
             }
-            val decoded = readStream(file) { input -> BitmapFactory.decodeStream(input, null, options) }
-                ?: throw DocumentReadException(Reason.CORRUPTED, "Can't decode image $name")
-
-            transform(decoded, maxRawWidth, maxRawHeight)
         }
 
         override suspend fun decodeAnimation(maxWidthPx: Int, maxHeightPx: Int): Drawable? {
             if (!isAnimated || Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
-            return withContext(ioDispatcher) { decodeAnimatedDrawable(maxWidthPx, maxHeightPx) }
+            return withContext(ioDispatcher) {
+                mapReadErrors { decodeAnimatedDrawable(maxWidthPx.coerceAtLeast(1), maxHeightPx.coerceAtLeast(1)) }
+            }
         }
 
         @RequiresApi(Build.VERSION_CODES.P)
@@ -102,9 +118,8 @@ internal class ImageReader(
                     }
                 }
             } catch (error: IOException) {
+                // ImageDecoder reports broken data as an IOException (DecodeException).
                 throw DocumentReadException(Reason.CORRUPTED, error.message, error)
-            } catch (error: OutOfMemoryError) {
-                throw DocumentReadException(Reason.TOO_LARGE, "Not enough memory for the animation", error)
             }
             // A single-frame GIF decodes to a plain bitmap drawable: show it as a still image.
             return drawable.takeIf { it is AnimatedImageDrawable }
@@ -141,17 +156,9 @@ internal class ImageReader(
         }
     }
 
-    private fun <T> readStream(file: File, block: (java.io.InputStream) -> T): T {
-        return try {
-            file.inputStream().use(block)
-        } catch (error: IOException) {
-            throw DocumentReadException(Reason.IO_ERROR, error.message, error)
-        } catch (error: OutOfMemoryError) {
-            throw DocumentReadException(Reason.TOO_LARGE, "Not enough memory for the image", error)
-        }
-    }
+    private fun <T> readStream(file: File, block: (InputStream) -> T): T = file.inputStream().use(block)
 
-    private fun java.io.InputStream.readHeader(): ByteArray {
+    private fun InputStream.readHeader(): ByteArray {
         val header = ByteArray(HEADER_SIZE)
         var read = 0
         while (read < HEADER_SIZE) {
