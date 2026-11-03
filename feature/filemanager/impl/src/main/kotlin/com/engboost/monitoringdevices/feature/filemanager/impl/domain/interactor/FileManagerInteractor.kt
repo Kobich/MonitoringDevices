@@ -4,10 +4,12 @@ import android.net.Uri
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.CreateDirectoryResult
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryContent
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryNameError
+import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.ExportDestination
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.FileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.TransferSummary
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.repository.FileStorageRepository
+import java.io.File
 
 internal class FileManagerInteractor(
     private val repository: FileStorageRepository
@@ -50,21 +52,38 @@ internal class FileManagerInteractor(
     }
 
     /**
-     * [destination] must be a document URI for a file and a tree URI for a folder,
-     * see [FileEntry.isDirectory].
+     * Export rule shared with the UI: a single file goes into a document created by the user
+     * ([ExportDestination.DOCUMENT]), anything else goes into a picked folder
+     * ([ExportDestination.FOLDER]).
      */
-    suspend fun export(path: StoragePath, destination: Uri): TransferSummary {
-        return if (repository.isDirectory(path)) {
-            repository.exportDirectory(path, destination)
-        } else {
-            repository.exportFile(path, destination)
-            TransferSummary(files = 1, directories = 0)
+    fun exportDestination(paths: List<StoragePath>, isSingleFile: Boolean): ExportDestination {
+        return if (paths.size == 1 && isSingleFile) ExportDestination.DOCUMENT else ExportDestination.FOLDER
+    }
+
+    /** [destination] must match [exportDestination]: a document URI or a tree URI. */
+    suspend fun export(paths: List<StoragePath>, destination: Uri): TransferSummary {
+        val singlePath = paths.singleOrNull()
+        val isSingleFile = singlePath != null && !repository.isDirectory(singlePath)
+
+        return when (exportDestination(paths, isSingleFile)) {
+            ExportDestination.DOCUMENT -> {
+                repository.exportFile(paths.single(), destination)
+                TransferSummary(files = 1, directories = 0)
+            }
+
+            ExportDestination.FOLDER -> repository.exportToDirectory(paths, destination)
         }
     }
 
-    suspend fun delete(path: StoragePath) {
-        require(!path.isRoot) { "Root folder can't be deleted" }
-        repository.delete(path)
+    /** Deletes items one by one and stops at the first failure. */
+    suspend fun delete(paths: List<StoragePath>) {
+        require(paths.none { path -> path.isRoot }) { "Root folder can't be deleted" }
+        paths.forEach { path -> repository.delete(path) }
+    }
+
+    suspend fun fileForOpening(path: StoragePath): File {
+        require(!repository.isDirectory(path)) { "$path is a folder" }
+        return repository.fileOf(path)
     }
 
     private fun validateDirectoryName(name: String): DirectoryNameError? {

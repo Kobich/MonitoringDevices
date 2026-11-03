@@ -3,6 +3,7 @@ package com.engboost.monitoringdevices.feature.filemanager.impl.domain.interacto
 import android.net.Uri
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.CreateDirectoryResult
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryNameError
+import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.ExportDestination
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.FileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.repository.FileStorageRepository
@@ -10,6 +11,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 class FileManagerInteractorTest {
     private val repository = FakeFileStorageRepository()
@@ -59,7 +61,35 @@ class FileManagerInteractorTest {
 
     @Test(expected = IllegalArgumentException::class)
     fun `root can't be deleted`() = runTest {
-        interactor.delete(StoragePath.ROOT)
+        interactor.delete(listOf(StoragePath("a"), StoragePath.ROOT))
+    }
+
+    @Test
+    fun `deletes all selected items`() = runTest {
+        repository.addDirectory("docs")
+        repository.addFile("docs/a.txt")
+        repository.addFile("b.txt")
+        repository.addFile("c.txt")
+
+        interactor.delete(listOf(StoragePath("docs"), StoragePath("b.txt")))
+
+        assertEquals(listOf("c.txt"), interactor.openDirectory(StoragePath.ROOT).entries.map { it.name })
+    }
+
+    @Test
+    fun `single file is exported as a document, anything else into a folder`() {
+        val file = listOf(StoragePath("a.txt"))
+        val many = listOf(StoragePath("a.txt"), StoragePath("b.txt"))
+
+        assertEquals(ExportDestination.DOCUMENT, interactor.exportDestination(file, isSingleFile = true))
+        assertEquals(ExportDestination.FOLDER, interactor.exportDestination(listOf(StoragePath("dir")), isSingleFile = false))
+        assertEquals(ExportDestination.FOLDER, interactor.exportDestination(many, isSingleFile = false))
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `folder can't be opened as a file`() = runTest {
+        repository.addDirectory("docs")
+        interactor.fileForOpening(StoragePath("docs"))
     }
 
     private fun invalid(error: DirectoryNameError) = CreateDirectoryResult.Invalid(error)
@@ -90,6 +120,8 @@ private class FakeFileStorageRepository : FileStorageRepository {
 
     override suspend fun isDirectory(path: StoragePath) = path.isRoot || entries[path]?.isDirectory == true
 
+    override suspend fun fileOf(path: StoragePath) = File("/fake", path.value)
+
     override suspend fun list(directory: StoragePath) = entries.values.filter { it.path.parent() == directory }
 
     override suspend fun createDirectory(path: StoragePath) = add(path, isDirectory = true)
@@ -104,7 +136,7 @@ private class FakeFileStorageRepository : FileStorageRepository {
 
     override suspend fun exportFile(path: StoragePath, destination: Uri) = unsupported()
 
-    override suspend fun exportDirectory(path: StoragePath, destinationTree: Uri) = unsupported()
+    override suspend fun exportToDirectory(paths: List<StoragePath>, destinationTree: Uri) = unsupported()
 
     private fun unsupported(): Nothing = throw UnsupportedOperationException()
 }

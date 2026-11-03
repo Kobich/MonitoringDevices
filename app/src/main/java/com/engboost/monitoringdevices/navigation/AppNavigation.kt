@@ -1,12 +1,17 @@
 package com.engboost.monitoringdevices.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.engboost.monitoringdevices.feature.filemanager.api.FileManagerFeatureApi
 import com.engboost.monitoringdevices.home.HomeScreen
+import com.engboost.monitoringdevices.viewer.FileViewerPlaceholderScreen
+import java.io.File
 
 @Composable
 internal fun AppNavigation(
@@ -28,6 +33,18 @@ internal fun AppNavigation(
         composable(AppDestination.FILE_MANAGER) {
             fileManagerFeature.FileManagerScreen(
                 modifier = Modifier,
+                onBackClick = { navController.popBackStack() },
+                onFileOpen = { file -> navController.navigate(AppDestination.fileViewer(file)) }
+            )
+        }
+        composable(
+            route = AppDestination.FILE_VIEWER,
+            arguments = listOf(navArgument(AppDestination.ARG_PATH) { type = NavType.StringType })
+        ) { backStackEntry ->
+            val path = backStackEntry.arguments?.getString(AppDestination.ARG_PATH).orEmpty()
+            // To be replaced with a viewer feature built on top of :core:document.
+            FileViewerPlaceholderScreen(
+                file = File(path),
                 onBackClick = { navController.popBackStack() }
             )
         }
@@ -37,4 +54,8 @@ internal fun AppNavigation(
 private object AppDestination {
     const val HOME = "home"
     const val FILE_MANAGER = "file_manager"
+    const val ARG_PATH = "path"
+    const val FILE_VIEWER = "file_viewer?$ARG_PATH={$ARG_PATH}"
+
+    fun fileViewer(file: File): String = "file_viewer?$ARG_PATH=${Uri.encode(file.absolutePath)}"
 }

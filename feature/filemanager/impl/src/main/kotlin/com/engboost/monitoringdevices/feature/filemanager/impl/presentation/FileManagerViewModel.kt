@@ -10,16 +10,26 @@ import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.interactor.FileManagerInteractor
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.CreateDirectoryResult
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryContent
+import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.ExportDestination
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.mapper.FileManagerUiMapper
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.CreateDirectoryDialogUi
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.ExportPickerUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileManagerUiState
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.SelectionUi
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
+/**
+ * Gestures:
+ * - browse mode: tap opens a folder or a file, long press enters selection mode
+ *   with the pressed item selected;
+ * - selection mode: tap or long press toggles an item, deselecting the last one
+ *   (or Close / Back) returns to browse mode.
+ */
 internal class FileManagerViewModel(
     private val interactor: FileManagerInteractor,
     private val savedStateHandle: SavedStateHandle,
@@ -31,10 +41,10 @@ internal class FileManagerViewModel(
         set(value) {
             savedStateHandle[KEY_CURRENT_PATH] = value.value
         }
-    private var pendingExportPath: StoragePath?
-        get() = savedStateHandle.get<String>(KEY_PENDING_EXPORT)?.let(::StoragePath)
+    private var pendingExportPaths: List<StoragePath>
+        get() = savedStateHandle.get<ArrayList<String>>(KEY_PENDING_EXPORT).orEmpty().map(::StoragePath)
         set(value) {
-            savedStateHandle[KEY_PENDING_EXPORT] = value?.value
+            savedStateHandle[KEY_PENDING_EXPORT] = ArrayList(value.map { path -> path.value })
         }
 
     private var loadJob: Job? = null
@@ -48,12 +58,17 @@ internal class FileManagerViewModel(
             entries = emptyList(),
             isLoading = true,
             isBusy = false,
-            message = null,
+            selection = null,
             pendingDeletion = null,
-            createDirectoryDialog = null
+            createDirectoryDialog = null,
+            message = null,
+            exportPicker = null,
+            fileToOpen = null
         )
     )
         private set
+
+    private var deletionCandidates: List<FileEntryUi> = emptyList()
 
     init {
         loadDirectory(currentPath)
@@ -63,9 +78,21 @@ internal class FileManagerViewModel(
         loadDirectory(currentPath)
     }
 
+    // region Navigation and gestures
+
     fun onEntryClick(entry: FileEntryUi) {
-        if (entry.isDirectory) {
-            loadDirectory(StoragePath(entry.path))
+        when {
+            uiState.isSelectionMode -> toggleSelection(entry)
+            entry.isDirectory -> loadDirectory(StoragePath(entry.path))
+            else -> openFile(entry)
+        }
+    }
+
+    fun onEntryLongClick(entry: FileEntryUi) {
+        if (uiState.isSelectionMode) {
+            toggleSelection(entry)
+        } else {
+            uiState = uiState.copy(selection = SelectionUi(setOf(entry.path)))
         }
     }
 
@@ -73,9 +100,73 @@ internal class FileManagerViewModel(
         loadDirectory(StoragePath(breadcrumb.path))
     }
 
+    /** System Back / top bar arrow: leaves selection mode first, then goes up. */
     fun onNavigateUp() {
-        currentPath.parent()?.let(::loadDirectory)
+        if (uiState.isSelectionMode) {
+            onSelectionClose()
+        } else {
+            currentPath.parent()?.let(::loadDirectory)
+        }
     }
+
+    fun onFileOpenHandled() {
+        uiState = uiState.copy(fileToOpen = null)
+    }
+
+    // endregion
+
+    // region Selection
+
+    fun onSelectionClose() {
+        uiState = uiState.copy(selection = null)
+    }
+
+    fun onSelectAllClick() {
+        val allPaths = uiState.entries.map { entry -> entry.path }.toSet()
+        if (allPaths.isNotEmpty()) {
+            uiState = uiState.copy(selection = SelectionUi(allPaths))
+        }
+    }
+
+    fun onDeleteSelectedClick() {
+        val entries = selectedEntries()
+        if (entries.isEmpty()) return
+
+        deletionCandidates = entries
+        uiState = uiState.copy(pendingDeletion = uiMapper.deletion(entries))
+    }
+
+    fun onExportSelectedClick() {
+        val entries = selectedEntries()
+        if (entries.isEmpty()) return
+
+        val paths = entries.map { entry -> StoragePath(entry.path) }
+        val singleFile = entries.singleOrNull()?.takeIf { entry -> !entry.isDirectory }
+        val destination = interactor.exportDestination(paths, isSingleFile = singleFile != null)
+        val picker = if (destination == ExportDestination.DOCUMENT && singleFile != null) {
+            ExportPickerUi.CreateDocument(fileName = singleFile.name, mimeType = singleFile.mimeType)
+        } else {
+            ExportPickerUi.PickFolder
+        }
+
+        pendingExportPaths = paths
+        uiState = uiState.copy(exportPicker = picker)
+    }
+
+    private fun toggleSelection(entry: FileEntryUi) {
+        val selected = uiState.selection?.selectedPaths.orEmpty()
+        val updated = if (entry.path in selected) selected - entry.path else selected + entry.path
+        uiState = uiState.copy(selection = updated.takeIf { it.isNotEmpty() }?.let(::SelectionUi))
+    }
+
+    private fun selectedEntries(): List<FileEntryUi> {
+        val selection = uiState.selection ?: return emptyList()
+        return uiState.entries.filter { entry -> entry in selection }
+    }
+
+    // endregion
+
+    // region Storage operations
 
     fun onImportFilesSelected(uris: List<Uri>) {
         if (uris.isEmpty()) return
@@ -93,41 +184,41 @@ internal class FileManagerViewModel(
         }
     }
 
-    /** Must be called right before the export destination picker is launched. */
-    fun onExportRequested(entry: FileEntryUi) {
-        pendingExportPath = StoragePath(entry.path)
+    fun onExportPickerShown() {
+        uiState = uiState.copy(exportPicker = null)
     }
 
     fun onExportDestinationSelected(uri: Uri?) {
-        val path = pendingExportPath ?: return
-        pendingExportPath = null
+        val paths = pendingExportPaths
+        if (paths.isEmpty()) return
+        pendingExportPaths = emptyList()
         uri ?: return
 
+        uiState = uiState.copy(selection = null)
         runOperation(failurePrefix = "Export failed") {
-            uiMapper.exportedText(path.name, interactor.export(path, uri))
+            uiMapper.exportedText(interactor.export(paths, uri))
         }
     }
 
     fun onPickerUnavailable() {
-        pendingExportPath = null
+        pendingExportPaths = emptyList()
         uiState = uiState.copy(message = "No app available to pick a document")
     }
 
-    fun onDeleteClick(entry: FileEntryUi) {
-        uiState = uiState.copy(pendingDeletion = entry)
-    }
-
     fun onDeleteDismiss() {
+        deletionCandidates = emptyList()
         uiState = uiState.copy(pendingDeletion = null)
     }
 
     fun onDeleteConfirm() {
-        val entry = uiState.pendingDeletion ?: return
-        uiState = uiState.copy(pendingDeletion = null)
+        val entries = deletionCandidates
+        if (entries.isEmpty()) return
+        deletionCandidates = emptyList()
+        uiState = uiState.copy(pendingDeletion = null, selection = null)
 
         runOperation(failurePrefix = "Delete failed") {
-            interactor.delete(StoragePath(entry.path))
-            "Deleted \"${entry.name}\""
+            interactor.delete(entries.map { entry -> StoragePath(entry.path) })
+            uiMapper.deletedText(entries)
         }
     }
 
@@ -145,21 +236,34 @@ internal class FileManagerViewModel(
             when (val result = interactor.createDirectory(parent, name)) {
                 is CreateDirectoryResult.Created -> {
                     uiState = uiState.copy(createDirectoryDialog = null)
-                    null
                 }
 
                 is CreateDirectoryResult.Invalid -> {
                     uiState = uiState.copy(
                         createDirectoryDialog = CreateDirectoryDialogUi(uiMapper.errorText(result.error))
                     )
-                    null
                 }
             }
+            null
         }
     }
 
     fun onMessageShown() {
         uiState = uiState.copy(message = null)
+    }
+
+    // endregion
+
+    private fun openFile(entry: FileEntryUi) {
+        viewModelScope.launch {
+            try {
+                uiState = uiState.copy(fileToOpen = interactor.fileForOpening(StoragePath(entry.path)))
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                uiState = uiState.copy(message = "Can't open file: ${error.toDisplayMessage()}")
+            }
+        }
     }
 
     private fun loadDirectory(path: StoragePath) {
@@ -183,13 +287,25 @@ internal class FileManagerViewModel(
     }
 
     private fun showDirectory(content: DirectoryContent) {
+        val isSameFolder = content.path == currentPath
         currentPath = content.path
+
+        val entries = content.entries.map(uiMapper::toUi)
+        // A refresh keeps the selection of items that still exist; another folder resets it.
+        val selection = uiState.selection
+            ?.takeIf { isSameFolder }
+            ?.selectedPaths
+            ?.intersect(entries.map { entry -> entry.path }.toSet())
+            ?.takeIf { paths -> paths.isNotEmpty() }
+            ?.let(::SelectionUi)
+
         uiState = uiState.copy(
             title = uiMapper.title(content.path),
             breadcrumbs = uiMapper.breadcrumbs(content.path),
             isRoot = content.path.isRoot,
-            entries = content.entries.map(uiMapper::toUi),
-            isLoading = false
+            entries = entries,
+            isLoading = false,
+            selection = selection
         )
     }
 

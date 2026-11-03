@@ -9,25 +9,31 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentContract
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentRequest
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.ExportPickerUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.screen.FileManagerScreen
 import org.koin.compose.viewmodel.koinViewModel
+import java.io.File
 
 @Composable
 internal fun FileManagerFeatureScreen(
     onBackClick: () -> Unit,
+    onFileOpen: (File) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: FileManagerViewModel = koinViewModel()
 ) {
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }
     val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnFileOpen by rememberUpdatedState(onFileOpen)
 
     val importFilesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
@@ -41,7 +47,7 @@ internal fun FileManagerFeatureScreen(
         contract = CreateDocumentContract(),
         onResult = viewModel::onExportDestinationSelected
     )
-    val exportDirectoryLauncher = rememberLauncherForActivityResult(
+    val exportToFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
         onResult = viewModel::onExportDestinationSelected
     )
@@ -64,7 +70,27 @@ internal fun FileManagerFeatureScreen(
         viewModel.onMessageShown()
     }
 
-    BackHandler(enabled = !state.isRoot, onBack = viewModel::onNavigateUp)
+    LaunchedEffect(state.exportPicker) {
+        val picker = state.exportPicker ?: return@LaunchedEffect
+        viewModel.onExportPickerShown()
+        when (picker) {
+            is ExportPickerUi.CreateDocument -> exportFileLauncher.launchOrReport(
+                CreateDocumentRequest(fileName = picker.fileName, mimeType = picker.mimeType),
+                viewModel::onPickerUnavailable
+            )
+
+            ExportPickerUi.PickFolder -> exportToFolderLauncher.launchOrReport(null, viewModel::onPickerUnavailable)
+        }
+    }
+
+    LaunchedEffect(state.fileToOpen) {
+        val file = state.fileToOpen ?: return@LaunchedEffect
+        viewModel.onFileOpenHandled()
+        currentOnFileOpen(file)
+    }
+
+    // Selection mode and nested folders consume Back; at the root the host handles it.
+    BackHandler(enabled = state.isSelectionMode || !state.isRoot, onBack = viewModel::onNavigateUp)
 
     FileManagerScreen(
         state = state,
@@ -74,6 +100,7 @@ internal fun FileManagerFeatureScreen(
         },
         onBreadcrumbClick = viewModel::onBreadcrumbClick,
         onEntryClick = viewModel::onEntryClick,
+        onEntryLongClick = viewModel::onEntryLongClick,
         onImportFilesClick = {
             importFilesLauncher.launchOrReport(arrayOf("*/*"), viewModel::onPickerUnavailable)
         },
@@ -81,18 +108,10 @@ internal fun FileManagerFeatureScreen(
             importDirectoryLauncher.launchOrReport(null, viewModel::onPickerUnavailable)
         },
         onCreateDirectoryClick = viewModel::onCreateDirectoryClick,
-        onExportClick = { entry ->
-            viewModel.onExportRequested(entry)
-            if (entry.isDirectory) {
-                exportDirectoryLauncher.launchOrReport(null, viewModel::onPickerUnavailable)
-            } else {
-                exportFileLauncher.launchOrReport(
-                    CreateDocumentRequest(fileName = entry.name, mimeType = entry.mimeType),
-                    viewModel::onPickerUnavailable
-                )
-            }
-        },
-        onDeleteClick = viewModel::onDeleteClick,
+        onSelectionClose = viewModel::onSelectionClose,
+        onSelectAllClick = viewModel::onSelectAllClick,
+        onExportSelectedClick = viewModel::onExportSelectedClick,
+        onDeleteSelectedClick = viewModel::onDeleteSelectedClick,
         onDeleteConfirm = viewModel::onDeleteConfirm,
         onDeleteDismiss = viewModel::onDeleteDismiss,
         onCreateDirectoryConfirm = viewModel::onCreateDirectoryConfirm,

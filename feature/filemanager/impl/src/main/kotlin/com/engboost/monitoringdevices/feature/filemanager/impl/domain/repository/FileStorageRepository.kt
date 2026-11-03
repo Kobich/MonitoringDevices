@@ -4,6 +4,7 @@ import android.net.Uri
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.FileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.TransferSummary
+import java.io.File
 
 /**
  * Access to the app-private storage plus transfers between it and external documents
@@ -13,6 +14,9 @@ internal interface FileStorageRepository {
     suspend fun exists(path: StoragePath): Boolean
 
     suspend fun isDirectory(path: StoragePath): Boolean
+
+    /** Real file behind [path], e.g. to hand it over to a viewer. */
+    suspend fun fileOf(path: StoragePath): File
 
     /** Direct children of [directory], unsorted. */
     suspend fun list(directory: StoragePath): List<FileEntry>
@@ -31,6 +35,9 @@ internal interface FileStorageRepository {
     /** Writes the file content into an already created document. */
     suspend fun exportFile(path: StoragePath, destination: Uri)
 
-    /** Recursively copies a folder into a new folder inside [destinationTree]. */
-    suspend fun exportDirectory(path: StoragePath, destinationTree: Uri): TransferSummary
+    /**
+     * Copies files and folders (recursively) into [destinationTree].
+     * Items created before a failure are removed.
+     */
+    suspend fun exportToDirectory(paths: List<StoragePath>, destinationTree: Uri): TransferSummary
 }

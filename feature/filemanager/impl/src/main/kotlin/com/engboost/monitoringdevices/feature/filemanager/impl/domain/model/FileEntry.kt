@@ -22,3 +22,11 @@ internal data class TransferSummary(
     val files: Int,
     val directories: Int
 )
+
+internal enum class ExportDestination {
+    /** A single document created by the user with a system "Save as" picker. */
+    DOCUMENT,
+
+    /** A folder picked by the user, items are copied inside it. */
+    FOLDER
+}

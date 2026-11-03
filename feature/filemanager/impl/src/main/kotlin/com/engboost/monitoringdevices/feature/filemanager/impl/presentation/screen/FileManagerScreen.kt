@@ -16,6 +16,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
@@ -32,6 +34,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,7 +49,6 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.mode
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileManagerUiState
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun FileManagerScreen(
     state: FileManagerUiState,
@@ -54,20 +56,23 @@ internal fun FileManagerScreen(
     onBackClick: () -> Unit,
     onBreadcrumbClick: (BreadcrumbUi) -> Unit,
     onEntryClick: (FileEntryUi) -> Unit,
+    onEntryLongClick: (FileEntryUi) -> Unit,
     onImportFilesClick: () -> Unit,
     onImportDirectoryClick: () -> Unit,
     onCreateDirectoryClick: () -> Unit,
-    onExportClick: (FileEntryUi) -> Unit,
-    onDeleteClick: (FileEntryUi) -> Unit,
+    onSelectionClose: () -> Unit,
+    onSelectAllClick: () -> Unit,
+    onExportSelectedClick: () -> Unit,
+    onDeleteSelectedClick: () -> Unit,
     onDeleteConfirm: () -> Unit,
     onDeleteDismiss: () -> Unit,
     onCreateDirectoryConfirm: (String) -> Unit,
     onCreateDirectoryDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    state.pendingDeletion?.let { entry ->
+    state.pendingDeletion?.let { deletion ->
         DeleteConfirmationDialog(
-            entry = entry,
+            deletion = deletion,
             onConfirm = onDeleteConfirm,
             onDismiss = onDeleteDismiss
         )
@@ -85,24 +90,26 @@ internal fun FileManagerScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(text = state.title, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                actions = {
-                    StorageActionsMenu(
-                        enabled = !state.isBusy,
-                        onImportFilesClick = onImportFilesClick,
-                        onImportDirectoryClick = onImportDirectoryClick,
-                        onCreateDirectoryClick = onCreateDirectoryClick
-                    )
-                }
-            )
+            val selection = state.selection
+            if (selection != null) {
+                SelectionTopBar(
+                    selectedCount = selection.count,
+                    isActionsEnabled = !state.isBusy,
+                    onCloseClick = onSelectionClose,
+                    onSelectAllClick = onSelectAllClick,
+                    onExportClick = onExportSelectedClick,
+                    onDeleteClick = onDeleteSelectedClick
+                )
+            } else {
+                BrowseTopBar(
+                    title = state.title,
+                    isActionsEnabled = !state.isBusy,
+                    onBackClick = onBackClick,
+                    onImportFilesClick = onImportFilesClick,
+                    onImportDirectoryClick = onImportDirectoryClick,
+                    onCreateDirectoryClick = onCreateDirectoryClick
+                )
+            }
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { innerPadding ->
@@ -116,7 +123,11 @@ internal fun FileManagerScreen(
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
             }
-            Breadcrumbs(breadcrumbs = state.breadcrumbs, onClick = onBreadcrumbClick)
+            Breadcrumbs(
+                breadcrumbs = state.breadcrumbs,
+                isEnabled = !state.isSelectionMode,
+                onClick = onBreadcrumbClick
+            )
             HorizontalDivider()
 
             when {
@@ -135,16 +146,97 @@ internal fun FileManagerScreen(
                     items(items = state.entries, key = { entry -> entry.path }) { entry ->
                         FileEntryRow(
                             entry = entry,
-                            isActionsEnabled = !state.isBusy,
-                            onOpenClick = { onEntryClick(entry) },
-                            onExportClick = { onExportClick(entry) },
-                            onDeleteClick = { onDeleteClick(entry) }
+                            isSelectionMode = state.isSelectionMode,
+                            isSelected = state.selection?.contains(entry) == true,
+                            onClick = { onEntryClick(entry) },
+                            onLongClick = { onEntryLongClick(entry) }
                         )
                     }
                 }
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BrowseTopBar(
+    title: String,
+    isActionsEnabled: Boolean,
+    onBackClick: () -> Unit,
+    onImportFilesClick: () -> Unit,
+    onImportDirectoryClick: () -> Unit,
+    onCreateDirectoryClick: () -> Unit
+) {
+    TopAppBar(
+        title = {
+            Text(text = title, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            }
+        },
+        actions = {
+            StorageActionsMenu(
+                enabled = isActionsEnabled,
+                onImportFilesClick = onImportFilesClick,
+                onImportDirectoryClick = onImportDirectoryClick,
+                onCreateDirectoryClick = onCreateDirectoryClick
+            )
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectionTopBar(
+    selectedCount: Int,
+    isActionsEnabled: Boolean,
+    onCloseClick: () -> Unit,
+    onSelectAllClick: () -> Unit,
+    onExportClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    var isMenuExpanded by remember { mutableStateOf(false) }
+
+    TopAppBar(
+        title = { Text(text = "$selectedCount selected") },
+        navigationIcon = {
+            IconButton(onClick = onCloseClick) {
+                Icon(imageVector = Icons.Filled.Close, contentDescription = "Close selection")
+            }
+        },
+        actions = {
+            IconButton(onClick = onDeleteClick, enabled = isActionsEnabled) {
+                Icon(imageVector = Icons.Filled.Delete, contentDescription = "Delete selected")
+            }
+            Box {
+                IconButton(onClick = { isMenuExpanded = true }, enabled = isActionsEnabled) {
+                    Icon(imageVector = Icons.Filled.MoreVert, contentDescription = "Selection actions")
+                }
+                DropdownMenu(expanded = isMenuExpanded, onDismissRequest = { isMenuExpanded = false }) {
+                    DropdownMenuItem(
+                        text = { Text(text = "Select all") },
+                        onClick = {
+                            isMenuExpanded = false
+                            onSelectAllClick()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(text = "Export") },
+                        onClick = {
+                            isMenuExpanded = false
+                            onExportClick()
+                        }
+                    )
+                }
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer
+        )
+    )
 }
 
 @Composable
@@ -189,6 +281,7 @@ private fun StorageActionsMenu(
 @Composable
 private fun Breadcrumbs(
     breadcrumbs: List<BreadcrumbUi>,
+    isEnabled: Boolean,
     onClick: (BreadcrumbUi) -> Unit
 ) {
     val listState = rememberLazyListState()
@@ -210,7 +303,7 @@ private fun Breadcrumbs(
                 if (index > 0) {
                     Text(text = "›", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                TextButton(onClick = { onClick(breadcrumb) }, enabled = index != breadcrumbs.lastIndex) {
+                TextButton(onClick = { onClick(breadcrumb) }, enabled = isEnabled && index != breadcrumbs.lastIndex) {
                     Text(text = breadcrumb.title, maxLines = 1)
                 }
             }
@@ -238,7 +331,7 @@ private fun EmptyFolderMessage() {
     ) {
         Text(text = "Folder is empty", style = MaterialTheme.typography.titleMedium)
         Text(
-            text = "Use the menu in the top bar to import files or create a folder",
+            text = "Use the menu in the top bar to import files or create a folder. Long press an item to select it.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

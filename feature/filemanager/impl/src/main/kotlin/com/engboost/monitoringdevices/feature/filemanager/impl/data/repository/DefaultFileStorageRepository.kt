@@ -32,6 +32,12 @@ internal class DefaultFileStorageRepository(
         internalSource.resolve(path).isDirectory
     }
 
+    override suspend fun fileOf(path: StoragePath): File = io {
+        internalSource.resolve(path).also { file ->
+            if (!file.isFile) throw IOException("$path is not a file")
+        }
+    }
+
     override suspend fun list(directory: StoragePath): List<FileEntry> = io {
         val children = internalSource.resolve(directory).listFiles()
             ?: throw IOException("Can't read folder $directory")
@@ -103,20 +109,21 @@ internal class DefaultFileStorageRepository(
         }
     }
 
-    override suspend fun exportDirectory(
-        path: StoragePath,
+    override suspend fun exportToDirectory(
+        paths: List<StoragePath>,
         destinationTree: Uri
     ): TransferSummary = io {
-        val source = internalSource.resolve(path)
-        if (!source.isDirectory) throw IOException("$path is not a folder")
-
-        val target = documentSource.tree(destinationTree).createDirectoryOrThrow(source.name)
-        val counter = TransferCounter(directories = 1)
+        val tree = documentSource.tree(destinationTree)
+        val counter = TransferCounter()
+        val createdItems = mutableListOf<DocumentFile>()
 
         try {
-            copyFileTree(source, target, counter)
+            paths.forEach { path ->
+                coroutineContext.ensureActive()
+                exportItem(internalSource.resolve(path), tree, counter) { item -> createdItems += item }
+            }
         } catch (error: Throwable) {
-            runCatching { target.delete() }
+            createdItems.forEach { item -> runCatching { item.delete() } }
             throw error
         }
         counter.toSummary()
@@ -145,26 +152,31 @@ internal class DefaultFileStorageRepository(
         }
     }
 
-    private suspend fun copyFileTree(
+    /** Copies [source] into [target]; [onCreated] receives the created top-level item. */
+    private suspend fun exportItem(
         source: File,
         target: DocumentFile,
-        counter: TransferCounter
+        counter: TransferCounter,
+        onCreated: (DocumentFile) -> Unit = {}
     ) {
-        val children = source.listFiles() ?: throw IOException("Can't read folder ${source.name}")
-        children.forEach { child ->
-            coroutineContext.ensureActive()
-            if (child.isDirectory) {
-                val childTarget = target.createDirectoryOrThrow(child.name)
-                counter.directories++
-                copyFileTree(child, childTarget, counter)
-            } else {
-                val document = target.createFile(mimeTypeOf(child.name), child.name)
-                    ?: throw IOException("Can't create ${child.name} in the selected folder")
-                child.inputStream().use { input ->
-                    documentSource.openOutput(document.uri).use { output -> input.copyTo(output) }
-                }
-                counter.files++
+        if (source.isDirectory) {
+            val directory = target.createDirectoryOrThrow(source.name)
+            onCreated(directory)
+            counter.directories++
+
+            val children = source.listFiles() ?: throw IOException("Can't read folder ${source.name}")
+            children.forEach { child ->
+                coroutineContext.ensureActive()
+                exportItem(child, directory, counter)
             }
+        } else {
+            val document = target.createFile(mimeTypeOf(source.name), source.name)
+                ?: throw IOException("Can't create ${source.name} in the selected folder")
+            onCreated(document)
+            source.inputStream().use { input ->
+                documentSource.openOutput(document.uri).use { output -> input.copyTo(output) }
+            }
+            counter.files++
         }
     }
 

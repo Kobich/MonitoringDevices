@@ -5,6 +5,7 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.File
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.TransferSummary
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.DeletionUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 import java.text.DateFormat
 import java.util.Date
@@ -42,8 +43,24 @@ internal class FileManagerUiMapper {
 
     fun importedText(summary: TransferSummary): String = "Imported ${summary.toText()}"
 
-    fun exportedText(name: String, summary: TransferSummary): String {
-        return if (summary.directories == 0) "Exported \"$name\"" else "Exported ${summary.toText()}"
+    fun exportedText(summary: TransferSummary): String = "Exported ${summary.toText()}"
+
+    fun deletion(entries: List<FileEntryUi>): DeletionUi {
+        val single = entries.singleOrNull()
+        val hasDirectories = entries.any { entry -> entry.isDirectory }
+        val title = if (single != null) "Delete \"${single.name}\"?" else "Delete ${entries.size} items?"
+        val text = when {
+            single != null && single.isDirectory -> "The folder and all its content will be deleted permanently."
+            single != null -> "The file will be deleted permanently."
+            hasDirectories -> "Selected items, including folders with all their content, will be deleted permanently."
+            else -> "Selected files will be deleted permanently."
+        }
+        return DeletionUi(title = title, text = text)
+    }
+
+    fun deletedText(entries: List<FileEntryUi>): String {
+        val single = entries.singleOrNull()
+        return if (single != null) "Deleted \"${single.name}\"" else "Deleted ${entries.size} items"
     }
 
     fun errorText(error: DirectoryNameError): String {

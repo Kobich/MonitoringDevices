@@ -18,26 +18,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.input.ImeAction
-import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.DeletionUi
 
 @Composable
 internal fun DeleteConfirmationDialog(
-    entry: FileEntryUi,
+    deletion: DeletionUi,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Delete \"${entry.name}\"?") },
-        text = {
-            Text(
-                text = if (entry.isDirectory) {
-                    "The folder and all its content will be deleted permanently."
-                } else {
-                    "The file will be deleted permanently."
-                }
-            )
-        },
+        title = { Text(text = deletion.title) },
+        text = { Text(text = deletion.text) },
         confirmButton = {
             TextButton(onClick = onConfirm) {
                 Text(text = "Delete", color = MaterialTheme.colorScheme.error)
