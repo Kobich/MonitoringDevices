@@ -21,7 +21,7 @@ import com.engboost.monitoringdevices.core.document.api.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.document.Document
 import com.engboost.monitoringdevices.core.document.impl.audio.AudioReader
 import com.engboost.monitoringdevices.core.document.impl.cache.RenderCache
-import com.engboost.monitoringdevices.core.document.impl.chart.AndroidChartImageRenderer
+import com.engboost.monitoringdevices.core.document.impl.chart.ChartImageRenderer
 import com.engboost.monitoringdevices.core.document.impl.chart.DocxChartRasterizer
 import com.engboost.monitoringdevices.core.document.impl.chart.PptxChartRasterizer
 import com.engboost.monitoringdevices.core.document.impl.image.ImageReader
@@ -57,7 +57,7 @@ class DocumentCore(context: Context) {
             AudioReader()
         )
         if (converter != null) {
-            val charts = AndroidChartImageRenderer()
+            val charts = ChartImageRenderer()
             readers += OfficeReader(converter, setOf(DOCX), DocxChartRasterizer(charts))
             readers += OfficeReader(converter, setOf(PPTX), PptxChartRasterizer(charts))
             readers += OfficeReader(

@@ -114,20 +114,10 @@ OpenDocument.core не рисует диаграммы DrawingML. `OfficeReader`
 - `chart/DocxChartRasterizer`: `a:graphicData` с `c:chart` -> `pic:pic`;
 - `chart/PptxChartRasterizer`: на слайдах `p:graphicFrame` с `c:chart` -> `p:pic`;
 - данные из кэшей `c:numCache`/`c:strCache` (`ChartXmlParser`), цвета из темы документа, рисует
-  `AndroidChartImageRenderer` (столбцы/полосы, линии, области, круговые, кольцевые, точечные).
+  `ChartImageRenderer` (столбцы/полосы, линии, области, круговые, кольцевые, точечные).
 
 Нераспознанные диаграммы остаются как есть, при ошибке рендерится исходный файл.
 Логи: `adb logcat -s OfficeReader`.
-
-### Тесты
-
-JVM unit-тесты на чистую логику без Android: `DocumentFormat`, `CompositeDocumentReader` (выбор
-ридера, перевод ошибок), `TextDecoding`, `BitmapSampling`, `RenderCache`, `OoxmlXml`,
-`ChartXmlParser`, `DocxChartRasterizer` (рендерер подменяется через `ChartImageRenderer`), `niceTicks`.
-
-```shell
-./gradlew :core:document:api:testDebugUnitTest :core:document:impl:testDebugUnitTest
-```
 
 ## Структура `feature:filemanager:impl`
 

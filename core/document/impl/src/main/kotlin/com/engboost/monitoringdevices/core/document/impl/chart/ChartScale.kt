@@ -1,6 +1,6 @@
 package com.engboost.monitoringdevices.core.document.impl.chart
 
-/** Pixel density of chart pictures, shared by the rasterizers and [AndroidChartImageRenderer]. */
+/** Pixel density of chart pictures, shared by the rasterizers and [ChartImageRenderer]. */
 internal object ChartScale {
     /** Pictures are drawn at 2x of 96 dpi to stay sharp when zoomed in. */
     const val RENDER_SCALE = 2.0
