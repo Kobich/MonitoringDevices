@@ -25,11 +25,11 @@ enum class FileKind {
             fun register(kind: FileKind, vararg extensions: String) = extensions.forEach { put(it, kind) }
 
             register(PDF, "pdf")
-            register(DOCUMENT, "doc", "docx", "docm", "dot", "dotx", "odt", "rtf", "pages")
-            register(SPREADSHEET, "xls", "xlsx", "xlsm", "ods", "csv", "tsv", "numbers")
-            register(PRESENTATION, "ppt", "pptx", "pps", "ppsx", "odp", "key")
-            register(TEXT, "txt", "md", "log", "json", "xml", "yaml", "yml", "ini", "html", "htm")
-            register(IMAGE, "jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif", "svg", "tif", "tiff")
+            register(DOCUMENT, "doc", "docx", "docm", "dot", "dotx", "odt", "fodt", "rtf", "pages")
+            register(SPREADSHEET, "xls", "xlsx", "xlsm", "ods", "fods", "csv", "tsv", "numbers")
+            register(PRESENTATION, "ppt", "pptx", "pps", "ppsx", "odp", "fodp", "key")
+            register(TEXT, "txt", "md", "markdown", "log", "json", "xml", "yaml", "yml", "ini", "html", "htm")
+            register(IMAGE, "jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif", "svg", "tif", "tiff", "odg", "fodg")
             register(AUDIO, "mp3", "wav", "ogg", "oga", "flac", "m4a", "aac", "opus")
             register(VIDEO, "mp4", "mkv", "webm", "avi", "mov", "3gp", "m4v")
             register(ARCHIVE, "zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "xz")

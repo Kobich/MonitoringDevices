@@ -1,12 +1,10 @@
 package com.engboost.monitoringdevices.feature.viewer.impl.presentation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.screen.DocumentViewerScreen
 import java.io.File
 
@@ -20,14 +18,8 @@ internal fun DocumentViewerFeatureScreen(
         creationCallback = { factory -> factory.create(file) }
     )
 ) {
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) viewModel.onScreenStopped()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    // Don't keep playing audio behind the user's back.
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onScreenStopped() }
 
     DocumentViewerScreen(
         state = viewModel.uiState,

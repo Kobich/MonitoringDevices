@@ -1,10 +1,10 @@
-package com.engboost.monitoringdevices.core.document.impl.chart
+package com.engboost.monitoringdevices.core.document.impl.ooxml
 
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_CONTENT_TYPES
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_PACKAGE_RELATIONSHIPS
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.REL_IMAGE
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.REL_OFFICE_DOCUMENT
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.children
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_CONTENT_TYPES
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_PACKAGE_RELATIONSHIPS
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.REL_IMAGE
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.REL_OFFICE_DOCUMENT
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.children
 import org.w3c.dom.Document
 import java.io.File
 import java.io.IOException
@@ -53,12 +53,9 @@ internal class OoxmlPackage(private val zip: ZipFile) {
         }
     }
 
-    /** Theme accents for charts of [partPath], following its theme relationship. */
-    fun theme(partPath: String, parser: ChartXmlParser): ChartTheme {
-        return relationships(partPath).firstTargetOfType(OoxmlXml.REL_THEME)
-            ?.let(::partOrNull)
-            ?.let(parser::parseTheme)
-            ?: ChartTheme()
+    /** Theme part of [partPath] (`word/theme/theme1.xml`, `ppt/theme/theme1.xml`), if any. */
+    fun themeOf(partPath: String): Document? {
+        return relationships(partPath).firstTargetOfType(OoxmlXml.REL_THEME)?.let(::partOrNull)
     }
 
     /**

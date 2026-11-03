@@ -44,14 +44,17 @@ app -> core:document:impl -> core:document:api, odr-core-android
 ```text
 DocumentReader<out D : Document>          formats, canRead(source), read(source, options): D
  ├─ pdf/PdfReader                          PDF                      -> PdfDocument
- ├─ word/DocxReader, DocReader,
- │       OdtReader, RtfReader              DOCX, DOC, ODT, RTF      -> HtmlDocument
- ├─ spreadsheet/XlsxReader, XlsReader,
- │       OdsReader, CsvReader              XLSX, XLS, ODS, CSV      -> HtmlDocument
+ ├─ word/DocxReader, DocReader, OdtReader,
+ │       RtfReader, PagesReader            DOCX, DOC, ODT, RTF, PAGES -> HtmlDocument
+ ├─ spreadsheet/XlsxReader, XlsReader, OdsReader,
+ │       CsvReader, NumbersReader          XLSX, XLS, ODS, CSV, NUMBERS -> HtmlDocument
  ├─ presentation/PptxReader, PptReader,
- │       OdpReader                         PPTX, PPT, ODP           -> HtmlDocument
+ │       OdpReader, KeynoteReader          PPTX, PPT, ODP, KEYNOTE  -> HtmlDocument
+ ├─ drawing/OdgReader                      ODG                      -> HtmlDocument
  ├─ text/TextReader                        TEXT                     -> TextDocument
+ ├─ text/MarkdownReader                    MARKDOWN                 -> HtmlDocument | TextDocument
  ├─ image/ImageReader                      IMAGE                    -> ImageDocument
+ ├─ image/SvgReader                        SVG                      -> HtmlDocument
  ├─ audio/AudioReader                      AUDIO                    -> AudioDocument
  └─ UniversalDocumentReader(readers)       все перечисленные        -> Document
 
@@ -89,8 +92,10 @@ when (document) {
 
 OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэтому `OdrDocxReader` и `OdrPptxReader`
 перед конвертацией пишут копию файла, где каждая диаграмма заменена картинкой того же размера и
-положения (общая логика в `OdrOfficeReader`, работа с пакетом в `OoxmlPackage`):
+положения (общая логика в `OdrOfficeReader`, опциональный `ChartRasterizer`):
 
+- работа с пакетом Office (части, связи, типы контента, запись копии) — `ooxml/OoxmlPackage`,
+  XML-хелперы и пространства имён — `ooxml/OoxmlXml`;
 - docx — `DocxChartRasterizer`: `a:graphicData` с `c:chart` -> `pic:pic`;
 - pptx — `PptxChartRasterizer`: на каждом слайде `p:graphicFrame` с `c:chart` -> `p:pic`
   (id, имя, позиция и размер сохраняются; диаграммы в макетах/мастерах не трогаются).
@@ -114,9 +119,11 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML. Поэт
 
 | Ридер | Форматы | Чем | Открытые вопросы (выбрать позже) |
 | --- | --- | --- | --- |
-| `Odr*Reader` (11 шт.) | docx, doc, odt, rtf, xlsx, xls, ods, csv, pptx, ppt, odp | OpenDocument.core -> HTML; в docx и pptx диаграммы картинками | диаграммы в xlsx; только Android 8+ |
+| `Odr*Reader` (15 шт.) | docx, doc, odt/fodt, rtf, pages, xlsx, xls, ods/fods, csv, numbers, pptx, ppt, odp/fodp, key, odg/fodg | OpenDocument.core -> HTML; в docx и pptx диаграммы картинками | диаграммы в xlsx; только Android 8+; качество iWork/odg проверить на файлах |
+| `AndroidMarkdownReader` | md, markdown | OpenDocument.core -> HTML, при ошибке и на Android 6–7 — как текст | — |
+| `WebViewSvgReader` | svg | обёртка `<img>` в WebView (скрипты SVG не выполняются), все API | — |
 | `AndroidPdfReader` | pdf | `PdfRenderer` | пароль только на API 35+, нет текста/поиска; zoom в UI. Варианты: androidx.pdf, pdfium |
-| `AndroidTextReader` | txt, md, json, xml, log | свой код (`TextDecoding`) | эвристика cp1251/Latin-1 -> ICU `CharsetDetector`/juniversalchardet; подсветка md/json |
+| `AndroidTextReader` | txt, json, xml, log | свой код (`TextDecoding`) | эвристика cp1251/Latin-1 -> ICU `CharsetDetector`/juniversalchardet; подсветка md/json |
 | `AndroidImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + `ExifInterface`; GIF/анимированный WebP — `ImageDecoder` (Android 9+) | анимация на Android 6–8, большие фото (тайлинг) -> Coil/subsampling |
 | `AndroidAudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor` | — |
 

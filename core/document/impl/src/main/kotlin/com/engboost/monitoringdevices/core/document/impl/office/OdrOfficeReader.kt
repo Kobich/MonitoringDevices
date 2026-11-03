@@ -17,7 +17,7 @@ import java.io.File
  * (e.g. an encrypted document is not a zip), the unchanged file is rendered.
  */
 internal abstract class OdrOfficeReader(
-    protected val converter: OdrHtmlConverter,
+    private val converter: OdrHtmlConverter,
     private val chartRasterizer: ChartRasterizer? = null
 ) : DocumentReader<HtmlDocument> {
 

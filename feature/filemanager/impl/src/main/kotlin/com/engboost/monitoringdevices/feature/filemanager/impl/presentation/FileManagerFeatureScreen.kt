@@ -7,7 +7,6 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -15,8 +14,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentContract
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentRequest
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.ExportPickerUi
@@ -32,7 +30,6 @@ internal fun FileManagerFeatureScreen(
 ) {
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }
-    val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnFileOpen by rememberUpdatedState(onFileOpen)
 
     val importFilesLauncher = rememberLauncherForActivityResult(
@@ -53,16 +50,7 @@ internal fun FileManagerFeatureScreen(
     )
 
     // Files may be changed by other parts of the app while the screen is in background.
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.onScreenResumed()
-            }
-        }
-
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onScreenResumed() }
 
     LaunchedEffect(state.message) {
         val message = state.message ?: return@LaunchedEffect

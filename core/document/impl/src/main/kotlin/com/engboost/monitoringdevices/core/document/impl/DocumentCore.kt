@@ -13,6 +13,12 @@ import com.engboost.monitoringdevices.core.document.impl.chart.DocxChartRasteriz
 import com.engboost.monitoringdevices.core.document.impl.chart.PptxChartRasterizer
 import com.engboost.monitoringdevices.core.document.impl.image.AndroidImageReader
 import com.engboost.monitoringdevices.core.document.impl.office.OdrHtmlConverter
+import com.engboost.monitoringdevices.core.document.impl.office.drawing.OdrOdgReader
+import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrKeynoteReader
+import com.engboost.monitoringdevices.core.document.impl.office.spreadsheet.OdrNumbersReader
+import com.engboost.monitoringdevices.core.document.impl.office.word.OdrPagesReader
+import com.engboost.monitoringdevices.core.document.impl.svg.WebViewSvgReader
+import com.engboost.monitoringdevices.core.document.impl.text.AndroidMarkdownReader
 import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrOdpReader
 import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrPptReader
 import com.engboost.monitoringdevices.core.document.impl.office.presentation.OdrPptxReader
@@ -47,41 +53,52 @@ class DocumentCore(
     private val diskCache = DiskRenderedDocumentCache(File(appContext.cacheDir, config.cacheDirectoryName))
     private val sourceFiles = DocumentSourceFiles(appContext)
 
+    /**
+     * OpenDocument.core needs API 26: on older devices its classes are never loaded, office
+     * formats are unsupported and Markdown is shown as plain text.
+     */
+    private val officeConverter: OdrHtmlConverter? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) OdrHtmlConverter(diskCache, sourceFiles) else null
+
     /** On-disk output of converted documents (office files to HTML). */
     val cache: RenderedDocumentCache = diskCache
 
     /** Opens any supported file. */
     val reader: UniversalDocumentReader = UniversalDocumentReader(platformReaders(config) + officeReaders())
 
-    /** PDF, text, images and audio on platform APIs, available on every API level. */
-    private fun platformReaders(config: DocumentCoreConfig): List<DocumentReader<Document>> = listOf(
-        AndroidPdfReader(sourceFiles),
-        AndroidTextReader(sourceFiles, maxChars = config.maxTextChars),
-        AndroidImageReader(sourceFiles),
-        AndroidAudioReader(appContext)
-    )
+    /** PDF, text, images, SVG and audio on platform APIs, available on every API level. */
+    private fun platformReaders(config: DocumentCoreConfig): List<DocumentReader<Document>> {
+        val textReader = AndroidTextReader(sourceFiles, maxChars = config.maxTextChars)
+        return listOf(
+            AndroidPdfReader(sourceFiles),
+            textReader,
+            AndroidMarkdownReader(officeConverter, textReader),
+            AndroidImageReader(sourceFiles),
+            WebViewSvgReader(diskCache, sourceFiles),
+            AndroidAudioReader(appContext)
+        )
+    }
 
-    /**
-     * Office formats via OpenDocument.core. The library needs API 26: on older devices
-     * its classes are never loaded and these formats are simply unsupported.
-     */
+    /** Office formats via OpenDocument.core, API 26+. */
     private fun officeReaders(): List<DocumentReader<Document>> {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return emptyList()
-
-        val converter = OdrHtmlConverter(diskCache, sourceFiles)
+        val converter = officeConverter ?: return emptyList()
         val chartRenderer = AndroidChartImageRenderer()
         return listOf(
             OdrDocxReader(converter, DocxChartRasterizer(chartRenderer)),
             OdrDocReader(converter),
             OdrOdtReader(converter),
             OdrRtfReader(converter),
+            OdrPagesReader(converter),
             OdrXlsxReader(converter),
             OdrXlsReader(converter),
             OdrOdsReader(converter),
             OdrCsvReader(converter),
+            OdrNumbersReader(converter),
             OdrPptxReader(converter, PptxChartRasterizer(chartRenderer)),
             OdrPptReader(converter),
-            OdrOdpReader(converter)
+            OdrOdpReader(converter),
+            OdrKeynoteReader(converter),
+            OdrOdgReader(converter)
         )
     }
 }

@@ -1,12 +1,13 @@
 package com.engboost.monitoringdevices.core.document.impl.chart
 
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_CHART
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_DRAWING
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_RELATIONSHIPS
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_XMLNS
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.child
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.descendants
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.path
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_CHART
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_DRAWING
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_RELATIONSHIPS
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_XMLNS
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.child
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.descendants
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.path
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlPackage
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
@@ -26,7 +27,7 @@ internal class PptxChartRasterizer(
         ZipFile(input).use { zip ->
             val ooxml = OoxmlPackage(zip)
             val presentationPath = ooxml.mainPartPath(fallback = "ppt/presentation.xml")
-            val theme = ooxml.theme(presentationPath, parser)
+            val theme = ooxml.themeOf(presentationPath)?.let(parser::parseTheme) ?: ChartTheme()
 
             var replaced = 0
             ooxml.relationships(presentationPath).targetsOfType(REL_SLIDE).forEach { slidePath ->

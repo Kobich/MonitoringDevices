@@ -89,8 +89,8 @@ private fun PdfPage(
     val pageSize by produceState<PageSize?>(initialValue = null, document, pageIndex) {
         value = runCatching { document.pageSize(pageIndex) }.getOrNull()
     }
-    val bitmap by produceState<Bitmap?>(initialValue = null, document, pageIndex, widthPx) {
-        value = runCatching { document.renderPage(pageIndex, widthPx) }.getOrNull()
+    val rendered by produceState<Result<Bitmap>?>(initialValue = null, document, pageIndex, widthPx) {
+        value = runCatching { document.renderPage(pageIndex, widthPx) }
     }
     val aspectRatio = pageSize?.let { size -> size.widthPt.toFloat() / size.heightPt } ?: A4_ASPECT_RATIO
 
@@ -101,16 +101,22 @@ private fun PdfPage(
             .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
-        val page = bitmap
-        if (page != null) {
-            Image(
+        val result = rendered
+        val page = result?.getOrNull()
+        when {
+            page != null -> Image(
                 bitmap = page.asImageBitmap(),
                 contentDescription = "Page ${pageIndex + 1}",
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxSize()
             )
-        } else {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+
+            result == null -> CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            else -> Text(
+                text = "Can't show page ${pageIndex + 1}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.DarkGray
+            )
         }
     }
 }

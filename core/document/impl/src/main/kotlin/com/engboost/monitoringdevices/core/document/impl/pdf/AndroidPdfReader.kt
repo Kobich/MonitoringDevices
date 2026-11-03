@@ -83,13 +83,15 @@ internal class AndroidPdfReader(
         override val pageCount: Int = renderer.pageCount
 
         override suspend fun pageSize(pageIndex: Int): PageSize = withPage(pageIndex) { page ->
-            // PdfRenderer reports sizes in points (1/72 inch).
-            PageSize(widthPt = page.width, heightPt = page.height)
+            // PdfRenderer reports sizes in points (1/72 inch); broken files may report zero.
+            PageSize(widthPt = page.width.coerceAtLeast(1), heightPt = page.height.coerceAtLeast(1))
         }
 
         override suspend fun renderPage(pageIndex: Int, widthPx: Int): Bitmap = withPage(pageIndex) { page ->
             val width = widthPx.coerceIn(1, MAX_SIDE_PX)
-            val height = (width.toLong() * page.height / page.width).toInt().coerceIn(1, MAX_SIDE_PX)
+            val height = (width.toLong() * page.height.coerceAtLeast(1) / page.width.coerceAtLeast(1))
+                .toInt()
+                .coerceIn(1, MAX_SIDE_PX)
             val bitmap = try {
                 Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             } catch (error: OutOfMemoryError) {

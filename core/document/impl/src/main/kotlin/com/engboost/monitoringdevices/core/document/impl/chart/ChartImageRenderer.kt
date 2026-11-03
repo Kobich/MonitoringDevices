@@ -20,8 +20,3 @@ internal object ChartScale {
     fun emuToPx(emu: Long): Int = (emu / EMU_PER_PX * RENDER_SCALE).toInt().coerceIn(MIN_SIDE_PX, MAX_SIDE_PX)
 }
 
-/** Writes a copy of an office document with its charts replaced by pictures. */
-internal fun interface ChartRasterizer {
-    /** @return number of replaced charts; [output] is written only when it is above zero. */
-    fun rasterize(input: java.io.File, output: java.io.File): Int
-}

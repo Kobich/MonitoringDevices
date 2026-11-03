@@ -1,15 +1,16 @@
 package com.engboost.monitoringdevices.core.document.impl.chart
 
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_CHART
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_DRAWING
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_PICTURE
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_RELATIONSHIPS
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_WORD_DRAWING
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_XMLNS
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.ancestor
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.child
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.childElements
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.descendants
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_CHART
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_DRAWING
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_PICTURE
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_RELATIONSHIPS
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_WORD_DRAWING
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_XMLNS
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.ancestor
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.child
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.childElements
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.descendants
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlPackage
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
@@ -30,7 +31,7 @@ internal class DocxChartRasterizer(
             val documentPath = ooxml.mainPartPath(fallback = "word/document.xml")
             val document = ooxml.part(documentPath)
             val relationships = ooxml.relationships(documentPath)
-            val theme = ooxml.theme(documentPath, parser)
+            val theme = ooxml.themeOf(documentPath)?.let(parser::parseTheme) ?: ChartTheme()
 
             var replaced = 0
             document.documentElement.descendants(NS_DRAWING, "graphicData")

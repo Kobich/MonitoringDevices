@@ -20,7 +20,12 @@ internal class AndroidTextReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : TextReader {
 
-    override suspend fun read(source: DocumentSource, options: ReadOptions): TextDocument = withContext(ioDispatcher) {
+    override suspend fun read(source: DocumentSource, options: ReadOptions): TextDocument {
+        return readText(source, DocumentFormat.TEXT)
+    }
+
+    /** Also used for other text-based formats shown as plain text (e.g. Markdown fallback). */
+    suspend fun readText(source: DocumentSource, format: DocumentFormat): TextDocument = withContext(ioDispatcher) {
         // UTF-8 needs at most 4 bytes per character; one extra byte tells whether the file is longer.
         val byteLimit = maxChars.toLong() * 4
         val bytes = try {
@@ -42,7 +47,7 @@ internal class AndroidTextReader(
 
         TextDocument(
             name = source.name,
-            format = DocumentFormat.TEXT,
+            format = format,
             text = if (isCutByChars) decoded.text.take(maxChars) else decoded.text,
             charsetName = decoded.charsetName,
             isTruncated = isCutByBytes || isCutByChars

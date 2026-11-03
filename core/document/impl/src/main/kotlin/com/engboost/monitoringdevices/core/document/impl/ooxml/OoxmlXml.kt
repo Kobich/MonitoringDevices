@@ -1,4 +1,4 @@
-package com.engboost.monitoringdevices.core.document.impl.chart
+package com.engboost.monitoringdevices.core.document.impl.ooxml
 
 import org.w3c.dom.Document
 import org.w3c.dom.Element

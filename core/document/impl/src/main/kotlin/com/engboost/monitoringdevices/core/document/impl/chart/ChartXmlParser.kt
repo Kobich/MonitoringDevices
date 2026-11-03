@@ -1,13 +1,13 @@
 package com.engboost.monitoringdevices.core.document.impl.chart
 
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_CHART
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.NS_DRAWING
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.child
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.childElements
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.children
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.descendants
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.path
-import com.engboost.monitoringdevices.core.document.impl.chart.OoxmlXml.valAttribute
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_CHART
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.NS_DRAWING
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.child
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.childElements
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.children
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.descendants
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.path
+import com.engboost.monitoringdevices.core.document.impl.ooxml.OoxmlXml.valAttribute
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 

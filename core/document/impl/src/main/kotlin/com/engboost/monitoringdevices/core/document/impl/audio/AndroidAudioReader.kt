@@ -13,6 +13,7 @@ import com.engboost.monitoringdevices.core.document.api.DocumentSource
 import com.engboost.monitoringdevices.core.document.api.ReadOptions
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
 import com.engboost.monitoringdevices.core.document.api.reader.audio.AudioReader
+import com.engboost.monitoringdevices.core.document.impl.image.BitmapSampling
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,11 +29,13 @@ internal class AndroidAudioReader(
 ) : AudioReader {
 
     override suspend fun read(source: DocumentSource, options: ReadOptions): AudioDocument = withContext(ioDispatcher) {
-        val metadata = readMetadata(source)
-        val track = readTrackFormat(source)
-        if (metadata.hasAudio == false && track == null) {
-            throw DocumentReadException(Reason.CORRUPTED, "${source.name} has no audio track")
+        if (source is DocumentSource.LocalFile && !source.file.isFile) {
+            throw DocumentReadException(Reason.NOT_FOUND, "${source.name} not found")
         }
+        // Metadata is optional: a file whose tags can't be read may still play fine,
+        // the player reports a real problem.
+        val metadata = runCatching { readMetadata(source) }.getOrNull() ?: Metadata.EMPTY
+        val track = readTrackFormat(source)
 
         AndroidAudioDocument(
             name = source.name,
@@ -50,7 +53,6 @@ internal class AndroidAudioReader(
     }
 
     private class Metadata(
-        val hasAudio: Boolean?,
         val durationMs: Long?,
         val title: String?,
         val artist: String?,
@@ -58,7 +60,11 @@ internal class AndroidAudioReader(
         val mimeType: String?,
         val bitrateBps: Int?,
         val hasArtwork: Boolean
-    )
+    ) {
+        companion object {
+            val EMPTY = Metadata(null, null, null, null, null, null, hasArtwork = false)
+        }
+    }
 
     private class TrackFormat(
         val mimeType: String?,
@@ -72,7 +78,6 @@ internal class AndroidAudioReader(
             fun text(key: Int) = retriever.extractMetadata(key)?.trim()?.takeIf { it.isNotEmpty() }
 
             Metadata(
-                hasAudio = text(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO)?.let { it == "yes" },
                 durationMs = text(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull(),
                 title = text(MediaMetadataRetriever.METADATA_KEY_TITLE),
                 artist = text(MediaMetadataRetriever.METADATA_KEY_ARTIST)
@@ -161,10 +166,7 @@ internal class AndroidAudioReader(
 
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            var sample = 1
-            while (bounds.outWidth / (sample * 2) >= maxSizePx && bounds.outHeight / (sample * 2) >= maxSizePx) {
-                sample *= 2
-            }
+            val sample = BitmapSampling.sampleSize(bounds.outWidth, bounds.outHeight, maxSizePx, maxSizePx)
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
         }
     }

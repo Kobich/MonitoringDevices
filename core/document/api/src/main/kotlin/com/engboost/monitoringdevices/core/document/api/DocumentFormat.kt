@@ -6,6 +6,7 @@ enum class DocumentCategory {
     TEXT_DOCUMENT,
     SPREADSHEET,
     PRESENTATION,
+    DRAWING,
     PLAIN_TEXT,
     IMAGE,
     AUDIO
@@ -25,8 +26,14 @@ enum class DocumentFormat(
         setOf("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
     ),
     DOC(DocumentCategory.TEXT_DOCUMENT, setOf("doc"), setOf("application/msword")),
-    ODT(DocumentCategory.TEXT_DOCUMENT, setOf("odt"), setOf("application/vnd.oasis.opendocument.text")),
+    ODT(
+        DocumentCategory.TEXT_DOCUMENT,
+        setOf("odt", "fodt"),
+        setOf("application/vnd.oasis.opendocument.text", "application/vnd.oasis.opendocument.text-flat-xml")
+    ),
     RTF(DocumentCategory.TEXT_DOCUMENT, setOf("rtf"), setOf("application/rtf", "text/rtf")),
+    PAGES(DocumentCategory.TEXT_DOCUMENT, setOf("pages"), setOf("application/vnd.apple.pages", "application/x-iwork-pages-sffpages")),
+    MARKDOWN(DocumentCategory.TEXT_DOCUMENT, setOf("md", "markdown"), setOf("text/markdown", "text/x-markdown")),
 
     XLSX(
         DocumentCategory.SPREADSHEET,
@@ -34,8 +41,13 @@ enum class DocumentFormat(
         setOf("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     ),
     XLS(DocumentCategory.SPREADSHEET, setOf("xls"), setOf("application/vnd.ms-excel")),
-    ODS(DocumentCategory.SPREADSHEET, setOf("ods"), setOf("application/vnd.oasis.opendocument.spreadsheet")),
+    ODS(
+        DocumentCategory.SPREADSHEET,
+        setOf("ods", "fods"),
+        setOf("application/vnd.oasis.opendocument.spreadsheet", "application/vnd.oasis.opendocument.spreadsheet-flat-xml")
+    ),
     CSV(DocumentCategory.SPREADSHEET, setOf("csv"), setOf("text/csv", "text/comma-separated-values")),
+    NUMBERS(DocumentCategory.SPREADSHEET, setOf("numbers"), setOf("application/vnd.apple.numbers", "application/x-iwork-numbers-sffnumbers")),
 
     PPTX(
         DocumentCategory.PRESENTATION,
@@ -43,12 +55,23 @@ enum class DocumentFormat(
         setOf("application/vnd.openxmlformats-officedocument.presentationml.presentation")
     ),
     PPT(DocumentCategory.PRESENTATION, setOf("ppt"), setOf("application/vnd.ms-powerpoint")),
-    ODP(DocumentCategory.PRESENTATION, setOf("odp"), setOf("application/vnd.oasis.opendocument.presentation")),
+    ODP(
+        DocumentCategory.PRESENTATION,
+        setOf("odp", "fodp"),
+        setOf("application/vnd.oasis.opendocument.presentation", "application/vnd.oasis.opendocument.presentation-flat-xml")
+    ),
+    KEYNOTE(DocumentCategory.PRESENTATION, setOf("key"), setOf("application/vnd.apple.keynote", "application/x-iwork-keynote-sffkey")),
+
+    ODG(
+        DocumentCategory.DRAWING,
+        setOf("odg", "fodg"),
+        setOf("application/vnd.oasis.opendocument.graphics", "application/vnd.oasis.opendocument.graphics-flat-xml")
+    ),
 
     TEXT(
         DocumentCategory.PLAIN_TEXT,
-        setOf("txt", "log", "md", "json", "xml"),
-        setOf("text/plain", "text/markdown", "application/json", "text/xml", "application/xml")
+        setOf("txt", "log", "json", "xml"),
+        setOf("text/plain", "application/json", "text/xml", "application/xml")
     ),
 
     IMAGE(
@@ -56,6 +79,7 @@ enum class DocumentFormat(
         setOf("png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "heif"),
         setOf("image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "image/heic", "image/heif")
     ),
+    SVG(DocumentCategory.IMAGE, setOf("svg"), setOf("image/svg+xml")),
 
     AUDIO(
         DocumentCategory.AUDIO,

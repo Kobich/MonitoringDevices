@@ -77,7 +77,7 @@ internal class AndroidImageReader(
             val maxRawHeight = if (isRotatedSideways) maxWidthPx else maxHeightPx
 
             val options = BitmapFactory.Options().apply {
-                inSampleSize = sampleSize(rawWidth, rawHeight, maxRawWidth, maxRawHeight)
+                inSampleSize = BitmapSampling.sampleSize(rawWidth, rawHeight, maxRawWidth, maxRawHeight)
             }
             val decoded = readStream(source) { input -> BitmapFactory.decodeStream(input, null, options) }
                 ?: throw DocumentReadException(Reason.CORRUPTED, "Can't decode image $name")
@@ -188,14 +188,5 @@ internal class AndroidImageReader(
             ExifInterface.ORIENTATION_TRANSVERSE,
             ExifInterface.ORIENTATION_ROTATE_270
         )
-
-        /** Largest power of two that keeps the decoded image at least as big as the limits. */
-        fun sampleSize(width: Int, height: Int, maxWidth: Int, maxHeight: Int): Int {
-            var sample = 1
-            while (width / (sample * 2) >= maxWidth && height / (sample * 2) >= maxHeight) {
-                sample *= 2
-            }
-            return sample
-        }
     }
 }

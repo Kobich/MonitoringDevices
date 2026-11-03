@@ -77,6 +77,9 @@ internal class OdrHtmlConverter(
                     val config = HtmlConfig().apply {
                         allowExternalContent = false
                         editable = false
+                        // The viewer serves the output folder as a site: links to styles, scripts
+                        // and images must be relative, not absolute file system paths.
+                        relativeResourcePaths = true
                     }
                     Html.translate(readable, config).use { service ->
                         val views = service.listViews()
