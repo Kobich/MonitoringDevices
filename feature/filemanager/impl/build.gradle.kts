@@ -8,9 +8,7 @@ plugins {
 android {
     namespace = "com.engboost.monitoringdevices.feature.filemanager.impl"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(36)
     }
 
     defaultConfig {

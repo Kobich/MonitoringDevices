@@ -6,9 +6,7 @@ plugins {
 android {
     namespace = "com.engboost.monitoringdevices.feature.viewer.api"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(36)
     }
 
     defaultConfig {
