@@ -33,8 +33,9 @@ app -> feature:viewer:impl -> feature:viewer:api, core:document:api
 app -> core:document:impl -> core:document:api, odr-core-android
 ```
 
-`:feature:viewer` показывает документ по `File`: `UniversalDocumentReader` -> `when (document)`.
-Сейчас реализован показ `HtmlDocument` (WebView); PDF, текст и картинки — заглушка.
+`:feature:viewer` показывает документ по `File`: `UniversalDocumentReader` -> `when (document)`:
+`HtmlDocument` — WebView, `PdfDocument` — список страниц-битмапов, `TextDocument` — текст построчно,
+`ImageDocument` — картинка с pinch-zoom, `AudioDocument` — плеер.
 
 ## `core:document:api`
 
@@ -51,13 +52,15 @@ DocumentReader<out D : Document>          formats, canRead(source), read(source,
  │       OdpReader                         PPTX, PPT, ODP           -> HtmlDocument
  ├─ text/TextReader                        TEXT                     -> TextDocument
  ├─ image/ImageReader                      IMAGE                    -> ImageDocument
+ ├─ audio/AudioReader                      AUDIO                    -> AudioDocument
  └─ UniversalDocumentReader(readers)       все перечисленные        -> Document
 
 sealed Document : Closeable                name, format
  ├─ PdfDocument      pageCount, pageSize, renderPage(index, widthPx): Bitmap, pageText
  ├─ HtmlDocument     directory, pages: List<HtmlPage(title, file)>   -> WebView
  ├─ TextDocument     text, charsetName, isTruncated
- └─ ImageDocument    widthPx, heightPx, decode(maxW, maxH): Bitmap
+ ├─ ImageDocument    widthPx, heightPx, decode(maxW, maxH): Bitmap
+ └─ AudioDocument    source, durationMs, title, artist, album, sampleRateHz, channelCount, loadArtwork()
 
 DocumentFormat     формат: category, extensions, mimeTypes; DocumentFormat.of(source)
 DocumentCategory   PDF, TEXT_DOCUMENT, SPREADSHEET, PRESENTATION, PLAIN_TEXT, IMAGE
@@ -100,7 +103,8 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xls
 **Примеры файлов (ВРЕМЕННО).** `app/.../sample/` при первом запуске кладёт в `filesDir`:
 `Readme.txt`, `Quarterly report.docx` (таблица, столбчатая и линейная диаграммы), `Budget.csv`,
 папку `Samples/` с `Market share.docx` (круговая и полосовая диаграммы), `Sales by region.csv`,
-`Notes.md` и пустой папкой. Один раз, флаг в SharedPreferences `sample_files`.
+`Notes.md` и пустой папкой, папку `Media/` с `Sample.pdf`, `Picture.png`, `Chord.wav` и текстами
+в UTF-8 и cp1251. Один раз на версию набора, флаг в SharedPreferences `sample_files`.
 Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
 
 **Уборка после выбора.**
@@ -111,6 +115,19 @@ OpenDocument.core 7.7.0 не рисует диаграммы DrawingML (docx/xls
 - Остались на **As is**: удалить `chart/` и `ChartRasterizingDocxReader` с тестами.
 - Остались на **As picture**: удалить `OdrDocxReader`, `ChartRasterizingDocxReader` переименовать
   в `OdrDocxReader`; при желании применить тот же подход к xlsx/pptx.
+
+### Реализации в `:core:document:impl`
+
+| Ридер | Форматы | Чем | Открытые вопросы (выбрать позже) |
+| --- | --- | --- | --- |
+| `Odr*Reader` (11 шт.) | docx, doc, odt, rtf, xlsx, xls, ods, csv, pptx, ppt, odp | OpenDocument.core -> HTML | диаграммы (сравнение), minSdk 26 |
+| `AndroidPdfReader` | pdf | `PdfRenderer` | пароль только на API 35+, нет текста/поиска; zoom в UI. Варианты: androidx.pdf, pdfium |
+| `AndroidTextReader` | txt, md, json, xml, log | свой код (`TextDecoding`) | эвристика cp1251/Latin-1 -> ICU `CharsetDetector`/juniversalchardet; подсветка md/json |
+| `AndroidImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + `ExifInterface` | анимация GIF/WebP, большие фото (тайлинг) -> Coil/subsampling |
+| `AndroidAudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor` | — |
+
+Плеер в просмотрщике: интерфейс `AudioPlayer`, сейчас `MediaPlayerAudioPlayer`; пауза при уходе
+экрана в фон. Фоновое воспроизведение, уведомление, audio focus -> Media3 (ExoPlayer).
 
 ### План реализации `:core:document:impl`
 

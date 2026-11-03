@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.commonui.components.BackTopAppBar
 import com.engboost.monitoringdevices.core.commonui.components.LoadingContent
 import com.engboost.monitoringdevices.core.commonui.components.MessageContent
+import com.engboost.monitoringdevices.core.commonui.components.rememberDelayedVisibility
 import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
@@ -113,8 +114,10 @@ internal fun FileManagerScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
+            // Folder reads are usually instant: show progress only when they take noticeable time.
+            val isProgressVisible = rememberDelayedVisibility(state.isBusy || state.isLoading)
             Box(modifier = Modifier.fillMaxWidth().height(4.dp)) {
-                if (state.isBusy || (state.isLoading && state.entries.isNotEmpty())) {
+                if (isProgressVisible && state.entries.isNotEmpty()) {
                     LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
                 }
             }
@@ -126,7 +129,9 @@ internal fun FileManagerScreen(
             HorizontalDivider()
 
             when {
-                state.isLoading && state.entries.isEmpty() -> LoadingContent()
+                state.isLoading && state.entries.isEmpty() -> {
+                    if (isProgressVisible) LoadingContent()
+                }
 
                 state.entries.isEmpty() -> MessageContent(
                     title = "Folder is empty",

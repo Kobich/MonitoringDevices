@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -25,6 +26,11 @@ object AppIcons {
     val More: ImageVector get() = Icons.Filled.MoreVert
     val Add: ImageVector get() = Icons.Filled.Add
     val Check: ImageVector get() = Icons.Filled.Check
+    val Play: ImageVector get() = Icons.Filled.PlayArrow
+
+    val Pause: ImageVector by lazy {
+        icon(name = "Pause", pathData = "M6,19h4V5H6v14zM14,5v14h4V5h-4z")
+    }
 
     val Folder: ImageVector by lazy {
         icon(

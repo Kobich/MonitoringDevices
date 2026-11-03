@@ -13,6 +13,7 @@ import java.io.Closeable
  *     is HtmlDocument -> HtmlPages(document)
  *     is TextDocument -> PlainText(document)
  *     is ImageDocument -> Picture(document)
+ *     is AudioDocument -> Player(document)
  * }
  * ```
  *

@@ -34,6 +34,13 @@ internal class SampleFilesSeeder(
         samples.writeSample("Notes.md", NOTES.toByteArray())
 
         File(samples, "Empty folder").mkdirs()
+
+        val media = File(root, "Media").apply { mkdirs() }
+        media.writeSample("Sample.pdf", SampleMedia.pdf())
+        media.writeSample("Picture.png", SampleMedia.png())
+        media.writeSample("Chord.wav", SampleMedia.wav())
+        media.writeSample("Привет.txt", RUSSIAN_TEXT.toByteArray(Charsets.UTF_8))
+        media.writeSample("Old encoding (cp1251).txt", RUSSIAN_TEXT.toByteArray(charset("windows-1251")))
     }
 
     private fun File.writeSample(name: String, content: ByteArray) {
@@ -110,11 +117,12 @@ internal class SampleFilesSeeder(
     private companion object {
         const val TAG = "SampleFiles"
         const val PREFERENCES = "sample_files"
-        const val KEY_SEEDED = "seeded_v1"
+        const val KEY_SEEDED = "seeded_v2"
 
         const val README = "Sample files created on the first launch.\nThey are temporary and will be removed before release.\n"
         const val BUDGET_CSV = "Item,January,February,March\nRent,1200,1200,1200\nSalaries,5400,5400,5600\nMarketing,800,950,700\nOther,300,250,400\n"
         const val REGIONS_CSV = "Region,2025,2026\nNorth,14.8,16.2\nSouth,11.4,12.9\nWest,9.0,11.5\n"
+        const val RUSSIAN_TEXT = "Пример текста на русском языке.\nВторая строка: проверка определения кодировки.\n"
         const val NOTES = "# Notes\n\n- Markdown sample\n- Shown as plain text later\n"
     }
 }

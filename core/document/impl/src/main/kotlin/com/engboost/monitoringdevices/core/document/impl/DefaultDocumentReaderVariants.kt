@@ -30,12 +30,14 @@ import com.engboost.monitoringdevices.core.document.impl.office.word.OdrRtfReade
  */
 internal class DefaultDocumentReaderVariants(
     converter: OdrHtmlConverter,
-    rasterizer: DocxChartRasterizer
+    rasterizer: DocxChartRasterizer,
+    /** Readers on platform APIs (PDF, text, images, audio), available on every API level. */
+    platformReaders: List<DocumentReader<Document>>
 ) : DocumentReaderVariants {
 
     private val isOfficeSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
 
-    private val sharedReaders: List<DocumentReader<Document>> = if (isOfficeSupported) {
+    private val sharedReaders: List<DocumentReader<Document>> = platformReaders + if (isOfficeSupported) {
         listOf(
             OdrDocReader(converter),
             OdrOdtReader(converter),

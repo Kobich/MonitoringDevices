@@ -7,7 +7,8 @@ enum class DocumentCategory {
     SPREADSHEET,
     PRESENTATION,
     PLAIN_TEXT,
-    IMAGE
+    IMAGE,
+    AUDIO
 }
 
 /** Every format the document readers know about. Each one has exactly one reader. */
@@ -54,6 +55,15 @@ enum class DocumentFormat(
         DocumentCategory.IMAGE,
         setOf("png", "jpg", "jpeg", "gif", "webp", "bmp", "heic", "heif"),
         setOf("image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp", "image/heic", "image/heif")
+    ),
+
+    AUDIO(
+        DocumentCategory.AUDIO,
+        setOf("mp3", "wav", "m4a", "aac", "ogg", "oga", "opus", "flac"),
+        setOf(
+            "audio/mpeg", "audio/mp3", "audio/wav", "audio/x-wav", "audio/wave", "audio/mp4", "audio/aac",
+            "audio/ogg", "audio/opus", "audio/flac", "audio/x-flac"
+        )
     );
 
     companion object {

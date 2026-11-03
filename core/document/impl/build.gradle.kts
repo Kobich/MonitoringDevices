@@ -27,6 +27,7 @@ dependencies {
 
     implementation(libs.odr.core.android)
     implementation(libs.androidx.documentfile)
+    implementation(libs.androidx.exifinterface)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.koin.android)
 

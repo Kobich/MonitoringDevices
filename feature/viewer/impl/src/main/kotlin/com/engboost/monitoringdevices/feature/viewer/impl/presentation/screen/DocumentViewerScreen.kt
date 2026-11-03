@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.commonui.components.BackTopAppBar
 import com.engboost.monitoringdevices.core.commonui.components.LoadingContent
 import com.engboost.monitoringdevices.core.commonui.components.MessageContent
+import com.engboost.monitoringdevices.core.commonui.components.rememberDelayedVisibility
 import com.engboost.monitoringdevices.core.document.api.comparison.ChartRendering
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.DocumentViewerUiState
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.ViewerContent
@@ -32,6 +33,8 @@ internal fun DocumentViewerScreen(
     onBackClick: () -> Unit,
     onChartRenderingSelected: (ChartRendering) -> Unit,
     onPageSelected: (Int) -> Unit,
+    onPlayPauseClick: () -> Unit,
+    onSeek: (Long) -> Unit,
     onRetryClick: () -> Unit,
     onPasswordSubmit: (String) -> Unit,
     onPasswordDismiss: () -> Unit,
@@ -61,8 +64,9 @@ internal fun DocumentViewerScreen(
                 HorizontalDivider()
             }
 
+            val isLoadingVisible = rememberDelayedVisibility(state.content is ViewerContent.Loading)
             when (val content = state.content) {
-                ViewerContent.Loading -> LoadingContent(text = "Rendering document…")
+                ViewerContent.Loading -> if (isLoadingVisible) LoadingContent(text = "Opening…")
 
                 is ViewerContent.Html -> HtmlDocumentContent(
                     document = content.document,
@@ -71,8 +75,15 @@ internal fun DocumentViewerScreen(
                     modifier = Modifier.fillMaxSize()
                 )
 
-                is ViewerContent.NotImplemented -> MessageContent(
-                    title = "Viewing ${content.kind} files is not implemented yet"
+                is ViewerContent.Pdf -> PdfDocumentContent(document = content.document, modifier = Modifier.fillMaxSize())
+                is ViewerContent.Text -> TextDocumentContent(document = content.document, modifier = Modifier.fillMaxSize())
+                is ViewerContent.Image -> ImageDocumentContent(document = content.document, modifier = Modifier.fillMaxSize())
+                is ViewerContent.Audio -> AudioDocumentContent(
+                    document = content.document,
+                    playback = state.audioPlayback,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onSeek = onSeek,
+                    modifier = Modifier.fillMaxSize()
                 )
 
                 is ViewerContent.Error -> MessageContent(
