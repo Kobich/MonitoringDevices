@@ -33,10 +33,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import com.engboost.monitoringdevices.core.commonui.components.MessageContent
 import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
 
-/**
- * Fit to screen; pinch to zoom (up to 5x), drag to pan, double tap to toggle 2x / fit.
- * GIF and animated WebP play on Android 9+, otherwise their first frame is shown.
- */
 @Composable
 internal fun ImageDocumentContent(
     document: ImageDocument,
@@ -140,7 +136,6 @@ private fun ZoomableBox(content: @Composable () -> Unit) {
                                 offset = Offset.Zero
                             } else {
                                 scale = 2f
-                                // Zoom towards the tapped point.
                                 offset = clamp(Offset(width / 2 - tap.x, height / 2 - tap.y), 2f)
                             }
                         }

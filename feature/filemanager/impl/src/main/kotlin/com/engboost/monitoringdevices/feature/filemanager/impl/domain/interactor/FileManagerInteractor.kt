@@ -15,10 +15,7 @@ import javax.inject.Inject
 internal class FileManagerInteractor @Inject constructor(
     private val repository: FileStorageRepository
 ) {
-    /**
-     * Lists [path]. If the folder no longer exists (deleted or replaced by a file),
-     * falls back to the nearest existing parent.
-     */
+    /** Falls back to the nearest existing parent if the folder no longer exists. */
     suspend fun openDirectory(path: StoragePath): DirectoryContent {
         val existingPath = path.hierarchy()
             .asReversed()
@@ -52,11 +49,6 @@ internal class FileManagerInteractor @Inject constructor(
         return repository.importDirectory(sourceTree, destination)
     }
 
-    /**
-     * Export rule shared with the UI: a single file goes into a document created by the user
-     * ([ExportDestination.DOCUMENT]), anything else goes into a picked folder
-     * ([ExportDestination.FOLDER]).
-     */
     fun exportDestination(paths: List<StoragePath>, isSingleFile: Boolean): ExportDestination {
         return if (paths.size == 1 && isSingleFile) ExportDestination.DOCUMENT else ExportDestination.FOLDER
     }

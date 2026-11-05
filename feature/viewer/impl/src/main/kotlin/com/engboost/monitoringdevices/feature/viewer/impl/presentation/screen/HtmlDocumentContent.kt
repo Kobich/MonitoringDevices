@@ -23,7 +23,6 @@ import com.engboost.monitoringdevices.core.document.api.document.HtmlPage
 import java.io.ByteArrayInputStream
 import java.io.File
 
-/** Pages of an [HtmlDocument]; spreadsheets get sheet tabs. */
 @Composable
 internal fun HtmlDocumentContent(
     document: HtmlDocument,
@@ -46,7 +45,7 @@ internal fun HtmlDocumentContent(
             }
         }
 
-        // A new WebView per output folder: switching variants must not reuse cached pages.
+        // A new WebView per document folder, so pages of the previous document aren't reused.
         key(document.directory) {
             HtmlPageWebView(
                 directory = document.directory,
@@ -58,9 +57,8 @@ internal fun HtmlDocumentContent(
 }
 
 /**
- * Serves the converted document from its folder through [WebViewAssetLoader], so the WebView
- * needs neither file access nor network. Everything else is blocked: document content
- * is untrusted.
+ * Serves the document folder through [WebViewAssetLoader]: no file or network access,
+ * everything else is blocked, the content is untrusted.
  */
 @SuppressLint("SetJavaScriptEnabled")
 @Composable

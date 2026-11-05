@@ -43,7 +43,6 @@ internal class SampleFilesSeeder(
         media.writeSample("Old encoding (cp1251).txt", RUSSIAN_TEXT.toByteArray(charset("windows-1251")))
     }
 
-    /** A new sample set version replaces older copies of the samples. */
     private fun File.writeSample(name: String, content: ByteArray) {
         File(this, name).writeBytes(content)
     }

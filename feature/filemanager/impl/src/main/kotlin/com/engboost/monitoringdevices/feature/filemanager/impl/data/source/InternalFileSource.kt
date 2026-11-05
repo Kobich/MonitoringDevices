@@ -4,10 +4,7 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.Stor
 import java.io.File
 import java.io.IOException
 
-/**
- * Maps [StoragePath] to real files under [rootDirectory] and guarantees
- * that a path never escapes it (`..`, symlinks).
- */
+/** A path never escapes [rootDirectory] (`..`, symlinks). */
 internal class InternalFileSource(
     private val rootDirectory: File
 ) {
@@ -27,7 +24,6 @@ internal class InternalFileSource(
         return file
     }
 
-    /** Returns a not yet existing child of [directory] named after [rawName]. */
     fun uniqueChild(directory: File, rawName: String): File {
         val name = sanitizeFileName(rawName)
         val candidate = File(directory, name)
@@ -47,7 +43,6 @@ internal class InternalFileSource(
         private const val FALLBACK_NAME = "unnamed"
         private const val MAX_NAME_LENGTH = 200
 
-        /** Makes an externally provided name safe to use as a single path segment. */
         fun sanitizeFileName(rawName: String): String {
             val cleaned = rawName
                 .map { char -> if (char == '/' || char == '\\' || char.isISOControl()) '_' else char }

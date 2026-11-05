@@ -112,7 +112,6 @@ internal fun FileManagerScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            // Folder reads are usually instant: show progress only when they take noticeable time.
             val isProgressVisible = rememberDelayedVisibility(state.isBusy || state.isLoading)
             Box(modifier = Modifier.fillMaxWidth().height(4.dp)) {
                 if (isProgressVisible && state.entries.isNotEmpty()) {

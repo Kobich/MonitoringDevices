@@ -10,7 +10,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-/** `:core:document` has no DI framework: the app builds it once and exposes the reader. */
 @Module
 @InstallIn(SingletonComponent::class)
 object DocumentCoreModule {

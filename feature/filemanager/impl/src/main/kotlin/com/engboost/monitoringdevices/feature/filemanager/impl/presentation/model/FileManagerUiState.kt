@@ -10,9 +10,8 @@ internal data class FileManagerUiState(
     val breadcrumbs: List<BreadcrumbUi>,
     val isRoot: Boolean,
     val entries: List<FileEntryUi>,
-    /** Folder content is being read. */
     val isLoading: Boolean,
-    /** Import / export / delete / create is running, other operations are disabled. */
+    /** Import / export / delete / create is running. */
     val isBusy: Boolean,
     /** `null` in browse mode; non-null (and never empty) in selection mode. */
     val selection: SelectionUi?,
@@ -67,9 +66,7 @@ internal data class CreateDirectoryDialogUi(
 
 @Immutable
 internal sealed interface ExportPickerUi {
-    /** "Save as" picker for a single file. */
     data class CreateDocument(val fileName: String) : ExportPickerUi
 
-    /** Folder picker, selected items are copied inside. */
     data object PickFolder : ExportPickerUi
 }

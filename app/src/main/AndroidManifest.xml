@@ -2,8 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- The app supports API 23, OpenDocument.core needs 26: office readers are enabled
-         only on API 26+ (core/document/impl DocumentCore.officeReaders). -->
+    <!-- OpenDocument.core needs API 26 while the app supports 23:
+         office readers are registered only on API 26+, see DocumentCore. -->
     <uses-sdk tools:overrideLibrary="app.opendocument.core" />
 
     <application

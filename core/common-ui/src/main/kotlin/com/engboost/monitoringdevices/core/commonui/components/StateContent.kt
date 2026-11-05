@@ -18,7 +18,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.commonui.theme.MonitoringDevicesTheme
 
-/** Fills the available space and centers [content] as a column. */
 @Composable
 fun CenteredContent(
     modifier: Modifier = Modifier,
@@ -38,7 +37,6 @@ fun CenteredContent(
     }
 }
 
-/** Full-screen progress with an optional caption. */
 @Composable
 fun LoadingContent(
     modifier: Modifier = Modifier,
@@ -50,7 +48,6 @@ fun LoadingContent(
     }
 }
 
-/** Empty, error or info state: title, optional details and an optional action button. */
 @Composable
 fun MessageContent(
     title: String,

@@ -8,11 +8,8 @@ import com.engboost.monitoringdevices.core.document.impl.chart.ChartRasterizer
 import java.io.File
 
 /**
- * Office documents (docx, xlsx, pptx, odt, pages, ...) via OpenDocument.core.
- *
- * The library doesn't draw DrawingML charts: formats that have them pass a [chartRasterizer],
- * which replaces charts with pictures before rendering. If that fails (e.g. an encrypted
- * document is not a zip), the unchanged file is rendered.
+ * The library doesn't draw DrawingML charts: [chartRasterizer] replaces them with pictures first.
+ * If that fails (e.g. an encrypted document is not a zip), the unchanged file is rendered.
  */
 internal class OfficeReader(
     private val converter: OdrHtmlConverter,

@@ -13,11 +13,7 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-/**
- * Colored file icons: a page with a folded corner and a white glyph, or a two-tone folder.
- * Pure vectors (no bitmaps, no fonts), built once per kind. Colors are part of the icon,
- * so draw them with [FileTypeIcon] / `Image`, not with a tinted `Icon`.
- */
+/** Colors are part of the icons: draw them with [FileTypeIcon] / `Image`, not with a tinted `Icon`. */
 object FileTypeIcons {
     private val cache = mutableMapOf<FileKind, ImageVector>()
 

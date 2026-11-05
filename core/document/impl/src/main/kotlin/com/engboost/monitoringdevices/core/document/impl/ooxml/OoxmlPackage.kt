@@ -12,10 +12,7 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 
-/**
- * Read-modify-write access to an Office Open XML package (docx, pptx, xlsx): parsed parts are
- * cached, so edits accumulate; [writeTo] produces a copy with modified and added parts.
- */
+/** Parsed parts are cached, so edits accumulate; [writeTo] writes a copy with the changes. */
 internal class OoxmlPackage(private val zip: ZipFile) {
     private val parts = mutableMapOf<String, Document>()
     private val modifiedParts = linkedSetOf<String>()
@@ -25,7 +22,6 @@ internal class OoxmlPackage(private val zip: ZipFile) {
     val hasChanges: Boolean
         get() = addedFiles.isNotEmpty() || modifiedParts.isNotEmpty()
 
-    /** Main part from `_rels/.rels`, e.g. `word/document.xml` or `ppt/presentation.xml`. */
     fun mainPartPath(fallback: String): String {
         return relationships("").firstTargetOfType(REL_OFFICE_DOCUMENT) ?: fallback
     }
@@ -53,15 +49,11 @@ internal class OoxmlPackage(private val zip: ZipFile) {
         }
     }
 
-    /** Theme part of [partPath] (`word/theme/theme1.xml`, `ppt/theme/theme1.xml`), if any. */
     fun themeOf(partPath: String): Document? {
         return relationships(partPath).firstTargetOfType(OoxmlXml.REL_THEME)?.let(::partOrNull)
     }
 
-    /**
-     * Adds a PNG to the media folder of the document (`word/media`, `ppt/media`) and returns
-     * the id of a new image relationship of [partPath].
-     */
+    /** @return id of the new image relationship of [partPath]. */
     fun addImage(partPath: String, png: ByteArray): String {
         val relationships = relationships(partPath)
         val mediaFolder = if (partPath.contains('/')) "${partPath.substringBefore('/')}/media" else "media"
@@ -107,7 +99,6 @@ internal class OoxmlPackage(private val zip: ZipFile) {
 
         private val entries get() = document.documentElement.children(NS_PACKAGE_RELATIONSHIPS, "Relationship")
 
-        /** Resolved package path of the target of [id]. */
         fun target(id: String?): String? {
             id ?: return null
             val relationship = entries.firstOrNull { it.getAttribute("Id") == id } ?: return null

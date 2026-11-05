@@ -34,10 +34,6 @@ import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.document.api.document.PageSize
 import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
 
-/**
- * Pages in a vertical list, each rendered for the screen width when it becomes visible.
- * Pinch zoom and text selection are open questions (androidx.pdf viewer vs own).
- */
 @Composable
 internal fun PdfDocumentContent(
     document: PdfDocument,

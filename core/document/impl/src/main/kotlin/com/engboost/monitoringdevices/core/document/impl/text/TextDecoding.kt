@@ -5,11 +5,7 @@ import java.nio.CharBuffer
 import java.nio.charset.Charset
 import java.nio.charset.CodingErrorAction
 
-/**
- * Charset detection for plain text files: BOM, strict UTF-8, UTF-16 without BOM, then a
- * Windows-1251 / ISO-8859-1 heuristic. A dedicated detector (ICU `CharsetDetector`,
- * juniversalchardet) can replace the heuristic later.
- */
+/** A dedicated detector (ICU `CharsetDetector`, juniversalchardet) can replace the heuristics later. */
 internal object TextDecoding {
 
     class Decoded(val text: String, val charsetName: String)

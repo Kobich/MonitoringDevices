@@ -22,12 +22,6 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 
-/**
- * Images with `BitmapFactory`: only bounds are read on open, pixels are decoded
- * downsampled for the requested size. EXIF orientation is applied. GIF and animated WebP are
- * animated with `ImageDecoder` on Android 9+, older devices show the first frame.
- * HEIF needs Android 9+ as well.
- */
 internal class ImageReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : FormatReader<ImageDocument> {
@@ -125,7 +119,6 @@ internal class ImageReader(
             return drawable.takeIf { it is AnimatedImageDrawable }
         }
 
-        /** Exact downscale to the limits plus EXIF rotation/mirroring, in one pass. */
         private fun transform(bitmap: Bitmap, maxRawWidth: Int, maxRawHeight: Int): Bitmap {
             val scale = minOf(1f, maxRawWidth.toFloat() / bitmap.width, maxRawHeight.toFloat() / bitmap.height)
             val matrix = Matrix().apply {

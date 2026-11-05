@@ -11,7 +11,6 @@ import javax.xml.transform.TransformerFactory
 import javax.xml.transform.dom.DOMSource
 import javax.xml.transform.stream.StreamResult
 
-/** Namespaces and DOM helpers for Office Open XML parts. */
 internal object OoxmlXml {
     const val NS_CHART = "http://schemas.openxmlformats.org/drawingml/2006/chart"
     const val NS_DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"
@@ -60,7 +59,6 @@ internal object OoxmlXml {
         return (0 until nodes.length).mapNotNull { index -> nodes.item(index) as? Element }
     }
 
-    /** Descendant by a path of local names in one namespace, e.g. `tx/strRef/strCache`. */
     fun Element.path(namespace: String, vararg localNames: String): Element? {
         return localNames.fold(this as Element?) { element, name -> element?.child(namespace, name) }
     }

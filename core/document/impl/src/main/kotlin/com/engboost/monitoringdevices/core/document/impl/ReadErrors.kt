@@ -4,10 +4,7 @@ import com.engboost.monitoringdevices.core.document.api.DocumentReadException
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
 import java.io.IOException
 
-/**
- * Keeps the API promise that only [DocumentReadException] leaves the module: other I/O errors
- * become [Reason.IO_ERROR], lack of memory becomes [Reason.TOO_LARGE].
- */
+/** Only [DocumentReadException] may leave the module: other I/O errors and lack of memory are mapped to it. */
 internal inline fun <T> mapReadErrors(block: () -> T): T {
     return try {
         block()

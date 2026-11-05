@@ -2,7 +2,7 @@
 <manifest xmlns:tools="http://schemas.android.com/tools">
 
     <!-- OpenDocument.core declares minSdk 26 while the app supports 23.
-         Its classes are touched only on API 26+, see DocumentCore.officeReaders. -->
+         Its classes are touched only on API 26+, see DocumentCore. -->
     <uses-sdk tools:overrideLibrary="app.opendocument.core" />
 
 </manifest>

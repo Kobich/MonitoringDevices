@@ -2,7 +2,6 @@ package com.engboost.monitoringdevices.core.document.api
 
 import java.io.File
 
-/** Supported formats, one entry per file type, recognized by file extension. */
 enum class DocumentFormat(vararg extensions: String) {
     PDF("pdf"),
 
@@ -50,7 +49,6 @@ enum class DocumentFormat(vararg extensions: String) {
     val extensions: Set<String> = extensions.toSet()
 
     companion object {
-        /** `null` if the file type isn't supported. */
         fun of(file: File): DocumentFormat? {
             val extension = file.extension.lowercase()
             return entries.firstOrNull { format -> extension in format.extensions }

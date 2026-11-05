@@ -8,10 +8,7 @@ import com.engboost.monitoringdevices.core.document.impl.office.OdrHtmlConverter
 import java.io.File
 import java.io.IOException
 
-/**
- * Markdown formatted by OpenDocument.core; plain text when the library isn't available
- * ([converter] is `null` below API 26) or fails, so `.md` files always open.
- */
+/** Plain text when OpenDocument.core isn't available (below API 26) or fails. */
 internal class MarkdownReader(
     private val converter: OdrHtmlConverter?,
     private val textReader: TextReader

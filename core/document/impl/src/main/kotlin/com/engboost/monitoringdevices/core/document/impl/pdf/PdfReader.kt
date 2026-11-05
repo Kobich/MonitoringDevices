@@ -26,8 +26,7 @@ import java.io.File
 import java.io.IOException
 
 /**
- * PDF with the platform `PdfRenderer`: no dependencies, good quality.
- * Limits to decide on later: passwords need Android 15 (API 35), no text extraction.
+ * Open questions: passwords need Android 15 (API 35), no text extraction.
  * Alternatives: androidx.pdf, pdfium.
  */
 internal class PdfReader(
@@ -95,7 +94,7 @@ internal class PdfReader(
         override val pageCount: Int = renderer.pageCount
 
         override suspend fun pageSize(pageIndex: Int): PageSize = withPage(pageIndex) { page ->
-            // PdfRenderer reports sizes in points (1/72 inch); broken files may report zero.
+            // Broken files may report zero.
             PageSize(widthPt = page.width.coerceAtLeast(1), heightPt = page.height.coerceAtLeast(1))
         }
 

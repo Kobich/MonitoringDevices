@@ -14,10 +14,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
 
-/**
- * Top bar with a single-line title and a navigation button (Back by default).
- * Doesn't expose experimental Material 3 types, so callers need no opt-in.
- */
+/** Doesn't expose experimental Material 3 types, so callers need no opt-in. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BackTopAppBar(

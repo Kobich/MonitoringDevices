@@ -19,10 +19,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * The only class that talks to OpenDocument.core: office file -> folder with HTML pages.
- * Native calls run one at a time (mutex) until the library's thread safety is confirmed.
- */
+/** Native calls run one at a time until the library's thread safety is confirmed. */
 internal class OdrHtmlConverter(
     private val cache: RenderCache,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -41,9 +38,8 @@ internal class OdrHtmlConverter(
         variant: String,
         prepare: (file: File, workDirectory: File) -> File = { original, _ -> original }
     ): HtmlDocument = withContext(ioDispatcher) {
-        // A document opened with a password is cached under that password only: opening it again
-        // without one misses the cache, so the library asks for the password again.
-        // The cache key is hashed, the password itself is not written anywhere.
+        // Cached under the password, so opening without it asks for the password again.
+        // The key is hashed: the password isn't written anywhere.
         val cacheVariant = if (password == null) variant else "$variant|password:$password"
 
         // A ready document doesn't wait for another one being converted.

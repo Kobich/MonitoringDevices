@@ -8,11 +8,8 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 /**
- * Converted documents on disk: one folder per (file version, variant) with a small manifest
- * of pages. A folder appears atomically (rename), so an interrupted conversion leaves nothing.
- *
- * The cache keeps at most [maxBytes]: after each new entry the least recently used ones are removed,
- * together with temporary folders left by a previous process that was killed mid-conversion.
+ * One folder per (file version, variant), published atomically by rename.
+ * Above [maxBytes] the least recently used entries are removed after each new one.
  */
 internal class RenderCache(
     private val rootDirectory: File,
@@ -44,7 +41,6 @@ internal class RenderCache(
         return Entry(directory, pages)
     }
 
-    /** Runs [render] in an empty temporary folder; on success the folder becomes the entry. */
     fun store(file: File, variant: String, render: (outputDirectory: File) -> List<HtmlPage>): Entry {
         val target = entryDirectory(file, variant)
         val temporary = newTemporaryDirectory()
@@ -76,7 +72,6 @@ internal class RenderCache(
         return directory
     }
 
-    /** A changed file (size or modification time) gets a new entry. */
     private fun entryDirectory(file: File, variant: String): File {
         val key = "$CACHE_VERSION|$variant|${file.canonicalPath}|${file.length()}|${file.lastModified()}"
         return File(rootDirectory, sha1(key))

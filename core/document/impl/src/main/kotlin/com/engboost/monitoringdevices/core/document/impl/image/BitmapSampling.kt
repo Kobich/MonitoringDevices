@@ -1,11 +1,7 @@
 package com.engboost.monitoringdevices.core.document.impl.image
 
 internal object BitmapSampling {
-    /**
-     * Largest power of two (`BitmapFactory.Options.inSampleSize`) for an image of
-     * [width] x [height] that will be scaled to fit into [maxWidth] x [maxHeight]:
-     * the decoded bitmap stays at least as large as the fitted result, never smaller.
-     */
+    /** Power of two that keeps the decoded bitmap at least as large as the image fitted into the box. */
     fun sampleSize(width: Int, height: Int, maxWidth: Int, maxHeight: Int): Int {
         val boxWidth = maxWidth.coerceAtLeast(1)
         val boxHeight = maxHeight.coerceAtLeast(1)

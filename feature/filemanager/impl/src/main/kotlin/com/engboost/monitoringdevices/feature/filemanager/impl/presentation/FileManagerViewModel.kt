@@ -25,13 +25,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-/**
- * Gestures:
- * - browse mode: tap opens a folder or a file, long press enters selection mode
- *   with the pressed item selected;
- * - selection mode: tap or long press toggles an item, deselecting the last one
- *   (or Close / Back) returns to browse mode.
- */
 @HiltViewModel
 internal class FileManagerViewModel @Inject constructor(
     private val interactor: FileManagerInteractor,
@@ -82,8 +75,6 @@ internal class FileManagerViewModel @Inject constructor(
         loadDirectory(currentPath)
     }
 
-    // region Navigation and gestures
-
     fun onEntryClick(entry: FileEntryUi) {
         when {
             uiState.isSelectionMode -> toggleSelection(entry)
@@ -104,7 +95,7 @@ internal class FileManagerViewModel @Inject constructor(
         loadDirectory(StoragePath(breadcrumb.path))
     }
 
-    /** System Back / top bar arrow: leaves selection mode first, then goes up. */
+    /** Leaves selection mode first, then goes up. */
     fun onNavigateUp() {
         if (uiState.isSelectionMode) {
             onSelectionClose()
@@ -116,10 +107,6 @@ internal class FileManagerViewModel @Inject constructor(
     fun onFileOpenHandled() {
         uiState = uiState.copy(fileToOpen = null)
     }
-
-    // endregion
-
-    // region Selection
 
     fun onSelectionClose() {
         uiState = uiState.copy(selection = null)
@@ -167,10 +154,6 @@ internal class FileManagerViewModel @Inject constructor(
         val selection = uiState.selection ?: return emptyList()
         return uiState.entries.filter { entry -> entry in selection }
     }
-
-    // endregion
-
-    // region Storage operations
 
     fun onImportFilesSelected(uris: List<Uri>) {
         if (uris.isEmpty()) return
@@ -256,8 +239,6 @@ internal class FileManagerViewModel @Inject constructor(
         uiState = uiState.copy(message = null)
     }
 
-    // endregion
-
     private fun openFile(entry: FileEntryUi) {
         viewModelScope.launch {
             try {
@@ -313,10 +294,7 @@ internal class FileManagerViewModel @Inject constructor(
         )
     }
 
-    /**
-     * Runs a modifying operation, one at a time. [block] returns a message to show
-     * (or `null`), the current folder is reloaded afterwards.
-     */
+    /** One operation at a time; [block] returns a message to show, the folder is reloaded afterwards. */
     private fun runOperation(failurePrefix: String, block: suspend () -> String?) {
         if (operationJob?.isActive == true) {
             uiState = uiState.copy(message = "Wait for the current operation to finish")

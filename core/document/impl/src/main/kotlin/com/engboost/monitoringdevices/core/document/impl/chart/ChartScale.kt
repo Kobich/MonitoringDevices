@@ -1,6 +1,5 @@
 package com.engboost.monitoringdevices.core.document.impl.chart
 
-/** Pixel density of chart pictures, shared by the rasterizers and [ChartImageRenderer]. */
 internal object ChartScale {
     /** Pictures are drawn at 2x of 96 dpi to stay sharp when zoomed in. */
     const val RENDER_SCALE = 2.0
@@ -11,6 +10,5 @@ internal object ChartScale {
     private const val MIN_SIDE_PX = 64
     private const val MAX_SIDE_PX = 2400
 
-    /** Picture size for a drawing of [emu] English Metric Units. */
     fun emuToPx(emu: Long): Int = (emu / EMU_PER_PX * RENDER_SCALE).toInt().coerceIn(MIN_SIDE_PX, MAX_SIDE_PX)
 }

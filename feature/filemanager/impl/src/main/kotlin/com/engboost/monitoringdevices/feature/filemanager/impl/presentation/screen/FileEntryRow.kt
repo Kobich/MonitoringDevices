@@ -24,10 +24,6 @@ import com.engboost.monitoringdevices.core.commonui.components.SelectionIndicato
 import com.engboost.monitoringdevices.core.commonui.icons.FileTypeIcon
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 
-/**
- * Stateless row: the ViewModel decides what tap and long press mean in the current mode.
- * In selection mode a round mark slides in to the left of the file icon.
- */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun FileEntryRow(

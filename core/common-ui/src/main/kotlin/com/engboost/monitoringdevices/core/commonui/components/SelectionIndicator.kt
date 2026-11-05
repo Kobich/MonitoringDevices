@@ -23,10 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
 import com.engboost.monitoringdevices.core.commonui.theme.MonitoringDevicesTheme
 
-/**
- * Round selection mark for list items in selection mode: an outlined circle,
- * filled with a check when selected. Display only, the row handles clicks.
- */
+/** Display only: the row handles clicks. */
 @Composable
 fun SelectionIndicator(
     selected: Boolean,

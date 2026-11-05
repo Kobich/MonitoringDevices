@@ -24,7 +24,7 @@ internal value class StoragePath(val value: String) {
         return StoragePath(if (isRoot) name else "$value$SEPARATOR$name")
     }
 
-    /** All paths from the root to this path, inclusive. */
+    /** From the root to this path, inclusive. */
     fun hierarchy(): List<StoragePath> {
         return generateSequence(this) { path -> path.parent() }
             .toList()

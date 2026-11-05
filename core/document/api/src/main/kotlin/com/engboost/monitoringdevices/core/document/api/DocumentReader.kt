@@ -4,24 +4,8 @@ import com.engboost.monitoringdevices.core.document.api.document.Document
 import java.io.File
 
 /**
- * Opens any supported file:
- *
- * ```
- * reader.read(file).use { document ->
- *     when (document) {
- *         is PdfDocument -> ...
- *         is HtmlDocument -> ...
- *         is TextDocument -> ...
- *         is ImageDocument -> ...
- *         is AudioDocument -> ...
- *     }
- * }
- * ```
- *
  * The format comes from the file extension. Heavy work runs off the main thread.
- * The caller owns the returned document and must close it.
- *
- * @throws DocumentReadException with a [DocumentReadException.Reason].
+ * The caller must close the returned document.
  */
 interface DocumentReader {
     @Throws(DocumentReadException::class)

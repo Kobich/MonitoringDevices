@@ -46,7 +46,6 @@ internal object SampleMedia {
         }
     }
 
-    /** Gradient picture with a big label, clearly a photo-like image and not a chart. */
     fun png(
         label: String = "Sample image",
         startColor: Int = 0xFF2F6FE4.toInt(),
@@ -65,7 +64,6 @@ internal object SampleMedia {
             canvas.drawRect(0f, 0f, w, h, paint)
             paint.shader = null
 
-            // Sun and hills, so it reads as a picture at a glance.
             paint.color = 0x66FFFFFF
             canvas.drawCircle(w * 0.75f, h * 0.3f, h * 0.16f, paint)
             paint.color = 0x55000000
@@ -94,7 +92,6 @@ internal object SampleMedia {
         }
     }
 
-    /** 16-bit mono PCM WAV: a short chord that fades out. */
     fun wav(seconds: Int = 4, sampleRate: Int = 22_050): ByteArray {
         val samples = seconds * sampleRate
         val pcm = ByteBuffer.allocate(samples * 2).order(ByteOrder.LITTLE_ENDIAN)

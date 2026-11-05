@@ -17,8 +17,8 @@ import java.io.File
 import java.util.zip.ZipFile
 
 /**
- * DOCX: every chart of the main document (`a:graphicData` with `c:chart`) becomes a picture
- * (`pic:pic`) with the same size and position. Charts we can't parse stay untouched.
+ * Each chart of the main document becomes a picture of the same size.
+ * Charts we can't parse stay untouched.
  */
 internal class DocxChartRasterizer(
     private val renderer: ChartImageRenderer,
@@ -53,7 +53,6 @@ internal class DocxChartRasterizer(
         }
     }
 
-    /** Size of the drawing in EMU (`wp:extent`). */
     private fun Element.extent(): Pair<Long, Long>? {
         val drawing = ancestor(NS_WORD_DRAWING, "inline", "anchor") ?: return null
         val extent = drawing.child(NS_WORD_DRAWING, "extent") ?: return null
@@ -62,7 +61,6 @@ internal class DocxChartRasterizer(
         return (cx to cy).takeIf { cx > 0 && cy > 0 }
     }
 
-    /** Turns `a:graphicData` with a chart into the one Word writes for a picture. */
     private fun Element.replaceWithPicture(document: Document, imageId: String, cx: Long, cy: Long, index: Int) {
         childElements().forEach { child -> removeChild(child) }
         setAttribute("uri", NS_PICTURE)

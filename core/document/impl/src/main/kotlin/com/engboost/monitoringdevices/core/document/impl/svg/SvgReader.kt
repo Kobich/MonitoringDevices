@@ -10,10 +10,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
 
-/**
- * SVG has no platform decoder, but every WebView renders it. The file is shown through an
- * `<img>` tag in a small page, so scripts inside the SVG never run. Works on every API level.
- */
+/** The SVG is shown through `<img>`, so its scripts never run. */
 internal class SvgReader(
     private val cache: RenderCache,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO

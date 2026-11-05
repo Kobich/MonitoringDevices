@@ -13,7 +13,7 @@ import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
 
-/** Draws a chart into PNG bytes with `android.graphics`, following the look of Word's default chart style. */
+/** PNG in Word's default chart style. */
 internal class ChartImageRenderer {
     fun render(chart: ChartModel, theme: ChartTheme, widthPx: Int, heightPx: Int): ByteArray {
         val bitmap = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
@@ -71,8 +71,6 @@ private class ChartPainter(
         }
     }
 
-    // region Title and legend
-
     private fun drawTitle(title: String, area: RectF) {
         val lines = title.lines().filter { line -> line.isNotBlank() }
         var baseline = area.top - titlePaint.ascent()
@@ -114,7 +112,6 @@ private class ChartPainter(
 
         when (position) {
             LegendPosition.TOP, LegendPosition.BOTTOM -> {
-                // Wrap items into centered rows.
                 val rows = mutableListOf<MutableList<LegendItem>>(mutableListOf())
                 var rowWidth = 0f
                 items.forEach { item ->
@@ -171,10 +168,6 @@ private class ChartPainter(
         canvas.drawText(text, left + marker + gap, centerY - (paint.ascent() + paint.descent()) / 2, paint)
     }
 
-    // endregion
-
-    // region Category charts: bars, lines, areas
-
     private fun drawCategoryPlots(plots: List<ChartPlot>, area: RectF) {
         val horizontal = plots.any { plot -> plot.type == PlotType.BAR && plot.barDirection == BarDirection.BAR }
         // Word can't combine horizontal bars with lines; keep the bars only in that case.
@@ -197,7 +190,6 @@ private class ChartPainter(
         val isPercent = drawable.all { plot -> plot.grouping == Grouping.PERCENT_STACKED }
         val tickLabels = ticks.map { tick -> formatNumber(tick) + if (isPercent) "%" else "" }
 
-        // Reserve space for the axis labels.
         val valueLabelWidth = tickLabels.maxOf { label -> labelPaint.measureText(label) } + pt(4.0)
         val labelHeight = labelPaint.fontSpacing + pt(2.0)
         val categoryLabelWidth = if (horizontal) {
@@ -252,14 +244,13 @@ private class ChartPainter(
             return if (horizontal) plot.left + fraction * plot.width() else plot.bottom - fraction * plot.height()
         }
 
-        /** Start of the category slot along the category axis; Word puts the first bar category at the bottom. */
+        /** Word puts the first bar category at the bottom. */
         fun slotStart(index: Int): Float {
             return if (horizontal) plot.bottom - (index + 1) * slot else plot.left + index * slot
         }
 
         fun slotCenter(index: Int): Float = slotStart(index) + slot / 2
 
-        /** Rectangle between two values across a part of a slot. */
         fun bar(slotOffsetStart: Float, slotOffsetEnd: Float, index: Int, from: Double, to: Double): RectF {
             val start = slotStart(index)
             val a = valuePosition(from)
@@ -293,7 +284,7 @@ private class ChartPainter(
         }
     }
 
-    /** Values of a category for drawing: percent of the category total for 100% charts. */
+    /** For 100% charts: percent of the category total. */
     private fun plotValue(plot: ChartPlot, seriesIndex: Int, categoryIndex: Int): Double? {
         val value = plot.series[seriesIndex].values.getOrNull(categoryIndex) ?: return null
         if (plot.grouping != Grouping.PERCENT_STACKED) return value
@@ -429,10 +420,6 @@ private class ChartPainter(
         }
     }
 
-    // endregion
-
-    // region Pie and scatter
-
     private fun drawPie(plot: ChartPlot, area: RectF) {
         val series = plot.series.firstOrNull() ?: return
         val values = series.values.map { value -> max(0.0, value ?: 0.0) }
@@ -503,8 +490,6 @@ private class ChartPainter(
             seriesPoints.forEach { (x, y) -> canvas.drawCircle(xPosition(x), yPosition(y), pt(2.5), fillPaint) }
         }
     }
-
-    // endregion
 
     private fun seriesColor(series: ChartSeries, index: Int): Int = series.color ?: theme.accent(index)
 

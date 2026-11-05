@@ -26,10 +26,7 @@ internal abstract class FileManagerFeatureModule {
     abstract fun bindRepository(impl: DefaultFileStorageRepository): FileStorageRepository
 
     companion object {
-        /**
-         * Root of the browsable storage. Context.dataDir would also expose
-         * databases/, shared_prefs/ and cache/.
-         */
+        /** Not `Context.dataDir`: it would also expose databases/, shared_prefs/ and cache/. */
         @Provides
         @Singleton
         fun provideInternalFileSource(@ApplicationContext context: Context): InternalFileSource {

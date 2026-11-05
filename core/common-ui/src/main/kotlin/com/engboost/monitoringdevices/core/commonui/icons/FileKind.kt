@@ -1,6 +1,5 @@
 package com.engboost.monitoringdevices.core.commonui.icons
 
-/** Visual kind of a file system entry, decides its icon. Detection uses only the name. */
 enum class FileKind {
     FOLDER,
     PDF,

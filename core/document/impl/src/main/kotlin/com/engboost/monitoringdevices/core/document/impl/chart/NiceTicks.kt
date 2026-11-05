@@ -5,7 +5,6 @@ import kotlin.math.floor
 import kotlin.math.log10
 import kotlin.math.pow
 
-/** About five round steps (1, 2, 2.5, 5 x 10^n) covering [low]..[high], like Word's automatic axis. */
 internal fun niceTicks(low: Double, high: Double): List<Double> {
     val range = if (high > low) high - low else 1.0
     val rough = range / 5

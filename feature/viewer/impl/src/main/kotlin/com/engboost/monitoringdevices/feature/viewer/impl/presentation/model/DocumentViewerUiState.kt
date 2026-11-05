@@ -12,11 +12,10 @@ internal data class DocumentViewerUiState(
     val title: String,
     val content: ViewerContent,
     val passwordDialog: PasswordDialogUi?,
-    /** Present while an audio document is shown. */
     val audioPlayback: AudioPlaybackUi?
 )
 
-/** One case per document kind; the documents stay owned (and closed) by the ViewModel. */
+/** The documents stay owned (and closed) by the ViewModel. */
 @Immutable
 internal sealed interface ViewerContent {
     data object Loading : ViewerContent

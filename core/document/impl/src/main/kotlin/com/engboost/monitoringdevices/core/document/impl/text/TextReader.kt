@@ -12,10 +12,6 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
 
-/**
- * Reads at most [maxChars] characters of a text file with charset detection.
- * Also shows Markdown as plain text when it can't be formatted, see [MarkdownReader].
- */
 internal class TextReader(
     private val maxChars: Int = DEFAULT_MAX_CHARS,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO

@@ -7,10 +7,7 @@ import android.net.Uri
 import androidx.activity.result.contract.ActivityResultContract
 import com.engboost.monitoringdevices.feature.filemanager.impl.util.mimeTypeOf
 
-/**
- * System "Save as" picker for a file named like the input. Unlike
- * `ActivityResultContracts.CreateDocument`, the MIME type follows each file name.
- */
+/** Unlike `ActivityResultContracts.CreateDocument`, the MIME type follows each file name. */
 internal class CreateDocumentContract : ActivityResultContract<String, Uri?>() {
     override fun createIntent(context: Context, input: String): Intent {
         return Intent(Intent.ACTION_CREATE_DOCUMENT)

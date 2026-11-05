@@ -64,8 +64,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         load()
     }
 
-    // region Document
-
     fun onPageSelected(index: Int) {
         val content = uiState.content as? ViewerContent.Html ?: return
         uiState = uiState.copy(content = content.copy(selectedPageIndex = index))
@@ -108,7 +106,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     private fun show(document: Document) {
-        // Exhaustive: a new document kind must be handled here.
         val content = when (document) {
             is HtmlDocument -> ViewerContent.Html(document = document, selectedPageIndex = 0)
             is PdfDocument -> ViewerContent.Pdf(document)
@@ -142,10 +139,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         openedDocument = document
     }
 
-    // endregion
-
-    // region Audio
-
     fun onPlayPauseClick() {
         val player = audioPlayer ?: return
         if (player.isPlaying) {
@@ -163,7 +156,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         updatePlayback(positionMs = positionMs)
     }
 
-    /** The screen went to background: don't keep playing behind the user's back. */
     fun onScreenStopped() {
         val player = audioPlayer ?: return
         if (player.isPlaying) {
@@ -236,8 +228,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         audioPlayer = null
         uiState = uiState.copy(audioPlayback = null)
     }
-
-    // endregion
 
     override fun onCleared() {
         stopProgressUpdates()

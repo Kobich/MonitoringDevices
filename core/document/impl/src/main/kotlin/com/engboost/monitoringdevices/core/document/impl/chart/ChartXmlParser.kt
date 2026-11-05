@@ -12,8 +12,8 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 
 /**
- * Reads chart parts (`word/charts/chartN.xml`). Values come from the caches Word stores
- * next to the formulas (`c:numCache`, `c:strCache`); the embedded workbook is not opened.
+ * Values come from the caches stored next to the formulas (`c:numCache`, `c:strCache`);
+ * the embedded workbook is not opened.
  */
 internal class ChartXmlParser {
 
@@ -48,7 +48,6 @@ internal class ChartXmlParser {
         return ChartModel(title = title, plots = plots, legendPosition = legendPosition)
     }
 
-    /** Accent colors from a theme part (`word/theme/themeN.xml`). */
     fun parseTheme(themePart: Document): ChartTheme {
         val scheme = themePart.documentElement.descendants(NS_DRAWING, "clrScheme").firstOrNull()
             ?: return ChartTheme()
@@ -150,7 +149,7 @@ internal class ChartXmlParser {
         return points(cache).map { value -> value?.toDoubleOrNull() }
     }
 
-    /** `c:pt idx=..` entries placed by index, missing points stay `null`. */
+    /** Placed by `idx`, missing points stay `null`. */
     private fun points(cache: Element): List<String?> {
         val declaredCount = cache.child(NS_CHART, "ptCount")?.valAttribute()?.toIntOrNull()
         val points = cache.children(NS_CHART, "pt").mapNotNull { pt ->
@@ -172,7 +171,6 @@ internal class ChartXmlParser {
         }
     }
 
-    /** `a:srgbClr` or `a:schemeClr accentN` directly inside [element]. */
     private fun colorOf(element: Element, theme: ChartTheme = ChartTheme()): Int? {
         element.child(NS_DRAWING, "srgbClr")?.valAttribute()?.let { hex ->
             return hex.toLongOrNull(16)?.let { rgb -> (0xFF000000 or rgb).toInt() }

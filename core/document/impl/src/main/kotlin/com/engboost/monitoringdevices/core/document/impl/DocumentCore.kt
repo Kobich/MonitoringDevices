@@ -33,10 +33,7 @@ import com.engboost.monitoringdevices.core.document.impl.text.MarkdownReader
 import com.engboost.monitoringdevices.core.document.impl.text.TextReader
 import java.io.File
 
-/**
- * Builds the [DocumentReader]. No DI framework inside: create one per process
- * (e.g. a Hilt `@Singleton`) and use `DocumentCore(context).reader.read(file)`.
- */
+/** Create one per process: readers share the conversion cache and its lock. */
 class DocumentCore(context: Context) {
 
     val reader: DocumentReader

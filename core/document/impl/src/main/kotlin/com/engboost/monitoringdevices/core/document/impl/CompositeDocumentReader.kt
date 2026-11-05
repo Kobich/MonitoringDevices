@@ -7,7 +7,6 @@ import com.engboost.monitoringdevices.core.document.api.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.document.Document
 import java.io.File
 
-/** Finds the reader for the file extension and delegates to it. */
 internal class CompositeDocumentReader(
     private val readers: List<FormatReader<Document>>
 ) : DocumentReader {

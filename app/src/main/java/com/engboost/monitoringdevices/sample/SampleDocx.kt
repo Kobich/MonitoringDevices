@@ -4,10 +4,7 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
-/**
- * TEMPORARY: builds small .docx files with tables, pictures and DrawingML charts for trying
- * the viewer. Remove together with [SampleFilesSeeder].
- */
+/** TEMPORARY: sample .docx files for the viewer. Remove together with [SampleFilesSeeder]. */
 internal object SampleDocx {
 
     class Chart(
@@ -22,9 +19,7 @@ internal object SampleDocx {
     sealed interface Block {
         data class Heading(val text: String) : Block
         data class Paragraph(val text: String) : Block
-        /** Small italic line above a picture or a chart, says what it is. */
         data class Caption(val text: String) : Block
-        /** Embedded PNG shown at [widthCm] x [heightCm]. */
         class Picture(val png: ByteArray, val widthCm: Double, val heightCm: Double, val description: String) : Block
         data class Table(val rows: List<List<String>>) : Block
         data class ChartBlock(val chart: Chart) : Block

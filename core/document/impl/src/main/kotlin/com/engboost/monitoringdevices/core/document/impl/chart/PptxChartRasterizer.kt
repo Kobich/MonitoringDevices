@@ -13,11 +13,7 @@ import org.w3c.dom.Element
 import java.io.File
 import java.util.zip.ZipFile
 
-/**
- * PPTX: on every slide each chart frame (`p:graphicFrame` holding `c:chart`) becomes a picture
- * (`p:pic`) with the same id, name, position and size. Charts we can't parse stay untouched.
- * Charts on slide layouts and masters are left as they are.
- */
+/** Charts on slide layouts and masters, and charts we can't parse, stay untouched. */
 internal class PptxChartRasterizer(
     private val renderer: ChartImageRenderer,
     private val parser: ChartXmlParser = ChartXmlParser()
@@ -75,7 +71,6 @@ internal class PptxChartRasterizer(
         }
     }
 
-    /** The `p:pic` PowerPoint writes for an inserted picture. */
     private fun Document.picture(
         id: String,
         name: String,

@@ -18,9 +18,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 
 /**
- * Audio info with platform APIs: tags and cover from `MediaMetadataRetriever`, sample rate and
- * channels from `MediaExtractor`. All of it is optional: a file whose tags can't be read still
- * opens, and the player reports real playback problems.
+ * All of it is optional: a file whose tags can't be read still opens,
+ * the player reports real playback problems.
  */
 internal class AudioReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -79,7 +78,6 @@ internal class AudioReader(
         )
     }
 
-    /** First audio track of the file. */
     private fun readTrack(file: File): Track? {
         val extractor = MediaExtractor()
         try {

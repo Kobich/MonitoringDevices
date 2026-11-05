@@ -10,10 +10,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
-/**
- * Needs `DocumentReader` (`:core:document:api`) from the host app's graph,
- * see `DocumentCoreModule` in `:app`.
- */
+/** Needs `DocumentReader` from the host app's graph, see `DocumentCoreModule` in `:app`. */
 @Module
 @InstallIn(SingletonComponent::class)
 internal abstract class DocumentViewerFeatureModule {

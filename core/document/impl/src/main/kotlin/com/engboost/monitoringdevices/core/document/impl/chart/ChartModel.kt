@@ -1,26 +1,22 @@
 package com.engboost.monitoringdevices.core.document.impl.chart
 
-/** What we understand of a DrawingML chart (`c:chartSpace`), enough to draw it. */
 internal data class ChartModel(
     val title: String?,
-    /** One plot for a simple chart, several for a combo chart (e.g. bars + line). */
+    /** Several for a combo chart, e.g. bars + line. */
     val plots: List<ChartPlot>,
-    /** `null` when the chart has no legend. */
     val legendPosition: LegendPosition?
 )
 
 internal data class ChartPlot(
     val type: PlotType,
-    /** For [PlotType.BAR]: vertical columns or horizontal bars. */
     val barDirection: BarDirection = BarDirection.COLUMN,
     val grouping: Grouping = Grouping.STANDARD,
-    /** Gap between bar clusters in percent of a bar width (`c:gapWidth`). */
+    /** Percent of a bar width. */
     val gapWidthPercent: Int = 150,
-    /** For [PlotType.DOUGHNUT]: hole size in percent of the radius. */
+    /** Percent of the radius. */
     val holeSizePercent: Int = 50,
-    /** For pie charts: angle of the first slice in degrees, clockwise from 12 o'clock. */
+    /** Degrees clockwise from 12 o'clock. */
     val firstSliceAngle: Int = 0,
-    /** Pie and other charts with `c:varyColors`: every point gets its own color. */
     val varyColors: Boolean = false,
     val categories: List<String>,
     val series: List<ChartSeries>
@@ -33,7 +29,7 @@ internal data class ChartSeries(
     val xValues: List<Double?>? = null,
     /** ARGB, `null` to use the theme palette by series index. */
     val color: Int? = null,
-    /** Per-point overrides (`c:dPt`), mostly for pie slices. */
+    /** `c:dPt`: point index -> ARGB. */
     val pointColors: Map<Int, Int> = emptyMap()
 )
 
@@ -45,7 +41,6 @@ internal enum class Grouping { STANDARD, STACKED, PERCENT_STACKED }
 
 internal enum class LegendPosition { RIGHT, LEFT, TOP, BOTTOM }
 
-/** Theme accent colors (`a:accent1`..`a:accent6`), ARGB. Defaults are the Office theme. */
 internal data class ChartTheme(
     val accents: List<Int> = OFFICE_ACCENTS
 ) {

@@ -15,9 +15,8 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.unit.dp
 
 /**
- * Every icon used in the app, so features don't depend on where an icon comes from
- * (Material set or our own vector). Use with `Icon(imageVector = AppIcons.Folder, ...)`.
- * Colored file type icons are in [FileTypeIcons].
+ * All app icons: features use these, not `Icons.*` or drawables.
+ * Colored file icons are in [FileTypeIcons].
  */
 object AppIcons {
     val Back: ImageVector get() = Icons.AutoMirrored.Filled.ArrowBack
@@ -48,7 +47,6 @@ object AppIcons {
         )
     }
 
-    /** 24dp single-path icon; the color comes from `Icon(tint = ...)`. */
     private fun icon(name: String, pathData: String): ImageVector {
         return ImageVector.Builder(
             name = name,
