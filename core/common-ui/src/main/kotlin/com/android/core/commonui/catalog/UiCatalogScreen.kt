@@ -18,13 +18,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -34,12 +32,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.android.core.commonui.components.BackTopAppBar
-import com.android.core.commonui.components.ChoiceDialog
-import com.android.core.commonui.components.ChoiceDialogUi
 import com.android.core.commonui.components.ConfirmDialog
 import com.android.core.commonui.components.ConnectionStatus
 import com.android.core.commonui.components.ConnectionStatusIndicator
-import com.android.core.commonui.components.DialogChoice
 import com.android.core.commonui.components.ProgressBar
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.icons.FileKind
@@ -47,26 +42,27 @@ import com.android.core.commonui.icons.FileTypeIcon
 import com.android.core.commonui.theme.MonitoringDevicesTheme
 
 /**
- * Everything common-ui offers on one screen: dialogs (opened by buttons), components and icons.
- * A new component or [AppIcons] entry goes here too. Texts are samples, not app strings.
+ * Components and icons of common-ui on one screen. A new component or [AppIcons] entry goes here too.
+ * All kinds of dialogs and other windows are on [DialogShowcaseScreen]. Texts are samples, not app strings.
  */
 @Composable
 fun UiCatalogScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var openDialog by rememberSaveable { mutableStateOf<CatalogDialog?>(null) }
-    var lastAnswer by rememberSaveable { mutableStateOf<String?>(null) }
+    var isDeleteDialogOpen by rememberSaveable { mutableStateOf(false) }
 
-    openDialog?.let { dialog ->
-        CatalogDialogContent(
-            dialog = dialog,
-            onNext = { next -> openDialog = next },
-            onAnswer = { answer ->
-                lastAnswer = answer
-                openDialog = null
-            }
-        )
+    if (isDeleteDialogOpen) {
+        ConfirmDialog(
+            title = "Delete \"Report.pdf\"?",
+            confirmLabel = "Delete",
+            dismissLabel = "Cancel",
+            destructive = true,
+            onConfirm = { isDeleteDialogOpen = false },
+            onDismiss = { isDeleteDialogOpen = false }
+        ) {
+            Text(text = "The file will be deleted permanently.")
+        }
     }
 
     Scaffold(
@@ -83,21 +79,10 @@ fun UiCatalogScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             header("Dialogs")
-            items(
-                items = CatalogDialog.entries.filter { dialog -> dialog.isEntry },
-                key = { dialog -> "dialog-${dialog.name}" },
-                span = { GridItemSpan(maxLineSpan) }
-            ) { dialog ->
-                OutlinedButton(onClick = { openDialog = dialog }, modifier = Modifier.fillMaxWidth()) {
-                    Text(text = dialog.title)
-                }
-            }
             fullLineItem {
-                Text(
-                    text = "Last answer: ${lastAnswer ?: "—"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                OutlinedButton(onClick = { isDeleteDialogOpen = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(text = "ConfirmDialog: delete")
+                }
             }
 
             header("Components")
@@ -117,118 +102,6 @@ fun UiCatalogScreen(
                 IconTile(name = kind.name) { FileTypeIcon(kind = kind) }
             }
         }
-    }
-}
-
-/** [isEntry] = `false`: a later step of the chain, reached only from another dialog. */
-private enum class CatalogDialog(val title: String, val isEntry: Boolean = true) {
-    CONFIRM("ConfirmDialog"),
-    DESTRUCTIVE("ConfirmDialog, destructive"),
-    INPUT("ConfirmDialog with a text field"),
-    PROGRESS("ConfirmDialog with progress, not dismissible"),
-    CHOICE("ChoiceDialog, three choices"),
-    CHAIN_DELETE("Dialog chain: delete, then keep a copy?"),
-    CHAIN_KEEP_COPY("Keep a copy?", isEntry = false)
-}
-
-private enum class KeepCopyChoice { KEEP, DELETE, BACK }
-
-@Composable
-private fun CatalogDialogContent(
-    dialog: CatalogDialog,
-    onNext: (CatalogDialog) -> Unit,
-    onAnswer: (String) -> Unit
-) {
-    val onDismiss = { onAnswer("dismissed") }
-    when (dialog) {
-        CatalogDialog.CONFIRM -> ConfirmDialog(
-            title = "Leave without saving?",
-            confirmLabel = "Leave",
-            dismissLabel = "Stay",
-            onConfirm = { onAnswer("Leave") },
-            onDismiss = onDismiss
-        ) {
-            Text(text = "Changes on this screen will be lost.")
-        }
-
-        CatalogDialog.DESTRUCTIVE -> ConfirmDialog(
-            title = "Delete \"Report.pdf\"?",
-            confirmLabel = "Delete",
-            dismissLabel = "Cancel",
-            icon = AppIcons.Delete,
-            destructive = true,
-            onConfirm = { onAnswer("Delete") },
-            onDismiss = onDismiss
-        ) {
-            Text(text = "The file will be deleted permanently.")
-        }
-
-        CatalogDialog.INPUT -> {
-            var name by remember { mutableStateOf("") }
-            ConfirmDialog(
-                title = "New folder",
-                confirmLabel = "Create",
-                dismissLabel = "Cancel",
-                confirmEnabled = name.isNotBlank(),
-                onConfirm = { onAnswer("Create \"$name\"") },
-                onDismiss = onDismiss
-            ) {
-                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(text = "Name") }, singleLine = true)
-            }
-        }
-
-        CatalogDialog.PROGRESS -> ConfirmDialog(
-            title = "Copying files",
-            confirmLabel = "Hide",
-            dismissible = false,
-            onConfirm = { onAnswer("Hide") },
-            onDismiss = onDismiss
-        ) {
-            ProgressBar(progress = 0.42f, label = "Report.pdf", showPercent = true)
-        }
-
-        CatalogDialog.CHOICE -> ChoiceDialog(
-            dialog = ChoiceDialogUi(
-                title = "Open \"Track.mp4\" as",
-                choices = listOf(
-                    DialogChoice(value = "Video", label = "Video"),
-                    DialogChoice(value = "Audio only", label = "Audio only"),
-                    DialogChoice(value = "Cancel", label = "Cancel")
-                )
-            ),
-            onChoice = onAnswer,
-            onDismiss = onDismiss
-        )
-
-        // A chain: the answer decides the next dialog. In a feature this `when` lives in the ViewModel.
-        CatalogDialog.CHAIN_DELETE -> ConfirmDialog(
-            title = "Delete \"Report.pdf\"?",
-            confirmLabel = "Delete",
-            dismissLabel = "Cancel",
-            destructive = true,
-            onConfirm = { onNext(CatalogDialog.CHAIN_KEEP_COPY) },
-            onDismiss = onDismiss
-        )
-
-        CatalogDialog.CHAIN_KEEP_COPY -> ChoiceDialog(
-            dialog = ChoiceDialogUi(
-                title = "Keep a copy?",
-                text = "The file is deleted from the app. A copy can stay in Downloads.",
-                choices = listOf(
-                    DialogChoice(KeepCopyChoice.KEEP, "Keep a copy"),
-                    DialogChoice(KeepCopyChoice.DELETE, "Delete for good", destructive = true),
-                    DialogChoice(KeepCopyChoice.BACK, "Back")
-                )
-            ),
-            onChoice = { choice ->
-                when (choice) {
-                    KeepCopyChoice.KEEP -> onAnswer("Deleted, copy kept")
-                    KeepCopyChoice.DELETE -> onAnswer("Deleted for good")
-                    KeepCopyChoice.BACK -> onNext(CatalogDialog.CHAIN_DELETE)
-                }
-            },
-            onDismiss = onDismiss
-        )
     }
 }
 

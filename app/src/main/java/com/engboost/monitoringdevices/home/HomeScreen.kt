@@ -17,6 +17,7 @@ internal fun HomeScreen(
     onScannerClick: () -> Unit,
     onFeatureTestClick: () -> Unit,
     onUiCatalogClick: () -> Unit,
+    onDialogsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -37,6 +38,9 @@ internal fun HomeScreen(
         }
         Button(onClick = onUiCatalogClick) {
             Text(text = "UI catalog")
+        }
+        Button(onClick = onDialogsClick) {
+            Text(text = "Dialogs and windows")
         }
     }
 }
