@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -42,6 +41,7 @@ import com.android.core.commonui.components.ConnectionStatus
 import com.android.core.commonui.components.ConnectionStatusIndicator
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.ProgressBar
+import com.android.core.commonui.components.Spinner
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.icons.FileKind
 import com.android.core.commonui.icons.FileTypeIcon
@@ -102,9 +102,10 @@ fun UiCatalogScreen(
                 }
             }
             fullLineItem {
-                SampleBox(caption = "Inline spinner: PDF page, image, player (Material, not common-ui)") {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-                }
+                SampleBox(caption = "Spinner: empty area (image, player)") { Spinner() }
+            }
+            fullLineItem {
+                SampleBox(caption = "Spinner, compact: inside content (PDF page)") { Spinner(compact = true) }
             }
 
             header("Connection status")

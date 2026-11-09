@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,6 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.android.appmanager.feature.documentviewer.R
+import com.android.core.commonui.components.Spinner
 import com.android.core.document.api.document.PageSize
 import com.android.core.document.api.document.PdfDocument
 
@@ -109,7 +109,7 @@ private fun PdfPage(
                 modifier = Modifier.fillMaxSize()
             )
 
-            result == null -> CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+            result == null -> Spinner(compact = true)
             else -> Text(
                 text = stringResource(R.string.viewer_page_failed, pageIndex + 1),
                 style = MaterialTheme.typography.bodyMedium,

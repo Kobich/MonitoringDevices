@@ -1,6 +1,5 @@
 package com.android.core.commonui.components
 
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +14,7 @@ fun LoadingContent(
     text: String? = null
 ) {
     CenteredContent(modifier = modifier) {
-        CircularProgressIndicator()
+        Spinner()
         text?.let { caption -> Text(text = caption, style = MaterialTheme.typography.bodyMedium) }
     }
 }

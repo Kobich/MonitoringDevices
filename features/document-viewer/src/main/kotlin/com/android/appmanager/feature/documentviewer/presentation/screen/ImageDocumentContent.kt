@@ -11,7 +11,6 @@ import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -33,6 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import com.android.appmanager.feature.documentviewer.R
 import com.android.core.commonui.components.MessageContent
+import com.android.core.commonui.components.Spinner
 import com.android.core.document.api.document.ImageDocument
 
 @Composable
@@ -61,7 +61,7 @@ internal fun ImageDocumentContent(
         }
 
         when (val decoded = result) {
-            null -> CircularProgressIndicator()
+            null -> Spinner()
             else -> decoded.fold(
                 onSuccess = { image ->
                     ZoomableBox {

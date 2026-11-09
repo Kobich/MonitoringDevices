@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.android.appmanager.feature.documentviewer.R
 import com.android.appmanager.feature.documentviewer.presentation.AudioPlayback
 import com.android.appmanager.feature.documentviewer.presentation.model.AudioPlaybackUi
+import com.android.core.commonui.components.Spinner
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.icons.FileKind
 import com.android.core.commonui.icons.FileTypeIcon
@@ -156,7 +156,7 @@ private fun PlaybackControls(
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            !playback.isReady -> CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+            !playback.isReady -> Spinner(modifier = Modifier.padding(8.dp))
             else -> FilledIconButton(onClick = onPlayPauseClick, modifier = Modifier.size(72.dp)) {
                 Icon(
                     imageVector = if (playback.isPlaying) AppIcons.Pause else AppIcons.Play,
