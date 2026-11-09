@@ -1,13 +1,18 @@
 # Архитектура
 
-Ветка `feature/file-manager` — чистый проект, не зависит от `master`.
-`app` показывает стартовый экран с кнопкой перехода в фичу файлового менеджера.
+В проекте две части: файловый менеджер с просмотрщиком документов (этот файл) и сканер Wi-Fi / Bluetooth
+с условиями (`:scanner`, `:features`, см. [architecture-scanner.md](architecture-scanner.md)).
+`app` показывает стартовый экран с кнопками перехода в файловый менеджер, сканер и тест условий.
 
 ## Модули
 
 ```text
 :app
   Точка входа, Hilt (@HiltAndroidApp, DocumentCoreModule), навигация (Navigation Compose).
+
+:scanner, :features
+  Сканеры Wi-Fi / Bluetooth и их экраны; условия (время, гео, Wi-Fi, Bluetooth).
+  Описаны в architecture-scanner.md. minSdk 36, поэтому и у app minSdk 36.
 
 :feature:filemanager:api
   FileManagerFeatureApi — внешний контракт фичи (Composable-экран + onBackClick).
@@ -18,7 +23,8 @@
 
 :core:common-ui
   Общий UI для переиспользования: тема (MonitoringDevicesTheme), значки (AppIcons),
-  компоненты (BackTopAppBar, CenteredContent, LoadingContent, MessageContent).
+  компоненты (BackTopAppBar, CenteredContent, LoadingContent, MessageContent, AppAlertDialog,
+  AppProgressBar, ConnectionStatusIndicator).
   Не зависит от фич и core:document; фичи и app подключают его через implementation.
 
 :core:document:api
@@ -29,6 +35,7 @@
 ```
 
 ```text
+app -> scanner, features
 app, feature:*:impl -> core:common-ui
 app -> feature:filemanager:impl -> feature:filemanager:api
 app -> feature:viewer:impl -> feature:viewer:api, core:document:api
@@ -101,7 +108,7 @@ document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocum
   паролем (входит в хэш ключа), поэтому без пароля он заново спросит пароль. Расшифрованный HTML
   лежит в приватном `cacheDir`.
 - Готовый документ берётся из кэша без ожидания `Mutex`: им ждут только конвертации.
-- Библиотека требует Android 8 (API 26), приложение — minSdk 23: `tools:overrideLibrary` в манифестах
+- Библиотека требует Android 8 (API 26), а `core:document:impl` — minSdk 23: `tools:overrideLibrary` в манифестах
   `app` и `core:document:impl`, `OfficeReader` регистрируется только на API 26+.
 - Показ: WebView + `WebViewAssetLoader` (`InternalStoragePathHandler` на папку результата): без сети,
   без доступа к файлам; остальные запросы блокируются, JS-интерфейсов нет.
@@ -190,17 +197,29 @@ Screen -> callback -> ViewModel
 ## `core:common-ui`
 
 ```text
-theme/        MonitoringDevicesTheme, цвета, типографика
-icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + свои Folder, File (ImageVector)
+theme/        MonitoringDevicesTheme: системные цвета устройства (Material You на Android 12+,
+                базовая палитра Material 3 ниже), светлая/тёмная по системе; типографика
+icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + свои Folder, File, Link, LinkOff (ImageVector)
               FileKind.of(name, isDirectory): FOLDER, PDF, DOCUMENT, SPREADSHEET, PRESENTATION,
                 TEXT, IMAGE, AUDIO, VIDEO, ARCHIVE, OTHER (по расширению)
               FileTypeIcons / FileTypeIcon(kind, size): цветные векторные значки файлов
 components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
               CenteredContent { ... }, LoadingContent(text), MessageContent(title, text, actionLabel)
               SelectionIndicator(selected): круглая отметка выбора с анимацией
+              AppAlertDialog(title, text | content { }, confirmLabel, dismissLabel, destructive, dismissible)
+              AppProgressBar(progress: Float? (null = неизвестен), label, showPercent)
+              ConnectionStatus: DISCONNECTED, CONNECTING, CONNECTED
+              ConnectionStatusIndicator(status, label) / ConnectionStatusIcon(status): плашка и значок;
+                статус видно по форме, а не только по цвету: CONNECTED — залитая плашка + ссылка,
+                CONNECTING — спиннер, DISCONNECTED — пустая обведённая плашка + перечёркнутая ссылка
 ```
 
-Правила: значки в фичах только через `AppIcons` (не `Icons.*` и не drawable в фиче);
+Компоненты без состояния: всё приходит параметрами, события уходят колбэками; таймеры, логика
+переходов и ViewModel — в фичах.
+
+Правила: цвета только из `MaterialTheme.colorScheme`, без захардкоженных `Color(0x...)` (кроме цветных
+значков файлов); строки — в `res/values/strings.xml` модуля с префиксом `common_ui_`;
+значки в фичах только через `AppIcons` (не `Icons.*` и не drawable в фиче);
 компонент переносится сюда, как только нужен второй фиче; без бизнес-логики и без зависимостей
 от `feature:*` / `core:document`.
 

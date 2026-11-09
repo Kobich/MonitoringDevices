@@ -1,6 +1,5 @@
 package com.engboost.monitoringdevices.core.commonui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -11,21 +10,16 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-)
-
+/**
+ * Colors come from the device: Material You palette of the wallpaper / system settings on Android 12+,
+ * the Material 3 baseline palette on older versions. Light or dark follows the system setting.
+ *
+ * Components take colors only from `MaterialTheme.colorScheme`, never hardcoded, so they follow the device too.
+ */
 @Composable
 fun MonitoringDevicesTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    /** `false` gives the baseline palette everywhere: stable colors for previews. */
     dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
@@ -35,8 +29,8 @@ fun MonitoringDevicesTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> darkColorScheme()
+        else -> lightColorScheme()
     }
 
     MaterialTheme(

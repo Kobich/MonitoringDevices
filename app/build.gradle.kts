@@ -7,13 +7,16 @@ plugins {
 
 android {
     namespace = "com.engboost.monitoringdevices"
+    // :scanner and :features compile against 36.1 and need minSdk 36.
     compileSdk {
-        version = release(36)
+        version = release(36) {
+            minorApiLevel = 1
+        }
     }
 
     defaultConfig {
         applicationId = "com.engboost.monitoringdevices"
-        minSdk = 23
+        minSdk = 36
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -44,6 +47,8 @@ dependencies {
     implementation(project(":feature:filemanager:impl"))
     implementation(project(":feature:viewer:impl"))
     implementation(project(":core:document:impl"))
+    implementation(project(":scanner"))
+    implementation(project(":features"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
