@@ -1,12 +1,14 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.presentation
 
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.engboost.monitoringdevices.feature.filemanager.impl.R
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.interactor.FileManagerInteractor
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryContent
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
@@ -14,9 +16,9 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.Tran
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.mapper.FileManagerUiMapper
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.CreateDirectoryDialogUi
-import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.ExportPickerUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileManagerUiState
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.PickerUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.SelectionUi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -27,9 +29,9 @@ import javax.inject.Inject
 @HiltViewModel
 internal class FileManagerViewModel @Inject constructor(
     private val interactor: FileManagerInteractor,
+    private val uiMapper: FileManagerUiMapper,
     private val savedStateHandle: SavedStateHandle
-) : ViewModel() {
-    private val uiMapper = FileManagerUiMapper()
+) : ViewModel(), FileManagerActions {
 
     // Kept in SavedStateHandle to survive process death, e.g. while a system picker is open.
     private var currentPath: StoragePath
@@ -58,7 +60,7 @@ internal class FileManagerViewModel @Inject constructor(
             pendingDeletion = null,
             createDirectoryDialog = null,
             message = null,
-            exportPicker = null,
+            picker = null,
             fileToOpen = null
         )
     )
@@ -72,7 +74,7 @@ internal class FileManagerViewModel @Inject constructor(
         loadDirectory(currentPath)
     }
 
-    fun onEntryClick(entry: FileEntryUi) {
+    override fun onEntryClick(entry: FileEntryUi) {
         when {
             uiState.isSelectionMode -> toggleSelection(entry)
             entry.isDirectory -> loadDirectory(StoragePath(entry.path))
@@ -80,7 +82,7 @@ internal class FileManagerViewModel @Inject constructor(
         }
     }
 
-    fun onEntryLongClick(entry: FileEntryUi) {
+    override fun onEntryLongClick(entry: FileEntryUi) {
         if (uiState.isSelectionMode) {
             toggleSelection(entry)
         } else {
@@ -88,7 +90,7 @@ internal class FileManagerViewModel @Inject constructor(
         }
     }
 
-    fun onBreadcrumbClick(breadcrumb: BreadcrumbUi) {
+    override fun onBreadcrumbClick(breadcrumb: BreadcrumbUi) {
         loadDirectory(StoragePath(breadcrumb.path))
     }
 
@@ -105,37 +107,33 @@ internal class FileManagerViewModel @Inject constructor(
         uiState = uiState.copy(fileToOpen = null)
     }
 
-    fun onSelectionClose() {
+    override fun onSelectionClose() {
         uiState = uiState.copy(selection = null)
     }
 
-    fun onSelectAllClick() {
+    override fun onSelectAllClick() {
         val allPaths = uiState.entries.map { entry -> entry.path }.toSet()
         if (allPaths.isNotEmpty()) {
             uiState = uiState.copy(selection = SelectionUi(allPaths))
         }
     }
 
-    fun onDeleteSelectedClick() {
+    override fun onDeleteSelectedClick() {
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
         uiState = uiState.copy(pendingDeletion = uiMapper.deletion(entries))
     }
 
-    fun onExportSelectedClick() {
+    override fun onExportSelectedClick() {
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
         val singleFile = entries.singleOrNull()?.takeIf { entry -> !entry.isDirectory }
-        val picker = if (singleFile != null) {
-            ExportPickerUi.CreateDocument(fileName = singleFile.name)
-        } else {
-            ExportPickerUi.PickFolder
-        }
+        val picker = if (singleFile != null) PickerUi.ExportFile(singleFile.name) else PickerUi.ExportFolder
 
         pendingExportPaths = entries.map { entry -> StoragePath(entry.path) }
-        uiState = uiState.copy(exportPicker = picker)
+        uiState = uiState.copy(picker = picker)
     }
 
     private fun toggleSelection(entry: FileEntryUi) {
@@ -149,24 +147,37 @@ internal class FileManagerViewModel @Inject constructor(
         return uiState.entries.filter { entry -> entry in selection }
     }
 
-    fun onImportFilesSelected(uris: List<Uri>) {
+    override fun onImportFilesClick() {
+        uiState = uiState.copy(picker = PickerUi.ImportFiles)
+    }
+
+    override fun onImportFolderClick() {
+        uiState = uiState.copy(picker = PickerUi.ImportFolder)
+    }
+
+    fun onPickerShown() {
+        uiState = uiState.copy(picker = null)
+    }
+
+    fun onPickerUnavailable() {
+        pendingExportPaths = emptyList()
+        uiState = uiState.copy(message = uiMapper.text(R.string.fm_no_picker))
+    }
+
+    fun onImportFilesPicked(uris: List<Uri>) {
         if (uris.isEmpty()) return
         val destination = currentPath
-        runOperation(failurePrefix = "Import failed") {
+        runOperation(R.string.fm_import_failed) {
             uiMapper.importedText(interactor.importFiles(uris, destination))
         }
     }
 
-    fun onImportDirectorySelected(uri: Uri?) {
+    fun onImportFolderPicked(uri: Uri?) {
         uri ?: return
         val destination = currentPath
-        runOperation(failurePrefix = "Import failed") {
+        runOperation(R.string.fm_import_failed) {
             uiMapper.importedText(interactor.importDirectory(uri, destination))
         }
-    }
-
-    fun onExportPickerShown() {
-        uiState = uiState.copy(exportPicker = null)
     }
 
     fun onExportDocumentCreated(uri: Uri?) {
@@ -189,39 +200,34 @@ internal class FileManagerViewModel @Inject constructor(
 
     private fun export(block: suspend () -> TransferSummary) {
         uiState = uiState.copy(selection = null)
-        runOperation(failurePrefix = "Export failed") { uiMapper.exportedText(block()) }
+        runOperation(R.string.fm_export_failed) { uiMapper.exportedText(block()) }
     }
 
-    fun onPickerUnavailable() {
-        pendingExportPaths = emptyList()
-        uiState = uiState.copy(message = "No app available to pick a document")
-    }
-
-    fun onDeleteDismiss() {
+    override fun onDeleteDismiss() {
         uiState = uiState.copy(pendingDeletion = null)
     }
 
-    fun onDeleteConfirm() {
+    override fun onDeleteConfirm() {
         val entries = uiState.pendingDeletion?.entries ?: return
         uiState = uiState.copy(pendingDeletion = null, selection = null)
 
-        runOperation(failurePrefix = "Delete failed") {
+        runOperation(R.string.fm_delete_failed) {
             interactor.delete(entries.map { entry -> StoragePath(entry.path) })
             uiMapper.deletedText(entries)
         }
     }
 
-    fun onCreateDirectoryClick() {
+    override fun onCreateDirectoryClick() {
         uiState = uiState.copy(createDirectoryDialog = CreateDirectoryDialogUi(error = null))
     }
 
-    fun onCreateDirectoryDismiss() {
+    override fun onCreateDirectoryDismiss() {
         uiState = uiState.copy(createDirectoryDialog = null)
     }
 
-    fun onCreateDirectoryConfirm(name: String) {
+    override fun onCreateDirectoryConfirm(name: String) {
         val parent = currentPath
-        runOperation(failurePrefix = "Can't create folder") {
+        runOperation(R.string.fm_create_folder_failed) {
             val error = interactor.createDirectory(parent, name)
             uiState = uiState.copy(
                 createDirectoryDialog = error?.let { CreateDirectoryDialogUi(uiMapper.errorText(it)) }
@@ -241,7 +247,7 @@ internal class FileManagerViewModel @Inject constructor(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                uiState = uiState.copy(message = "Can't open file: ${error.toDisplayMessage()}")
+                uiState = uiState.copy(message = uiMapper.failureText(R.string.fm_open_file_failed, error))
             }
         }
     }
@@ -260,7 +266,7 @@ internal class FileManagerViewModel @Inject constructor(
             } catch (error: Exception) {
                 uiState = uiState.copy(
                     isLoading = false,
-                    message = "Can't open folder: ${error.toDisplayMessage()}"
+                    message = uiMapper.failureText(R.string.fm_open_folder_failed, error)
                 )
             }
         }
@@ -290,9 +296,9 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     /** One operation at a time; [block] returns a message to show, the folder is reloaded afterwards. */
-    private fun runOperation(failurePrefix: String, block: suspend () -> String?) {
+    private fun runOperation(@StringRes failure: Int, block: suspend () -> String?) {
         if (operationJob?.isActive == true) {
-            uiState = uiState.copy(message = "Wait for the current operation to finish")
+            uiState = uiState.copy(message = uiMapper.text(R.string.fm_operation_running))
             return
         }
 
@@ -303,16 +309,12 @@ internal class FileManagerViewModel @Inject constructor(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                "$failurePrefix: ${error.toDisplayMessage()}"
+                uiMapper.failureText(failure, error)
             }
 
             uiState = uiState.copy(isBusy = false, message = message ?: uiState.message)
             loadDirectory(currentPath)
         }
-    }
-
-    private fun Throwable.toDisplayMessage(): String {
-        return message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
     }
 
     private companion object {

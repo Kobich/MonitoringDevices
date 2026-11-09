@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fm_root_title">App files</string>
+
+    <string name="fm_empty_folder_title">Folder is empty</string>
+    <string name="fm_empty_folder_text">Use the menu in the top bar to import files or create a folder. Long press an item to select it.</string>
+    <string name="fm_folder">Folder</string>
+    <string name="fm_file">File</string>
+    <string name="fm_folder_empty_details">Empty</string>
+
+    <string name="fm_storage_actions">Storage actions</string>
+    <string name="fm_import_files">Import files</string>
+    <string name="fm_import_folder">Import folder</string>
+    <string name="fm_new_folder">New folder</string>
+
+    <string name="fm_selected_count">%1$d selected</string>
+    <string name="fm_close_selection">Close selection</string>
+    <string name="fm_delete_selected">Delete selected</string>
+    <string name="fm_selection_actions">Selection actions</string>
+    <string name="fm_select_all">Select all</string>
+    <string name="fm_export">Export</string>
+
+    <string name="fm_delete">Delete</string>
+    <string name="fm_cancel">Cancel</string>
+    <string name="fm_create">Create</string>
+    <string name="fm_folder_name">Name</string>
+
+    <string name="fm_delete_one_title">Delete \"%1$s\"?</string>
+    <plurals name="fm_delete_many_title">
+        <item quantity="one">Delete %1$d item?</item>
+        <item quantity="other">Delete %1$d items?</item>
+    </plurals>
+    <string name="fm_delete_folder_text">The folder and all its content will be deleted permanently.</string>
+    <string name="fm_delete_file_text">The file will be deleted permanently.</string>
+    <string name="fm_delete_with_folders_text">Selected items, including folders with all their content, will be deleted permanently.</string>
+    <string name="fm_delete_files_text">Selected files will be deleted permanently.</string>
+    <string name="fm_deleted_one">Deleted \"%1$s\"</string>
+    <plurals name="fm_deleted_many">
+        <item quantity="one">Deleted %1$d item</item>
+        <item quantity="other">Deleted %1$d items</item>
+    </plurals>
+
+    <string name="fm_imported">Imported %1$s</string>
+    <string name="fm_exported">Exported %1$s</string>
+    <plurals name="fm_folders">
+        <item quantity="one">%1$d folder</item>
+        <item quantity="other">%1$d folders</item>
+    </plurals>
+    <plurals name="fm_files">
+        <item quantity="one">%1$d file</item>
+        <item quantity="other">%1$d files</item>
+    </plurals>
+    <plurals name="fm_items">
+        <item quantity="one">%1$d item</item>
+        <item quantity="other">%1$d items</item>
+    </plurals>
+
+    <string name="fm_name_empty">Enter a name</string>
+    <string name="fm_name_reserved">This name is reserved</string>
+    <string name="fm_name_invalid_characters">Name can\'t contain / or \\</string>
+    <string name="fm_name_too_long">Name is too long</string>
+    <string name="fm_name_exists">A file or folder with this name already exists</string>
+
+    <string name="fm_error_with_reason">%1$s: %2$s</string>
+    <string name="fm_import_failed">Import failed</string>
+    <string name="fm_export_failed">Export failed</string>
+    <string name="fm_delete_failed">Delete failed</string>
+    <string name="fm_create_folder_failed">Can\'t create folder</string>
+    <string name="fm_open_file_failed">Can\'t open file</string>
+    <string name="fm_open_folder_failed">Can\'t open folder</string>
+    <string name="fm_operation_running">Wait for the current operation to finish</string>
+    <string name="fm_no_picker">No app available to pick a document</string>
+</resources>

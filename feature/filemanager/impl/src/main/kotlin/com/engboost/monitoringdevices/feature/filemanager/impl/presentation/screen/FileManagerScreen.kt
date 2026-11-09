@@ -33,42 +33,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.commonui.components.BackTopAppBar
 import com.engboost.monitoringdevices.core.commonui.components.LoadingContent
 import com.engboost.monitoringdevices.core.commonui.components.MessageContent
 import com.engboost.monitoringdevices.core.commonui.components.rememberDelayedVisibility
 import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
+import com.engboost.monitoringdevices.feature.filemanager.impl.R
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.FileManagerActions
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
-import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileManagerUiState
 
 @Composable
 internal fun FileManagerScreen(
     state: FileManagerUiState,
+    actions: FileManagerActions,
     snackbarHostState: SnackbarHostState,
     onBackClick: () -> Unit,
-    onBreadcrumbClick: (BreadcrumbUi) -> Unit,
-    onEntryClick: (FileEntryUi) -> Unit,
-    onEntryLongClick: (FileEntryUi) -> Unit,
-    onImportFilesClick: () -> Unit,
-    onImportDirectoryClick: () -> Unit,
-    onCreateDirectoryClick: () -> Unit,
-    onSelectionClose: () -> Unit,
-    onSelectAllClick: () -> Unit,
-    onExportSelectedClick: () -> Unit,
-    onDeleteSelectedClick: () -> Unit,
-    onDeleteConfirm: () -> Unit,
-    onDeleteDismiss: () -> Unit,
-    onCreateDirectoryConfirm: (String) -> Unit,
-    onCreateDirectoryDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     state.pendingDeletion?.let { deletion ->
         DeleteConfirmationDialog(
             deletion = deletion,
-            onConfirm = onDeleteConfirm,
-            onDismiss = onDeleteDismiss
+            onConfirm = actions::onDeleteConfirm,
+            onDismiss = actions::onDeleteDismiss
         )
     }
 
@@ -76,8 +65,8 @@ internal fun FileManagerScreen(
         CreateDirectoryDialog(
             error = dialog.error,
             isBusy = state.isBusy,
-            onConfirm = onCreateDirectoryConfirm,
-            onDismiss = onCreateDirectoryDismiss
+            onConfirm = actions::onCreateDirectoryConfirm,
+            onDismiss = actions::onCreateDirectoryDismiss
         )
     }
 
@@ -89,19 +78,14 @@ internal fun FileManagerScreen(
                 SelectionTopBar(
                     selectedCount = selection.count,
                     isActionsEnabled = !state.isBusy,
-                    onCloseClick = onSelectionClose,
-                    onSelectAllClick = onSelectAllClick,
-                    onExportClick = onExportSelectedClick,
-                    onDeleteClick = onDeleteSelectedClick
+                    actions = actions
                 )
             } else {
                 BrowseTopBar(
                     title = state.title,
                     isActionsEnabled = !state.isBusy,
                     onBackClick = onBackClick,
-                    onImportFilesClick = onImportFilesClick,
-                    onImportDirectoryClick = onImportDirectoryClick,
-                    onCreateDirectoryClick = onCreateDirectoryClick
+                    actions = actions
                 )
             }
         },
@@ -121,7 +105,7 @@ internal fun FileManagerScreen(
             Breadcrumbs(
                 breadcrumbs = state.breadcrumbs,
                 isEnabled = !state.isSelectionMode,
-                onClick = onBreadcrumbClick
+                onClick = actions::onBreadcrumbClick
             )
             HorizontalDivider()
 
@@ -131,9 +115,8 @@ internal fun FileManagerScreen(
                 }
 
                 state.entries.isEmpty() -> MessageContent(
-                    title = "Folder is empty",
-                    text = "Use the menu in the top bar to import files or create a folder. " +
-                        "Long press an item to select it."
+                    title = stringResource(R.string.fm_empty_folder_title),
+                    text = stringResource(R.string.fm_empty_folder_text)
                 )
 
                 else -> LazyColumn(
@@ -145,8 +128,8 @@ internal fun FileManagerScreen(
                             entry = entry,
                             isSelectionMode = state.isSelectionMode,
                             isSelected = state.selection?.contains(entry) == true,
-                            onClick = { onEntryClick(entry) },
-                            onLongClick = { onEntryLongClick(entry) }
+                            onClick = { actions.onEntryClick(entry) },
+                            onLongClick = { actions.onEntryLongClick(entry) }
                         )
                     }
                 }
@@ -160,21 +143,12 @@ private fun BrowseTopBar(
     title: String,
     isActionsEnabled: Boolean,
     onBackClick: () -> Unit,
-    onImportFilesClick: () -> Unit,
-    onImportDirectoryClick: () -> Unit,
-    onCreateDirectoryClick: () -> Unit
+    actions: FileManagerActions
 ) {
     BackTopAppBar(
         title = title,
         onNavigationClick = onBackClick,
-        actions = {
-            StorageActionsMenu(
-                enabled = isActionsEnabled,
-                onImportFilesClick = onImportFilesClick,
-                onImportDirectoryClick = onImportDirectoryClick,
-                onCreateDirectoryClick = onCreateDirectoryClick
-            )
-        }
+        actions = { StorageActionsMenu(enabled = isActionsEnabled, actions = actions) }
     )
 }
 
@@ -182,39 +156,36 @@ private fun BrowseTopBar(
 private fun SelectionTopBar(
     selectedCount: Int,
     isActionsEnabled: Boolean,
-    onCloseClick: () -> Unit,
-    onSelectAllClick: () -> Unit,
-    onExportClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    actions: FileManagerActions
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
 
     BackTopAppBar(
-        title = "$selectedCount selected",
-        onNavigationClick = onCloseClick,
+        title = stringResource(R.string.fm_selected_count, selectedCount),
+        onNavigationClick = actions::onSelectionClose,
         navigationIcon = AppIcons.Close,
-        navigationContentDescription = "Close selection",
+        navigationContentDescription = stringResource(R.string.fm_close_selection),
         actions = {
-            IconButton(onClick = onDeleteClick, enabled = isActionsEnabled) {
-                Icon(imageVector = AppIcons.Delete, contentDescription = "Delete selected")
+            IconButton(onClick = actions::onDeleteSelectedClick, enabled = isActionsEnabled) {
+                Icon(imageVector = AppIcons.Delete, contentDescription = stringResource(R.string.fm_delete_selected))
             }
             Box {
                 IconButton(onClick = { isMenuExpanded = true }, enabled = isActionsEnabled) {
-                    Icon(imageVector = AppIcons.More, contentDescription = "Selection actions")
+                    Icon(imageVector = AppIcons.More, contentDescription = stringResource(R.string.fm_selection_actions))
                 }
                 DropdownMenu(expanded = isMenuExpanded, onDismissRequest = { isMenuExpanded = false }) {
                     DropdownMenuItem(
-                        text = { Text(text = "Select all") },
+                        text = { Text(text = stringResource(R.string.fm_select_all)) },
                         onClick = {
                             isMenuExpanded = false
-                            onSelectAllClick()
+                            actions.onSelectAllClick()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text(text = "Export") },
+                        text = { Text(text = stringResource(R.string.fm_export)) },
                         onClick = {
                             isMenuExpanded = false
-                            onExportClick()
+                            actions.onExportSelectedClick()
                         }
                     )
                 }
@@ -227,36 +198,34 @@ private fun SelectionTopBar(
 @Composable
 private fun StorageActionsMenu(
     enabled: Boolean,
-    onImportFilesClick: () -> Unit,
-    onImportDirectoryClick: () -> Unit,
-    onCreateDirectoryClick: () -> Unit
+    actions: FileManagerActions
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Box {
         IconButton(onClick = { isExpanded = true }, enabled = enabled) {
-            Icon(imageVector = AppIcons.More, contentDescription = "Storage actions")
+            Icon(imageVector = AppIcons.More, contentDescription = stringResource(R.string.fm_storage_actions))
         }
         DropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
             DropdownMenuItem(
-                text = { Text(text = "Import files") },
+                text = { Text(text = stringResource(R.string.fm_import_files)) },
                 onClick = {
                     isExpanded = false
-                    onImportFilesClick()
+                    actions.onImportFilesClick()
                 }
             )
             DropdownMenuItem(
-                text = { Text(text = "Import folder") },
+                text = { Text(text = stringResource(R.string.fm_import_folder)) },
                 onClick = {
                     isExpanded = false
-                    onImportDirectoryClick()
+                    actions.onImportFolderClick()
                 }
             )
             DropdownMenuItem(
-                text = { Text(text = "New folder") },
+                text = { Text(text = stringResource(R.string.fm_new_folder)) },
                 onClick = {
                     isExpanded = false
-                    onCreateDirectoryClick()
+                    actions.onCreateDirectoryClick()
                 }
             )
         }

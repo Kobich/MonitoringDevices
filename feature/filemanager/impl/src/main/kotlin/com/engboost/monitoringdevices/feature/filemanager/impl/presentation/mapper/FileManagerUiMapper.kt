@@ -1,6 +1,10 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.presentation.mapper
 
+import android.content.Context
+import android.text.format.Formatter
+import androidx.annotation.StringRes
 import com.engboost.monitoringdevices.core.commonui.icons.FileKind
+import com.engboost.monitoringdevices.feature.filemanager.impl.R
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryNameError
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.FileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
@@ -8,16 +12,19 @@ import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.Tran
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.DeletionUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.DateFormat
 import java.util.Date
-import java.util.Locale
+import javax.inject.Inject
 
-internal class FileManagerUiMapper {
-    private val dateFormat: DateFormat =
-        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.getDefault())
+internal class FileManagerUiMapper @Inject constructor(
+    @ApplicationContext private val context: Context
+) {
+    private val resources = context.resources
+    private val dateFormat: DateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
 
     fun title(path: StoragePath): String {
-        return if (path.isRoot) ROOT_TITLE else path.name
+        return if (path.isRoot) resources.getString(R.string.fm_root_title) else path.name
     }
 
     fun breadcrumbs(path: StoragePath): List<BreadcrumbUi> {
@@ -27,10 +34,10 @@ internal class FileManagerUiMapper {
     }
 
     fun toUi(entry: FileEntry): FileEntryUi {
-        val primaryDetails = if (entry.isDirectory) {
-            entry.childCount.toItemsText()
-        } else {
-            entry.sizeBytes.toReadableSize()
+        val primaryDetails = when {
+            !entry.isDirectory -> Formatter.formatShortFileSize(context, entry.sizeBytes)
+            entry.childCount == 0 -> resources.getString(R.string.fm_folder_empty_details)
+            else -> plural(R.plurals.fm_items, entry.childCount)
         }
 
         return FileEntryUi(
@@ -42,65 +49,60 @@ internal class FileManagerUiMapper {
         )
     }
 
-    fun importedText(summary: TransferSummary): String = "Imported ${summary.toText()}"
+    fun importedText(summary: TransferSummary): String = resources.getString(R.string.fm_imported, summary.toText())
 
-    fun exportedText(summary: TransferSummary): String = "Exported ${summary.toText()}"
+    fun exportedText(summary: TransferSummary): String = resources.getString(R.string.fm_exported, summary.toText())
 
     fun deletion(entries: List<FileEntryUi>): DeletionUi {
         val single = entries.singleOrNull()
-        val hasDirectories = entries.any { entry -> entry.isDirectory }
-        val title = if (single != null) "Delete \"${single.name}\"?" else "Delete ${entries.size} items?"
-        val text = when {
-            single != null && single.isDirectory -> "The folder and all its content will be deleted permanently."
-            single != null -> "The file will be deleted permanently."
-            hasDirectories -> "Selected items, including folders with all their content, will be deleted permanently."
-            else -> "Selected files will be deleted permanently."
+        val title = if (single != null) {
+            resources.getString(R.string.fm_delete_one_title, single.name)
+        } else {
+            plural(R.plurals.fm_delete_many_title, entries.size)
         }
-        return DeletionUi(entries = entries, title = title, text = text)
+        val text = when {
+            single != null && single.isDirectory -> R.string.fm_delete_folder_text
+            single != null -> R.string.fm_delete_file_text
+            entries.any { entry -> entry.isDirectory } -> R.string.fm_delete_with_folders_text
+            else -> R.string.fm_delete_files_text
+        }
+        return DeletionUi(entries = entries, title = title, text = resources.getString(text))
     }
 
     fun deletedText(entries: List<FileEntryUi>): String {
         val single = entries.singleOrNull()
-        return if (single != null) "Deleted \"${single.name}\"" else "Deleted ${entries.size} items"
-    }
-
-    fun errorText(error: DirectoryNameError): String {
-        return when (error) {
-            DirectoryNameError.EMPTY -> "Enter a name"
-            DirectoryNameError.RESERVED -> "This name is reserved"
-            DirectoryNameError.INVALID_CHARACTERS -> "Name can't contain / or \\"
-            DirectoryNameError.TOO_LONG -> "Name is too long"
-            DirectoryNameError.ALREADY_EXISTS -> "A file or folder with this name already exists"
+        return if (single != null) {
+            resources.getString(R.string.fm_deleted_one, single.name)
+        } else {
+            plural(R.plurals.fm_deleted_many, entries.size)
         }
     }
 
+    fun errorText(error: DirectoryNameError): String {
+        val text = when (error) {
+            DirectoryNameError.EMPTY -> R.string.fm_name_empty
+            DirectoryNameError.RESERVED -> R.string.fm_name_reserved
+            DirectoryNameError.INVALID_CHARACTERS -> R.string.fm_name_invalid_characters
+            DirectoryNameError.TOO_LONG -> R.string.fm_name_too_long
+            DirectoryNameError.ALREADY_EXISTS -> R.string.fm_name_exists
+        }
+        return resources.getString(text)
+    }
+
+    fun failureText(@StringRes what: Int, error: Throwable): String {
+        val reason = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.simpleName
+        return resources.getString(R.string.fm_error_with_reason, resources.getString(what), reason)
+    }
+
+    fun text(@StringRes id: Int): String = resources.getString(id)
+
     private fun TransferSummary.toText(): String {
         val parts = buildList {
-            if (directories > 0) add(directories.plural("folder", "folders"))
-            if (files > 0 || directories == 0) add(files.plural("file", "files"))
+            if (directories > 0) add(plural(R.plurals.fm_folders, directories))
+            if (files > 0 || directories == 0) add(plural(R.plurals.fm_files, files))
         }
         return parts.joinToString(separator = ", ")
     }
 
-    private fun Int.toItemsText(): String = if (this == 0) "Empty" else plural("item", "items")
-
-    private fun Int.plural(one: String, many: String): String = "$this ${if (this == 1) one else many}"
-
-    private fun Long.toReadableSize(): String {
-        if (this < BYTES_IN_KB) return "$this B"
-
-        var value = toDouble() / BYTES_IN_KB
-        var unitIndex = 0
-        while (value >= BYTES_IN_KB && unitIndex < SIZE_UNITS.lastIndex) {
-            value /= BYTES_IN_KB
-            unitIndex++
-        }
-        return String.format(Locale.getDefault(), "%.1f %s", value, SIZE_UNITS[unitIndex])
-    }
-
-    private companion object {
-        const val ROOT_TITLE = "App files"
-        const val BYTES_IN_KB = 1024
-        val SIZE_UNITS = listOf("KB", "MB", "GB", "TB")
-    }
+    private fun plural(id: Int, count: Int): String = resources.getQuantityString(id, count, count)
 }

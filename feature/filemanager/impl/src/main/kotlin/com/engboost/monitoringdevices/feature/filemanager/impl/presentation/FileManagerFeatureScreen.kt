@@ -3,7 +3,6 @@ package com.engboost.monitoringdevices.feature.filemanager.impl.presentation
 import android.content.ActivityNotFoundException
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
@@ -16,7 +15,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.contract.CreateDocumentContract
-import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.ExportPickerUi
+import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.PickerUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.screen.FileManagerScreen
 import java.io.File
 
@@ -33,17 +32,17 @@ internal fun FileManagerFeatureScreen(
 
     val importFilesLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenMultipleDocuments(),
-        onResult = viewModel::onImportFilesSelected
+        onResult = viewModel::onImportFilesPicked
     )
-    val importDirectoryLauncher = rememberLauncherForActivityResult(
+    val importFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
-        onResult = viewModel::onImportDirectorySelected
+        onResult = viewModel::onImportFolderPicked
     )
     val exportFileLauncher = rememberLauncherForActivityResult(
         contract = CreateDocumentContract(),
         onResult = viewModel::onExportDocumentCreated
     )
-    val exportToFolderLauncher = rememberLauncherForActivityResult(
+    val exportFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
         onResult = viewModel::onExportFolderPicked
     )
@@ -57,16 +56,18 @@ internal fun FileManagerFeatureScreen(
         viewModel.onMessageShown()
     }
 
-    LaunchedEffect(state.exportPicker) {
-        val picker = state.exportPicker ?: return@LaunchedEffect
-        viewModel.onExportPickerShown()
-        when (picker) {
-            is ExportPickerUi.CreateDocument -> exportFileLauncher.launchOrReport(
-                picker.fileName,
-                viewModel::onPickerUnavailable
-            )
-
-            ExportPickerUi.PickFolder -> exportToFolderLauncher.launchOrReport(null, viewModel::onPickerUnavailable)
+    LaunchedEffect(state.picker) {
+        val picker = state.picker ?: return@LaunchedEffect
+        viewModel.onPickerShown()
+        try {
+            when (picker) {
+                PickerUi.ImportFiles -> importFilesLauncher.launch(arrayOf("*/*"))
+                PickerUi.ImportFolder -> importFolderLauncher.launch(null)
+                is PickerUi.ExportFile -> exportFileLauncher.launch(picker.fileName)
+                PickerUi.ExportFolder -> exportFolderLauncher.launch(null)
+            }
+        } catch (error: ActivityNotFoundException) {
+            viewModel.onPickerUnavailable()
         }
     }
 
@@ -81,36 +82,9 @@ internal fun FileManagerFeatureScreen(
 
     FileManagerScreen(
         state = state,
+        actions = viewModel,
         snackbarHostState = snackbarHostState,
-        onBackClick = {
-            if (state.isRoot) onBackClick() else viewModel.onNavigateUp()
-        },
-        onBreadcrumbClick = viewModel::onBreadcrumbClick,
-        onEntryClick = viewModel::onEntryClick,
-        onEntryLongClick = viewModel::onEntryLongClick,
-        onImportFilesClick = {
-            importFilesLauncher.launchOrReport(arrayOf("*/*"), viewModel::onPickerUnavailable)
-        },
-        onImportDirectoryClick = {
-            importDirectoryLauncher.launchOrReport(null, viewModel::onPickerUnavailable)
-        },
-        onCreateDirectoryClick = viewModel::onCreateDirectoryClick,
-        onSelectionClose = viewModel::onSelectionClose,
-        onSelectAllClick = viewModel::onSelectAllClick,
-        onExportSelectedClick = viewModel::onExportSelectedClick,
-        onDeleteSelectedClick = viewModel::onDeleteSelectedClick,
-        onDeleteConfirm = viewModel::onDeleteConfirm,
-        onDeleteDismiss = viewModel::onDeleteDismiss,
-        onCreateDirectoryConfirm = viewModel::onCreateDirectoryConfirm,
-        onCreateDirectoryDismiss = viewModel::onCreateDirectoryDismiss,
+        onBackClick = { if (state.isRoot) onBackClick() else viewModel.onNavigateUp() },
         modifier = modifier
     )
-}
-
-private fun <I> ActivityResultLauncher<I>.launchOrReport(input: I, onUnavailable: () -> Unit) {
-    try {
-        launch(input)
-    } catch (error: ActivityNotFoundException) {
-        onUnavailable()
-    }
 }

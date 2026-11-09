@@ -19,8 +19,8 @@ internal data class FileManagerUiState(
     val createDirectoryDialog: CreateDirectoryDialogUi?,
     /** One-shot message for a snackbar, cleared by `onMessageShown`. */
     val message: String?,
-    /** One-shot request to show a system picker, cleared by `onExportPickerShown`. */
-    val exportPicker: ExportPickerUi?,
+    /** One-shot request to show a system picker, cleared by `onPickerShown`. */
+    val picker: PickerUi?,
     /** One-shot request to open a file, cleared by `onFileOpenHandled`. */
     val fileToOpen: File?
 ) {
@@ -66,8 +66,12 @@ internal data class CreateDirectoryDialogUi(
 )
 
 @Immutable
-internal sealed interface ExportPickerUi {
-    data class CreateDocument(val fileName: String) : ExportPickerUi
+internal sealed interface PickerUi {
+    data object ImportFiles : PickerUi
 
-    data object PickFolder : ExportPickerUi
+    data object ImportFolder : PickerUi
+
+    data class ExportFile(val fileName: String) : PickerUi
+
+    data object ExportFolder : PickerUi
 }

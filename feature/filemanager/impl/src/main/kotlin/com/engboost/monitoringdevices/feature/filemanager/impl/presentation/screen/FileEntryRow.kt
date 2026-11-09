@@ -18,10 +18,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.commonui.components.SelectionIndicator
 import com.engboost.monitoringdevices.core.commonui.icons.FileTypeIcon
+import com.engboost.monitoringdevices.feature.filemanager.impl.R
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.FileEntryUi
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -57,7 +59,7 @@ internal fun FileEntryRow(
                 }
                 FileTypeIcon(
                     kind = entry.kind,
-                    contentDescription = if (entry.isDirectory) "Folder" else "File"
+                    contentDescription = stringResource(if (entry.isDirectory) R.string.fm_folder else R.string.fm_file)
                 )
             }
         },

@@ -134,9 +134,10 @@ data/
   repository/FileStorageRepository  файлы хранилища, импорт/экспорт, откат частично скопированного;
                                     один класс без интерфейса: реализация одна
 presentation/
-  FileManagerFeatureScreen        Route: ViewModel, ActivityResult-лаунчеры, Back, snackbar
+  FileManagerFeatureScreen        Route: ViewModel, системные пикеры по `state.picker`, Back, snackbar
+  FileManagerActions              действия экрана; реализует FileManagerViewModel, экран получает `actions = viewModel`
   FileManagerViewModel            UDF-состояние, SavedStateHandle (текущая папка, ожидающий экспорт)
-  model/ mapper/ contract/        UiState, форматирование, CreateDocument с MIME на каждый запуск
+  model/ mapper/ contract/        UiState, тексты из ресурсов (FileManagerUiMapper), CreateDocument с MIME на каждый запуск
   screen/                         FileManagerScreen, FileEntryRow, диалоги
 ```
 
@@ -157,7 +158,9 @@ presentation/
 
 Экспорт: один файл — системный «Сохранить как» (`CreateDocument`), иначе (папка или несколько
 элементов) — выбор папки (`OpenDocumentTree`) и копирование внутрь. Правило в
-`FileManagerViewModel.onExportSelectedClick`, каждый пикер возвращает результат в свой обработчик.
+`FileManagerViewModel.onExportSelectedClick`. Все четыре пикера (импорт файлов и папки, экспорт файла и в папку)
+идут одним путём: ViewModel ставит `picker`, Route запускает его, результат приходит в свой обработчик.
+Тексты — в `res/values/strings.xml` модуля (префикс `fm_`, количества — `plurals`).
 Удаление — после подтверждения, по одному элементу,
 останавливается на первой ошибке.
 
