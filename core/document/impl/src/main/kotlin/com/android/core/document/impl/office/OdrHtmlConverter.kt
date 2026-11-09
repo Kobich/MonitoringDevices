@@ -1,5 +1,6 @@
 package com.android.core.document.impl.office
 
+import android.util.Log
 import app.opendocument.core.DecodedFile
 import app.opendocument.core.Html
 import app.opendocument.core.HtmlConfig
@@ -18,6 +19,8 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
+
+private const val TAG = "OdrHtmlConverter"
 
 /** Native calls run one at a time until the library's thread safety is confirmed. */
 internal class OdrHtmlConverter(
@@ -45,10 +48,15 @@ internal class OdrHtmlConverter(
         // A ready document doesn't wait for another one being converted.
         val entry = cache.find(file, cacheVariant) ?: mutex.withLock {
             cache.find(file, cacheVariant) ?: run {
+                Log.d(TAG, "convert: ${file.name} format=$format variant=$variant")
+                val startedAt = System.currentTimeMillis()
                 val workDirectory = cache.newWorkDirectory()
                 try {
                     val input = prepare(file, workDirectory)
                     cache.store(file, cacheVariant) { outputDirectory -> render(input, password, outputDirectory) }
+                        .also { stored ->
+                            Log.d(TAG, "convert: ${file.name} done, pages=${stored.pages.size}, ${System.currentTimeMillis() - startedAt} ms")
+                        }
                 } finally {
                     workDirectory.deleteRecursively()
                 }
@@ -89,6 +97,7 @@ internal class OdrHtmlConverter(
                 }
             }
         } catch (error: OdrException) {
+            Log.w(TAG, "render: ${input.name} failed in OpenDocument.core: ${error::class.simpleName}", error)
             throw error.toReadException()
         }
     }

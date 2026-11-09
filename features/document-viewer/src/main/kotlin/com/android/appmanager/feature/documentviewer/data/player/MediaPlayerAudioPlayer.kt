@@ -2,6 +2,7 @@ package com.android.appmanager.feature.documentviewer.data.player
 
 import android.media.AudioAttributes
 import android.media.MediaPlayer
+import android.util.Log
 import com.android.appmanager.feature.documentviewer.domain.player.AudioPlayer
 import com.android.appmanager.feature.documentviewer.domain.player.AudioPlayerFactory
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -10,6 +11,8 @@ import java.io.IOException
 import javax.inject.Inject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+
+private const val TAG = "MediaPlayerAudioPlayer"
 
 /** Must be used from the main thread: `MediaPlayer` callbacks arrive on the creating looper. */
 internal class MediaPlayerAudioPlayer(
@@ -42,6 +45,7 @@ internal class MediaPlayerAudioPlayer(
                 if (continuation.isActive) continuation.resume(Unit)
             }
             player.setOnErrorListener { _, what, extra ->
+                Log.e(TAG, "MediaPlayer error what=$what extra=$extra for ${file.name}")
                 if (continuation.isActive) {
                     continuation.resumeWithException(IOException("Can't play the file (error $what/$extra)"))
                 }

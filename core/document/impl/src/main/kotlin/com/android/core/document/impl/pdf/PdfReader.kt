@@ -6,6 +6,7 @@ import android.graphics.pdf.LoadParams
 import android.graphics.pdf.PdfRenderer
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.DocumentReadException
 import com.android.core.document.api.DocumentReadException.Reason
@@ -24,6 +25,8 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+
+private const val TAG = "PdfReader"
 
 /**
  * Open questions: passwords need Android 15 (API 35), no text extraction.
@@ -50,8 +53,11 @@ internal class PdfReader(
     private fun open(file: File, password: String?): PdfDocument {
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         try {
-            return RendererPdfDocument(file.name, descriptor, openRenderer(descriptor, password))
+            return RendererPdfDocument(file.name, descriptor, openRenderer(descriptor, password)).also { document ->
+                Log.d(TAG, "open: ${file.name}, pages=${document.pageCount}")
+            }
         } catch (error: Throwable) {
+            Log.w(TAG, "open: ${file.name} failed", error)
             descriptor.close()
             throw error
         }
@@ -115,6 +121,7 @@ internal class PdfReader(
                 if (isClosed) return
                 isClosed = true
             }
+            Log.d(TAG, "close: $name")
             closeScope.launch {
                 mutex.withLock {
                     renderer.close()

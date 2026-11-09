@@ -1,5 +1,6 @@
 package com.android.appmanager.feature.documentviewer.presentation
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +12,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+
+private const val TAG = "AudioPlayback"
 
 /** Playback of one audio document; [scope] must run on the main thread, like the player. */
 internal class AudioPlayback(
@@ -27,6 +30,7 @@ internal class AudioPlayback(
 
     init {
         player.setOnCompletionListener {
+            Log.d(TAG, "completed")
             stopProgressUpdates()
             player.seekTo(0)
             update(positionMs = 0)
@@ -34,11 +38,13 @@ internal class AudioPlayback(
         scope.launch {
             try {
                 player.prepare()
+                Log.d(TAG, "prepared, durationMs=${player.durationMs}")
                 state = state.copy(isReady = true)
                 update()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
+                Log.e(TAG, "prepare failed", error)
                 state = state.copy(isFailed = true)
             }
         }
@@ -49,22 +55,26 @@ internal class AudioPlayback(
     }
 
     fun onSeek(positionMs: Long) {
+        Log.d(TAG, "seek: $positionMs ms")
         player.seekTo(positionMs)
         update(positionMs = positionMs)
     }
 
     fun pause() {
+        Log.d(TAG, "pause at ${player.positionMs} ms")
         player.pause()
         stopProgressUpdates()
         update()
     }
 
     fun release() {
+        Log.d(TAG, "release")
         stopProgressUpdates()
         player.release()
     }
 
     private fun play() {
+        Log.d(TAG, "play from ${player.positionMs} ms")
         player.play()
         progressJob?.cancel()
         progressJob = scope.launch {

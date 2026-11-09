@@ -1,5 +1,6 @@
 package com.android.appmanager.feature.documentviewer.presentation
 
+import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -27,6 +28,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.File
+
+private const val TAG = "DocumentViewer"
 
 @HiltViewModel(assistedFactory = DocumentViewerViewModel.Factory::class)
 internal class DocumentViewerViewModel @AssistedInject constructor(
@@ -68,12 +71,14 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     fun onPasswordSubmit(value: String) {
+        Log.d(TAG, "password: submitted for ${file.name}")
         password = value
         uiState = uiState.copy(passwordDialog = null)
         load()
     }
 
     fun onPasswordDismiss() {
+        Log.d(TAG, "password: dismissed for ${file.name}")
         uiState = uiState.copy(passwordDialog = null).withError(R.string.viewer_password_protected)
     }
 
@@ -82,6 +87,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     fun onScreenStopped() {
+        Log.d(TAG, "screen stopped: pausing playback")
         audioPlayback?.pause()
         videoPlayer?.pause()
     }
@@ -89,6 +95,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private fun load() {
         loadJob?.cancel()
         uiState = uiState.copy(content = ViewerContent.Loading)
+        Log.d(TAG, "load: ${file.path}, withPassword=${password != null}")
 
         loadJob = viewModelScope.launch {
             try {
@@ -98,6 +105,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
             } catch (error: DocumentReadException) {
                 handleReadError(error)
             } catch (error: Exception) {
+                Log.e(TAG, "load: ${file.name} failed unexpectedly", error)
                 uiState = uiState.withError(R.string.viewer_error_io, error.message)
             }
         }
@@ -105,6 +113,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
 
     private fun show(document: Document) {
         closeOpenedDocument()
+        Log.d(TAG, "show: ${document.name} as ${document::class.simpleName}, format=${document.format}")
         openedDocument = document
         if (document is AudioDocument) {
             audioPlayback = AudioPlayback(
@@ -120,6 +129,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     private fun handleReadError(error: DocumentReadException) {
+        Log.w(TAG, "load: ${file.name} failed, reason=${error.reason}, message=${error.message}")
         uiState = when (error.reason) {
             Reason.PASSWORD_REQUIRED -> uiState.copy(passwordDialog = PasswordDialogUi(isWrongPassword = false))
             Reason.INVALID_PASSWORD -> uiState.copy(passwordDialog = PasswordDialogUi(isWrongPassword = true))
@@ -138,6 +148,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private fun DocumentReadException.details(): String? = message?.takeIf { it.isNotBlank() && it != reason.name }
 
     private fun closeOpenedDocument() {
+        openedDocument?.let { document -> Log.d(TAG, "close: ${document.name}") }
         audioPlayback?.release()
         audioPlayback = null
         videoPlayer?.release()

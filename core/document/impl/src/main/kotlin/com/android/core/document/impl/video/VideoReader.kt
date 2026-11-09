@@ -1,6 +1,7 @@
 package com.android.core.document.impl.video
 
 import android.media.MediaMetadataRetriever
+import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.DocumentReadException
 import com.android.core.document.api.DocumentReadException.Reason
@@ -12,6 +13,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
+
+private const val TAG = "VideoReader"
 
 /** A container without a video track (e.g. an `.mp4` with sound only) opens as audio. */
 internal class VideoReader(
@@ -29,6 +32,7 @@ internal class VideoReader(
 
     override suspend fun read(file: File, format: DocumentFormat, password: String?): Document {
         val tracks = withContext(ioDispatcher) { readTracks(file) }
+        Log.d(TAG, "read: ${file.name} hasVideo=${tracks.hasVideo}, hasAudio=${tracks.hasAudio}")
         return when {
             tracks.hasVideo -> VideoDocument(name = file.name, format = format, file = file)
             tracks.hasAudio -> audioReader.read(file, format, password)
@@ -47,6 +51,7 @@ internal class VideoReader(
                 hasAudio = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO) == "yes"
             )
         } catch (error: RuntimeException) {
+            Log.w(TAG, "readTracks: ${file.name} unreadable", error)
             // MediaMetadataRetriever reports unreadable files with IllegalArgumentException / RuntimeException.
             throw DocumentReadException(Reason.CORRUPTED, error.message, error)
         } finally {

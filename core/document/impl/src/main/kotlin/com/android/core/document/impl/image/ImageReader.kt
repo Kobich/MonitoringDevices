@@ -7,6 +7,7 @@ import android.graphics.Matrix
 import android.graphics.drawable.AnimatedImageDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.exifinterface.media.ExifInterface
 import com.android.core.document.api.DocumentFormat
@@ -21,6 +22,8 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
+
+private const val TAG = "ImageReader"
 
 internal class ImageReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
@@ -52,6 +55,8 @@ internal class ImageReader(
 
         val header = runCatching { readStream(file) { input -> input.readHeader() } }.getOrDefault(ByteArray(0))
 
+        val isAnimated = isGif(header) || isAnimatedWebp(header)
+        Log.d(TAG, "read: ${file.name} ${bounds.outWidth}x${bounds.outHeight}, exifOrientation=$orientation, animated=$isAnimated")
         FileImageDocument(
             name = file.name,
             format = format,
@@ -59,7 +64,7 @@ internal class ImageReader(
             rawWidth = bounds.outWidth,
             rawHeight = bounds.outHeight,
             orientation = orientation,
-            isAnimated = isGif(header) || isAnimatedWebp(header)
+            isAnimated = isAnimated
         )
     }
 
@@ -88,7 +93,9 @@ internal class ImageReader(
                 val decoded = readStream(file) { input -> BitmapFactory.decodeStream(input, null, options) }
                     ?: throw DocumentReadException(Reason.CORRUPTED, "Can't decode image $name")
 
-                transform(decoded, maxRawWidth, maxRawHeight)
+                transform(decoded, maxRawWidth, maxRawHeight).also { bitmap ->
+                    Log.d(TAG, "decode: $name box=${maxWidthPx}x$maxHeightPx sample=${options.inSampleSize} -> ${bitmap.width}x${bitmap.height}")
+                }
             }
         }
 

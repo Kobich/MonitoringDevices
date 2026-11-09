@@ -2,6 +2,7 @@ package com.android.core.document.impl
 
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import com.android.core.document.api.DocumentFormat.CSV
 import com.android.core.document.api.DocumentFormat.DOC
 import com.android.core.document.api.DocumentFormat.DOCX
@@ -34,6 +35,8 @@ import com.android.core.document.impl.text.TextReader
 import com.android.core.document.impl.video.VideoReader
 import java.io.File
 
+private const val TAG = "DocumentCore"
+
 /** Create one per process: readers share the conversion cache and its lock. */
 class DocumentCore(context: Context) {
 
@@ -65,6 +68,7 @@ class DocumentCore(context: Context) {
                 setOf(DOC, ODT, RTF, PAGES, XLSX, XLS, ODS, CSV, NUMBERS, PPT, ODP, KEYNOTE, ODG)
             )
         }
+        Log.d(TAG, "readers: ${readers.size}, office formats=${converter != null}, sdk=${Build.VERSION.SDK_INT}")
         reader = CompositeDocumentReader(readers)
     }
 }

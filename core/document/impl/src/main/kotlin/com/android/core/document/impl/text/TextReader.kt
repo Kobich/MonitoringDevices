@@ -1,5 +1,6 @@
 package com.android.core.document.impl.text
 
+import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.DocumentReadException
 import com.android.core.document.api.DocumentReadException.Reason
@@ -11,6 +12,8 @@ import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.InputStream
+
+private const val TAG = "TextReader"
 
 internal class TextReader(
     private val maxChars: Int = DEFAULT_MAX_CHARS,
@@ -28,9 +31,11 @@ internal class TextReader(
         val decoded = try {
             TextDecoding.decode(content, isComplete = !isCutByBytes)
         } catch (error: TextDecoding.BinaryContentException) {
+            Log.w(TAG, "read: ${file.name} looks binary")
             throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, error.message, error)
         }
         val isCutByChars = decoded.text.length > maxChars
+        Log.d(TAG, "read: ${file.name} bytes=${bytes.size}, charset=${decoded.charsetName}, truncated=${isCutByBytes || isCutByChars}")
 
         TextDocument(
             name = file.name,
