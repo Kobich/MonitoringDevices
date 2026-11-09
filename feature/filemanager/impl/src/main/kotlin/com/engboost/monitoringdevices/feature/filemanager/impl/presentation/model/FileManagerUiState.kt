@@ -55,6 +55,7 @@ internal data class SelectionUi(
 
 @Immutable
 internal data class DeletionUi(
+    val entries: List<FileEntryUi>,
     val title: String,
     val text: String
 )

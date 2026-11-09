@@ -124,16 +124,15 @@ OpenDocument.core не рисует диаграммы DrawingML. `OfficeReader`
 ```text
 FileManagerFeatureImpl            реализация FileManagerFeatureApi
 di/
-  FileManagerFeatureModule        Hilt-модуль фичи: биндинги API и репозитория, корень хранилища
+  FileManagerFeatureModule        Hilt-модуль фичи: биндинг API, корень хранилища
 domain/
   model/                          StoragePath, FileEntry, DirectoryContent, TransferSummary, ошибки имени
-  repository/FileStorageRepository  контракт доступа к хранилищу
-  interactor/FileManagerInteractor  сортировка, fallback на существующую папку, валидация имени, правила удаления
+  interactor/FileManagerInteractor  сортировка, fallback на существующую папку, валидация имени
 data/
   source/InternalFileSource       StoragePath -> File, защита от выхода за корень, уникальные имена
   source/ExternalDocumentSource   SAF: чтение/запись документов и деревьев (DocumentFile)
-  mapper/FileEntryMapper          File -> FileEntry, MIME по расширению
-  repository/DefaultFileStorageRepository  копирование, удаление, откат частично скопированного
+  repository/FileStorageRepository  файлы хранилища, импорт/экспорт, откат частично скопированного;
+                                    один класс без интерфейса: реализация одна
 presentation/
   FileManagerFeatureScreen        Route: ViewModel, ActivityResult-лаунчеры, Back, snackbar
   FileManagerViewModel            UDF-состояние, SavedStateHandle (текущая папка, ожидающий экспорт)
@@ -158,7 +157,8 @@ presentation/
 
 Экспорт: один файл — системный «Сохранить как» (`CreateDocument`), иначе (папка или несколько
 элементов) — выбор папки (`OpenDocumentTree`) и копирование внутрь. Правило в
-`FileManagerInteractor.exportDestination`. Удаление — после подтверждения, по одному элементу,
+`FileManagerViewModel.onExportSelectedClick`, каждый пикер возвращает результат в свой обработчик.
+Удаление — после подтверждения, по одному элементу,
 останавливается на первой ошибке.
 
 Открытие файла: фича отдаёт `File` через `FileManagerFeatureApi.onFileOpen`, `app` ведёт на

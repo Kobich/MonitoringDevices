@@ -2,13 +2,11 @@ package com.engboost.monitoringdevices.feature.filemanager.impl.data.repository
 
 import android.net.Uri
 import androidx.documentfile.provider.DocumentFile
-import com.engboost.monitoringdevices.feature.filemanager.impl.data.mapper.toFileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.data.source.ExternalDocumentSource
 import com.engboost.monitoringdevices.feature.filemanager.impl.data.source.InternalFileSource
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.FileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.TransferSummary
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.repository.FileStorageRepository
 import com.engboost.monitoringdevices.feature.filemanager.impl.util.mimeTypeOf
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -19,42 +17,40 @@ import java.io.IOException
 import javax.inject.Inject
 import kotlin.coroutines.coroutineContext
 
-internal class DefaultFileStorageRepository @Inject constructor(
+/** All methods may throw [IOException]. */
+internal class FileStorageRepository @Inject constructor(
     private val internalSource: InternalFileSource,
     private val documentSource: ExternalDocumentSource
-) : FileStorageRepository {
+) {
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
-    override suspend fun exists(path: StoragePath): Boolean = io {
+    suspend fun exists(path: StoragePath): Boolean = io {
         internalSource.resolve(path).exists()
     }
 
-    override suspend fun isDirectory(path: StoragePath): Boolean = io {
+    suspend fun isDirectory(path: StoragePath): Boolean = io {
         internalSource.resolve(path).isDirectory
     }
 
-    override suspend fun fileOf(path: StoragePath): File = io {
+    suspend fun fileOf(path: StoragePath): File = io {
         internalSource.resolve(path).also { file ->
             if (!file.isFile) throw IOException("$path is not a file")
         }
     }
 
-    override suspend fun list(directory: StoragePath): List<FileEntry> = io {
+    /** Unsorted. */
+    suspend fun list(directory: StoragePath): List<FileEntry> = io {
         val children = internalSource.resolve(directory).listFiles()
             ?: throw IOException("Can't read folder $directory")
 
         children.map { file -> file.toFileEntry(directory.child(file.name)) }
     }
 
-    override suspend fun createDirectory(path: StoragePath): FileEntry = io {
-        val directory = internalSource.resolve(path)
-        if (!directory.mkdirs()) {
-            throw IOException("Can't create folder $path")
-        }
-        directory.toFileEntry(path)
+    suspend fun createDirectory(path: StoragePath): Unit = io {
+        if (!internalSource.resolve(path).mkdirs()) throw IOException("Can't create folder $path")
     }
 
-    override suspend fun delete(path: StoragePath): Unit = io {
+    suspend fun delete(path: StoragePath): Unit = io {
         val file = internalSource.resolve(path)
         if (file == internalSource.resolve(StoragePath.ROOT)) {
             throw IOException("Root folder can't be deleted")
@@ -64,7 +60,8 @@ internal class DefaultFileStorageRepository @Inject constructor(
         }
     }
 
-    override suspend fun importFiles(
+    /** Name clashes are resolved as `name (1).ext`. */
+    suspend fun importFiles(
         sources: List<Uri>,
         destination: StoragePath
     ): TransferSummary = io {
@@ -77,7 +74,8 @@ internal class DefaultFileStorageRepository @Inject constructor(
         TransferSummary(files = sources.size, directories = 0)
     }
 
-    override suspend fun importDirectory(
+    /** Into a new folder inside [destination]. */
+    suspend fun importDirectory(
         sourceTree: Uri,
         destination: StoragePath
     ): TransferSummary = io {
@@ -99,7 +97,7 @@ internal class DefaultFileStorageRepository @Inject constructor(
         counter.toSummary()
     }
 
-    override suspend fun exportFile(path: StoragePath, destination: Uri): Unit = io {
+    suspend fun exportFile(path: StoragePath, destination: Uri): Unit = io {
         try {
             internalSource.resolve(path).inputStream().use { input ->
                 documentSource.openOutput(destination).use { output -> input.copyTo(output) }
@@ -110,7 +108,8 @@ internal class DefaultFileStorageRepository @Inject constructor(
         }
     }
 
-    override suspend fun exportToDirectory(
+    /** Items created before a failure are removed. */
+    suspend fun exportToDirectory(
         paths: List<StoragePath>,
         destinationTree: Uri
     ): TransferSummary = io {
@@ -200,6 +199,18 @@ internal class DefaultFileStorageRepository @Inject constructor(
     ) {
         fun toSummary() = TransferSummary(files = files, directories = directories)
     }
+}
+
+private fun File.toFileEntry(path: StoragePath): FileEntry {
+    val isDirectory = isDirectory
+    return FileEntry(
+        path = path,
+        name = name,
+        isDirectory = isDirectory,
+        sizeBytes = if (isDirectory) 0L else length(),
+        childCount = if (isDirectory) list()?.size ?: 0 else 0,
+        lastModifiedMillis = lastModified()
+    )
 }
 
 private fun File.mkdirOrThrow() {

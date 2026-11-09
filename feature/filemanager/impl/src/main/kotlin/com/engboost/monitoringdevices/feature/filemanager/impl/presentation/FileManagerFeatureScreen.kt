@@ -41,11 +41,11 @@ internal fun FileManagerFeatureScreen(
     )
     val exportFileLauncher = rememberLauncherForActivityResult(
         contract = CreateDocumentContract(),
-        onResult = viewModel::onExportDestinationSelected
+        onResult = viewModel::onExportDocumentCreated
     )
     val exportToFolderLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocumentTree(),
-        onResult = viewModel::onExportDestinationSelected
+        onResult = viewModel::onExportFolderPicked
     )
 
     // Files may be changed by other parts of the app while the screen is in background.

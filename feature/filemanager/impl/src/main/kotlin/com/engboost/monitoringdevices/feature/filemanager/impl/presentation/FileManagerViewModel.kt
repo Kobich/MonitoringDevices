@@ -8,10 +8,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.interactor.FileManagerInteractor
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.CreateDirectoryResult
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryContent
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.ExportDestination
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
+import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.TransferSummary
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.mapper.FileManagerUiMapper
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.BreadcrumbUi
 import com.engboost.monitoringdevices.feature.filemanager.impl.presentation.model.CreateDirectoryDialogUi
@@ -64,8 +63,6 @@ internal class FileManagerViewModel @Inject constructor(
         )
     )
         private set
-
-    private var deletionCandidates: List<FileEntryUi> = emptyList()
 
     init {
         loadDirectory(currentPath)
@@ -123,7 +120,6 @@ internal class FileManagerViewModel @Inject constructor(
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
-        deletionCandidates = entries
         uiState = uiState.copy(pendingDeletion = uiMapper.deletion(entries))
     }
 
@@ -131,16 +127,14 @@ internal class FileManagerViewModel @Inject constructor(
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
-        val paths = entries.map { entry -> StoragePath(entry.path) }
         val singleFile = entries.singleOrNull()?.takeIf { entry -> !entry.isDirectory }
-        val destination = interactor.exportDestination(paths, isSingleFile = singleFile != null)
-        val picker = if (destination == ExportDestination.DOCUMENT && singleFile != null) {
+        val picker = if (singleFile != null) {
             ExportPickerUi.CreateDocument(fileName = singleFile.name)
         } else {
             ExportPickerUi.PickFolder
         }
 
-        pendingExportPaths = paths
+        pendingExportPaths = entries.map { entry -> StoragePath(entry.path) }
         uiState = uiState.copy(exportPicker = picker)
     }
 
@@ -175,16 +169,27 @@ internal class FileManagerViewModel @Inject constructor(
         uiState = uiState.copy(exportPicker = null)
     }
 
-    fun onExportDestinationSelected(uri: Uri?) {
-        val paths = pendingExportPaths
-        if (paths.isEmpty()) return
-        pendingExportPaths = emptyList()
+    fun onExportDocumentCreated(uri: Uri?) {
+        val path = takePendingExport()?.singleOrNull() ?: return
         uri ?: return
+        export { interactor.exportFile(path, uri) }
+    }
 
+    fun onExportFolderPicked(uri: Uri?) {
+        val paths = takePendingExport() ?: return
+        uri ?: return
+        export { interactor.exportToFolder(paths, uri) }
+    }
+
+    private fun takePendingExport(): List<StoragePath>? {
+        val paths = pendingExportPaths.takeIf { it.isNotEmpty() }
+        pendingExportPaths = emptyList()
+        return paths
+    }
+
+    private fun export(block: suspend () -> TransferSummary) {
         uiState = uiState.copy(selection = null)
-        runOperation(failurePrefix = "Export failed") {
-            uiMapper.exportedText(interactor.export(paths, uri))
-        }
+        runOperation(failurePrefix = "Export failed") { uiMapper.exportedText(block()) }
     }
 
     fun onPickerUnavailable() {
@@ -193,14 +198,11 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     fun onDeleteDismiss() {
-        deletionCandidates = emptyList()
         uiState = uiState.copy(pendingDeletion = null)
     }
 
     fun onDeleteConfirm() {
-        val entries = deletionCandidates
-        if (entries.isEmpty()) return
-        deletionCandidates = emptyList()
+        val entries = uiState.pendingDeletion?.entries ?: return
         uiState = uiState.copy(pendingDeletion = null, selection = null)
 
         runOperation(failurePrefix = "Delete failed") {
@@ -220,17 +222,10 @@ internal class FileManagerViewModel @Inject constructor(
     fun onCreateDirectoryConfirm(name: String) {
         val parent = currentPath
         runOperation(failurePrefix = "Can't create folder") {
-            when (val result = interactor.createDirectory(parent, name)) {
-                is CreateDirectoryResult.Created -> {
-                    uiState = uiState.copy(createDirectoryDialog = null)
-                }
-
-                is CreateDirectoryResult.Invalid -> {
-                    uiState = uiState.copy(
-                        createDirectoryDialog = CreateDirectoryDialogUi(uiMapper.errorText(result.error))
-                    )
-                }
-            }
+            val error = interactor.createDirectory(parent, name)
+            uiState = uiState.copy(
+                createDirectoryDialog = error?.let { CreateDirectoryDialogUi(uiMapper.errorText(it)) }
+            )
             null
         }
     }
@@ -242,7 +237,7 @@ internal class FileManagerViewModel @Inject constructor(
     private fun openFile(entry: FileEntryUi) {
         viewModelScope.launch {
             try {
-                uiState = uiState.copy(fileToOpen = interactor.fileForOpening(StoragePath(entry.path)))
+                uiState = uiState.copy(fileToOpen = interactor.fileOf(StoragePath(entry.path)))
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {

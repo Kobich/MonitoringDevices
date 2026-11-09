@@ -56,7 +56,7 @@ internal class FileManagerUiMapper {
             hasDirectories -> "Selected items, including folders with all their content, will be deleted permanently."
             else -> "Selected files will be deleted permanently."
         }
-        return DeletionUi(title = title, text = text)
+        return DeletionUi(entries = entries, title = title, text = text)
     }
 
     fun deletedText(entries: List<FileEntryUi>): String {

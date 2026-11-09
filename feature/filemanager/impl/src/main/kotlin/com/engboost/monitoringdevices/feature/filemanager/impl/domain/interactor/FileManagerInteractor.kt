@@ -1,14 +1,12 @@
 package com.engboost.monitoringdevices.feature.filemanager.impl.domain.interactor
 
 import android.net.Uri
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.CreateDirectoryResult
+import com.engboost.monitoringdevices.feature.filemanager.impl.data.repository.FileStorageRepository
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryContent
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.DirectoryNameError
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.ExportDestination
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.FileEntry
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.StoragePath
 import com.engboost.monitoringdevices.feature.filemanager.impl.domain.model.TransferSummary
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.repository.FileStorageRepository
 import java.io.File
 import javax.inject.Inject
 
@@ -28,56 +26,36 @@ internal class FileManagerInteractor @Inject constructor(
         )
     }
 
-    suspend fun createDirectory(parent: StoragePath, rawName: String): CreateDirectoryResult {
+    /** `null` when the folder is created. */
+    suspend fun createDirectory(parent: StoragePath, rawName: String): DirectoryNameError? {
         val name = rawName.trim()
         val error = validateDirectoryName(name)
             ?: DirectoryNameError.ALREADY_EXISTS.takeIf { repository.exists(parent.child(name)) }
 
-        return if (error != null) {
-            CreateDirectoryResult.Invalid(error)
-        } else {
-            CreateDirectoryResult.Created(repository.createDirectory(parent.child(name)))
-        }
+        if (error == null) repository.createDirectory(parent.child(name))
+        return error
     }
 
-    suspend fun importFiles(sources: List<Uri>, destination: StoragePath): TransferSummary {
-        if (sources.isEmpty()) return TransferSummary(files = 0, directories = 0)
-        return repository.importFiles(sources, destination)
+    suspend fun importFiles(sources: List<Uri>, destination: StoragePath): TransferSummary =
+        repository.importFiles(sources, destination)
+
+    suspend fun importDirectory(sourceTree: Uri, destination: StoragePath): TransferSummary =
+        repository.importDirectory(sourceTree, destination)
+
+    suspend fun exportFile(path: StoragePath, document: Uri): TransferSummary {
+        repository.exportFile(path, document)
+        return TransferSummary(files = 1, directories = 0)
     }
 
-    suspend fun importDirectory(sourceTree: Uri, destination: StoragePath): TransferSummary {
-        return repository.importDirectory(sourceTree, destination)
-    }
-
-    fun exportDestination(paths: List<StoragePath>, isSingleFile: Boolean): ExportDestination {
-        return if (paths.size == 1 && isSingleFile) ExportDestination.DOCUMENT else ExportDestination.FOLDER
-    }
-
-    /** [destination] must match [exportDestination]: a document URI or a tree URI. */
-    suspend fun export(paths: List<StoragePath>, destination: Uri): TransferSummary {
-        val singlePath = paths.singleOrNull()
-        val isSingleFile = singlePath != null && !repository.isDirectory(singlePath)
-
-        return when (exportDestination(paths, isSingleFile)) {
-            ExportDestination.DOCUMENT -> {
-                repository.exportFile(paths.single(), destination)
-                TransferSummary(files = 1, directories = 0)
-            }
-
-            ExportDestination.FOLDER -> repository.exportToDirectory(paths, destination)
-        }
-    }
+    suspend fun exportToFolder(paths: List<StoragePath>, folder: Uri): TransferSummary =
+        repository.exportToDirectory(paths, folder)
 
     /** Deletes items one by one and stops at the first failure. */
     suspend fun delete(paths: List<StoragePath>) {
-        require(paths.none { path -> path.isRoot }) { "Root folder can't be deleted" }
         paths.forEach { path -> repository.delete(path) }
     }
 
-    suspend fun fileForOpening(path: StoragePath): File {
-        require(!repository.isDirectory(path)) { "$path is a folder" }
-        return repository.fileOf(path)
-    }
+    suspend fun fileOf(path: StoragePath): File = repository.fileOf(path)
 
     private fun validateDirectoryName(name: String): DirectoryNameError? {
         return when {

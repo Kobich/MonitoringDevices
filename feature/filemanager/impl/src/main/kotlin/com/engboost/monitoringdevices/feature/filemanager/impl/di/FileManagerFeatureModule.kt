@@ -3,9 +3,7 @@ package com.engboost.monitoringdevices.feature.filemanager.impl.di
 import android.content.Context
 import com.engboost.monitoringdevices.feature.filemanager.api.FileManagerFeatureApi
 import com.engboost.monitoringdevices.feature.filemanager.impl.FileManagerFeatureImpl
-import com.engboost.monitoringdevices.feature.filemanager.impl.data.repository.DefaultFileStorageRepository
 import com.engboost.monitoringdevices.feature.filemanager.impl.data.source.InternalFileSource
-import com.engboost.monitoringdevices.feature.filemanager.impl.domain.repository.FileStorageRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -21,9 +19,6 @@ internal abstract class FileManagerFeatureModule {
     @Binds
     @Singleton
     abstract fun bindFeatureApi(impl: FileManagerFeatureImpl): FileManagerFeatureApi
-
-    @Binds
-    abstract fun bindRepository(impl: DefaultFileStorageRepository): FileStorageRepository
 
     companion object {
         /** Not `Context.dataDir`: it would also expose databases/, shared_prefs/ and cache/. */

@@ -7,8 +7,3 @@ internal enum class DirectoryNameError {
     TOO_LONG,
     ALREADY_EXISTS
 }
-
-internal sealed interface CreateDirectoryResult {
-    data class Created(val entry: FileEntry) : CreateDirectoryResult
-    data class Invalid(val error: DirectoryNameError) : CreateDirectoryResult
-}
