@@ -9,8 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.Player
 import com.android.appmanager.feature.documentviewer.R
-import com.android.appmanager.feature.documentviewer.data.player.VideoPlayerFactory
-import com.android.appmanager.feature.documentviewer.domain.player.AudioPlayerFactory
+import com.android.appmanager.feature.documentviewer.data.player.PlayerFactory
 import com.android.appmanager.feature.documentviewer.presentation.model.DocumentViewerUiState
 import com.android.appmanager.feature.documentviewer.presentation.model.PasswordDialogUi
 import com.android.appmanager.feature.documentviewer.presentation.model.ViewerContent
@@ -35,8 +34,7 @@ private const val TAG = "DocumentViewer"
 internal class DocumentViewerViewModel @AssistedInject constructor(
     @Assisted private val file: File,
     private val reader: DocumentReader,
-    private val audioPlayerFactory: AudioPlayerFactory,
-    private val videoPlayerFactory: VideoPlayerFactory
+    private val playerFactory: PlayerFactory
 ) : ViewModel() {
 
     @AssistedFactory
@@ -117,13 +115,13 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         openedDocument = document
         if (document is AudioDocument) {
             audioPlayback = AudioPlayback(
-                player = audioPlayerFactory.create(document.file),
+                player = playerFactory.create(document.file),
                 scope = viewModelScope,
                 knownDurationMs = document.durationMs ?: 0
             )
         }
         if (document is VideoDocument) {
-            videoPlayer = videoPlayerFactory.create(document.file)
+            videoPlayer = playerFactory.create(document.file)
         }
         uiState = uiState.copy(content = ViewerContent.Loaded(document))
     }

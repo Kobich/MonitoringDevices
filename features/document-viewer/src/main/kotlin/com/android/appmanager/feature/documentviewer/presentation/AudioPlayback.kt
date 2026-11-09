@@ -4,9 +4,9 @@ import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.android.appmanager.feature.documentviewer.domain.player.AudioPlayer
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
 import com.android.appmanager.feature.documentviewer.presentation.model.AudioPlaybackUi
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,7 +17,7 @@ private const val TAG = "AudioPlayback"
 
 /** Playback of one audio document; [scope] must run on the main thread, like the player. */
 internal class AudioPlayback(
-    private val player: AudioPlayer,
+    private val player: Player,
     private val scope: CoroutineScope,
     knownDurationMs: Long
 ) {
@@ -28,26 +28,38 @@ internal class AudioPlayback(
 
     private var progressJob: Job? = null
 
-    init {
-        player.setOnCompletionListener {
-            Log.d(TAG, "completed")
-            stopProgressUpdates()
-            player.seekTo(0)
-            update(positionMs = 0)
-        }
-        scope.launch {
-            try {
-                player.prepare()
-                Log.d(TAG, "prepared, durationMs=${player.durationMs}")
-                state = state.copy(isReady = true)
-                update()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                Log.e(TAG, "prepare failed", error)
-                state = state.copy(isFailed = true)
+    private val listener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            when (playbackState) {
+                Player.STATE_READY -> {
+                    Log.d(TAG, "ready, durationMs=${player.duration}")
+                    state = state.copy(isReady = true)
+                    update()
+                }
+
+                Player.STATE_ENDED -> {
+                    Log.d(TAG, "completed")
+                    // Pause first: seeking an ended player that should play starts it again.
+                    player.pause()
+                    player.seekTo(0)
+                    update(positionMs = 0)
+                }
             }
         }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (isPlaying) startProgressUpdates() else stopProgressUpdates()
+            update()
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            Log.e(TAG, "playback failed: ${error.errorCodeName}", error)
+            state = state.copy(isFailed = true)
+        }
+    }
+
+    init {
+        player.addListener(listener)
     }
 
     fun onPlayPauseClick() {
@@ -61,21 +73,23 @@ internal class AudioPlayback(
     }
 
     fun pause() {
-        Log.d(TAG, "pause at ${player.positionMs} ms")
+        Log.d(TAG, "pause at ${player.currentPosition} ms")
         player.pause()
-        stopProgressUpdates()
-        update()
     }
 
     fun release() {
         Log.d(TAG, "release")
         stopProgressUpdates()
+        player.removeListener(listener)
         player.release()
     }
 
     private fun play() {
-        Log.d(TAG, "play from ${player.positionMs} ms")
+        Log.d(TAG, "play from ${player.currentPosition} ms")
         player.play()
+    }
+
+    private fun startProgressUpdates() {
         progressJob?.cancel()
         progressJob = scope.launch {
             while (isActive) {
@@ -90,11 +104,11 @@ internal class AudioPlayback(
         progressJob = null
     }
 
-    private fun update(positionMs: Long = player.positionMs) {
+    private fun update(positionMs: Long = player.currentPosition) {
         state = state.copy(
             isPlaying = player.isPlaying,
             positionMs = positionMs,
-            durationMs = player.durationMs.takeIf { it > 0 } ?: state.durationMs
+            durationMs = player.duration.takeIf { it > 0 } ?: state.durationMs
         )
     }
 
