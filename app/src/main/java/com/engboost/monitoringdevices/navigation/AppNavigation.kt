@@ -13,7 +13,7 @@ import com.android.appmanager.feature.filemanager.api.FileManagerFeatureApi
 import com.android.appmanager.feature.nearbyscanner.NearbyScanner
 import com.android.appmanager.feature.nearbyscanner.ui.navigateToNearbyScan
 import com.android.appmanager.feature.nearbyscanner.ui.nearbyScanScreen
-import com.android.core.commonui.icons.IconCatalogScreen
+import com.android.core.commonui.catalog.UiCatalogScreen
 import com.engboost.monitoringdevices.featuretest.FeatureTestScreen
 import com.engboost.monitoringdevices.home.HomeScreen
 import java.io.File
@@ -37,11 +37,11 @@ internal fun AppNavigation(
                 onFileManagerClick = { navController.navigate(AppDestination.FILE_MANAGER) },
                 onScannerClick = { navController.navigateToNearbyScan() },
                 onFeatureTestClick = { navController.navigate(AppDestination.FEATURE_TEST) },
-                onIconsClick = { navController.navigate(AppDestination.ICONS) }
+                onUiCatalogClick = { navController.navigate(AppDestination.UI_CATALOG) }
             )
         }
-        composable(AppDestination.ICONS) {
-            IconCatalogScreen(onBackClick = { navController.popBackStack() })
+        composable(AppDestination.UI_CATALOG) {
+            UiCatalogScreen(onBackClick = { navController.popBackStack() })
         }
         nearbyScanScreen(scanner = scanner)
         composable(AppDestination.FEATURE_TEST) {
@@ -72,7 +72,7 @@ private object AppDestination {
     const val HOME = "home"
     const val FILE_MANAGER = "file_manager"
     const val FEATURE_TEST = "feature_test"
-    const val ICONS = "icons"
+    const val UI_CATALOG = "ui_catalog"
     const val ARG_PATH = "path"
     const val FILE_VIEWER = "file_viewer?$ARG_PATH={$ARG_PATH}"
 

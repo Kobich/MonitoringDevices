@@ -222,19 +222,27 @@ icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + св�
               FileKind.of(name, isDirectory): FOLDER, PDF, DOCUMENT, SPREADSHEET, PRESENTATION,
                 TEXT, IMAGE, AUDIO, VIDEO, ARCHIVE, OTHER (по расширению)
               FileTypeIcons / FileTypeIcon(kind, size): цветные векторные значки файлов
-              IconCatalogScreen: все значки на одном экране (главный экран -> Icons);
-                новый значок AppIcons добавлять и в его список
 components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
               CenteredContent { ... }, LoadingContent(text), MessageContent(title, text, actionLabel)
               SelectionIndicator(selected): круглая отметка выбора с анимацией
               ConfirmDialog(title, confirmLabel, dismissLabel, destructive, dismissible) { тело }
+              ChoiceDialog(ChoiceDialogUi(title, choices, text), onChoice): окно-данные, варианты
+                DialogChoice(value, label, destructive); 2 кнопки в ряд, 3+ столбиком
               ProgressBar(progress: Float? (null = неизвестен), label, showPercent)
               ConnectionStatus: DISCONNECTED, CONNECTING, CONNECTED
               ConnectionStatusIndicator(status, label) / ConnectionStatusIcon(status): плашка и значок;
                 статус видно по форме, а не только по цвету: CONNECTED — залитая плашка + ссылка,
                 CONNECTING — спиннер, DISCONNECTED — пустая обведённая плашка + перечёркнутая ссылка
 state/        rememberDelayedVisibility(visible): true, только если visible держится дольше задержки
+catalog/      UiCatalogScreen: окна, компоненты и значки на одном экране (главный экран -> UI catalog);
+                новый компонент или значок AppIcons добавлять и сюда
 ```
+
+Цепочка окон («ответили так — показать следующее окно»): окно — это состояние, а не вызов.
+ViewModel держит текущий шаг (`dialog: ChoiceDialogUi<Choice>?` или свой sealed-класс шагов),
+экран показывает его, ответ приходит в ViewModel, и она кладёт в состояние следующий шаг или `null`.
+Решение «что дальше» — логика фичи и живёт в её ViewModel; common-ui даёт только окна.
+Пример цепочки — в `UiCatalogScreen` (удалить файл -> оставить копию? -> 3 варианта, «Назад»).
 
 Один публичный компонент — один файл с его именем, превью в том же файле. Имена по назначению,
 без префикса `App` (кроме `AppIcons`).
