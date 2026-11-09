@@ -8,13 +8,16 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalContext
 
 /**
  * Colors come from the device: Material You palette of the wallpaper / system settings on Android 12+,
  * the Material 3 baseline palette on older versions. Light or dark follows the system setting.
  *
- * Components take colors only from `MaterialTheme.colorScheme`, never hardcoded, so they follow the device too.
+ * Components take colors from `MaterialTheme.colorScheme`; only status colors ("ok", "in progress",
+ * "problem") are fixed, see [StatusColors] and [MonitoringDevicesTheme.statusColors].
  */
 @Composable
 fun MonitoringDevicesTheme(
@@ -33,9 +36,18 @@ fun MonitoringDevicesTheme(
         else -> lightColorScheme()
     }
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = Typography,
-        content = content
-    )
+    CompositionLocalProvider(LocalStatusColors provides if (darkTheme) DarkStatusColors else LightStatusColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
+}
+
+object MonitoringDevicesTheme {
+    val statusColors: StatusColors
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalStatusColors.current
 }

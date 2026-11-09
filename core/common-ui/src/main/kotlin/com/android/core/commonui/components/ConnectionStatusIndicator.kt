@@ -2,7 +2,6 @@ package com.android.core.commonui.components
 
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.android.core.commonui.R
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.StatusColorRole
 
 /** UI state of a connection; features map their own connection state to it. */
 enum class ConnectionStatus {
@@ -42,8 +41,8 @@ enum class ConnectionStatus {
 /**
  * Pill with a status icon and a caption. [label] overrides the default caption of the [status].
  *
- * The status reads from the shape, not only the color: connected is a filled pill with a link,
- * connecting is a spinner, disconnected is an empty outlined pill with a crossed-out link.
+ * Soft status colors: green when connected, amber while connecting, muted red when disconnected.
+ * The icon tells it apart without colors too: link, spinner, crossed-out link.
  */
 @Composable
 fun ConnectionStatusIndicator(
@@ -51,18 +50,11 @@ fun ConnectionStatusIndicator(
     modifier: Modifier = Modifier,
     label: String = connectionStatusLabel(status)
 ) {
-    val colors = connectionStatusColors(status)
-    val containerColor by animateColorAsState(targetValue = colors.container, label = "statusContainer")
-    val contentColor by animateColorAsState(targetValue = colors.content, label = "statusContent")
-    val borderColor by animateColorAsState(targetValue = colors.border, label = "statusBorder")
+    val role = connectionStatusRole(status)
+    val containerColor by animateColorAsState(targetValue = role.container, label = "statusContainer")
+    val contentColor by animateColorAsState(targetValue = role.onContainer, label = "statusContent")
 
-    Surface(
-        shape = CircleShape,
-        color = containerColor,
-        contentColor = contentColor,
-        border = BorderStroke(width = 1.dp, color = borderColor),
-        modifier = modifier
-    ) {
+    Surface(shape = CircleShape, color = containerColor, contentColor = contentColor, modifier = modifier) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -75,7 +67,7 @@ fun ConnectionStatusIndicator(
 }
 
 /**
- * Only the icon, for list rows and app bars: link, spinner, crossed-out link.
+ * Only the icon, for list rows and app bars: link, spinner, crossed-out link in the status color.
  * Pass `contentDescription = null` when a caption with the status is next to it.
  */
 @Composable
@@ -83,9 +75,11 @@ fun ConnectionStatusIcon(
     status: ConnectionStatus,
     modifier: Modifier = Modifier,
     size: Dp = 18.dp,
-    tint: Color = LocalContentColor.current,
+    tint: Color = connectionStatusRole(status).accent,
     contentDescription: String? = connectionStatusLabel(status)
 ) {
+    val animatedTint by animateColorAsState(targetValue = tint, label = "statusTint")
+
     Crossfade(
         targetState = status,
         label = "statusIcon",
@@ -101,22 +95,21 @@ fun ConnectionStatusIcon(
     ) { shown ->
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             when (shown) {
-                ConnectionStatus.CONNECTED -> Icon(imageVector = AppIcons.Link, contentDescription = null, tint = tint)
+                ConnectionStatus.CONNECTED -> Icon(imageVector = AppIcons.Link, contentDescription = null, tint = animatedTint)
                 ConnectionStatus.CONNECTING -> CircularProgressIndicator(
-                    color = tint,
+                    color = animatedTint,
                     strokeWidth = 2.dp,
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(size * 0.1f)
                 )
 
-                ConnectionStatus.DISCONNECTED -> Icon(imageVector = AppIcons.LinkOff, contentDescription = null, tint = tint)
+                ConnectionStatus.DISCONNECTED -> Icon(imageVector = AppIcons.LinkOff, contentDescription = null, tint = animatedTint)
             }
         }
     }
 }
 
-/** Text of [status] from the module strings: "Connected", "Connecting…", "Disconnected". */
 @Composable
 fun connectionStatusLabel(status: ConnectionStatus): String = stringResource(
     when (status) {
@@ -126,29 +119,13 @@ fun connectionStatusLabel(status: ConnectionStatus): String = stringResource(
     }
 )
 
-private class StatusColors(val container: Color, val content: Color, val border: Color)
-
 @Composable
-private fun connectionStatusColors(status: ConnectionStatus): StatusColors {
-    val scheme = MaterialTheme.colorScheme
+private fun connectionStatusRole(status: ConnectionStatus): StatusColorRole {
+    val colors = MonitoringDevicesTheme.statusColors
     return when (status) {
-        ConnectionStatus.CONNECTED -> StatusColors(
-            container = scheme.primaryContainer,
-            content = scheme.onPrimaryContainer,
-            border = Color.Transparent
-        )
-
-        ConnectionStatus.CONNECTING -> StatusColors(
-            container = scheme.secondaryContainer,
-            content = scheme.onSecondaryContainer,
-            border = Color.Transparent
-        )
-
-        ConnectionStatus.DISCONNECTED -> StatusColors(
-            container = Color.Transparent,
-            content = scheme.onSurfaceVariant,
-            border = scheme.outline
-        )
+        ConnectionStatus.CONNECTED -> colors.positive
+        ConnectionStatus.CONNECTING -> colors.pending
+        ConnectionStatus.DISCONNECTED -> colors.negative
     }
 }
 
@@ -156,11 +133,24 @@ private fun connectionStatusColors(status: ConnectionStatus): StatusColors {
 @Composable
 private fun ConnectionStatusIndicatorPreview() {
     MonitoringDevicesTheme(dynamicColor = false) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            ConnectionStatus.entries.forEach { status -> ConnectionStatusIndicator(status = status) }
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                ConnectionStatus.entries.forEach { status -> ConnectionStatusIcon(status = status, size = 24.dp) }
-            }
+        ConnectionStatusPreviewContent()
+    }
+}
+
+@Preview(showBackground = true, backgroundColor = 0xFF141218)
+@Composable
+private fun ConnectionStatusIndicatorDarkPreview() {
+    MonitoringDevicesTheme(darkTheme = true, dynamicColor = false) {
+        ConnectionStatusPreviewContent()
+    }
+}
+
+@Composable
+private fun ConnectionStatusPreviewContent() {
+    Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        ConnectionStatus.entries.forEach { status -> ConnectionStatusIndicator(status = status) }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            ConnectionStatus.entries.forEach { status -> ConnectionStatusIcon(status = status, size = 24.dp) }
         }
     }
 }
