@@ -13,14 +13,19 @@
 | --- | --- |
 | `:core:common-ui` | `com.android.core.commonui` |
 | `:core:document:api` / `:impl` | `com.android.core.document.api` / `.impl` |
-| `:features:file-manager:api` / `:impl` | `com.android.appmanager.feature.filemanager.api` / `.impl` |
-| `:features:document-viewer:api` / `:impl` | `com.android.appmanager.feature.documentviewer.api` / `.impl` |
+| `:features:file-manager` | `com.android.appmanager.feature.filemanager` |
+| `:features:document-viewer` | `com.android.appmanager.feature.documentviewer` |
 | `:features:nearby-scanner` | `com.android.appmanager.feature.nearbyscanner` |
 | `:features:condition-data-fetcher` | `com.android.appmanager.feature.conditiondatafetcher` |
 | `:app` | `com.engboost.monitoringdevices` |
 
 Связанные модули называются по одному слову: `core:document` читает файлы, `features:document-viewer`
-их показывает. `:api` / `:impl` — контракт и реализация, другие модули зависят только от `:api`.
+их показывает.
+
+Фича — один модуль: публичный `*FeatureApi` в корневом пакете, остальное `internal` в подпакетах.
+Разделение на `:api` / `:impl` — только когда от контракта зависит другой модуль без реализации:
+так у `core:document` (`document-viewer` видит только `:api`, без OpenDocument.core и его нативных
+библиотек). Фичу делить так же, когда у её контракта появится второй потребитель.
 
 ```text
 :app
@@ -30,12 +35,13 @@
   Сканеры Wi-Fi / Bluetooth и их экраны; условия (время, гео, Wi-Fi, Bluetooth).
   Описаны в architecture-scanner.md. minSdk 36, поэтому и у app minSdk 36.
 
-:features:file-manager:api
-  FileManagerFeatureApi — внешний контракт фичи (Composable-экран + onBackClick).
+:features:file-manager
+  FileManagerFeatureApi (Composable-экран, onBackClick, onFileOpen) + internal-реализация:
+  просмотр приватного хранилища приложения (Context.filesDir), импорт / экспорт через
+  Storage Access Framework, удаление, создание папок.
 
-:features:file-manager:impl
-  Реализация: просмотр приватного хранилища приложения (Context.filesDir),
-  импорт / экспорт через Storage Access Framework, удаление, создание папок.
+:features:document-viewer
+  DocumentViewerFeatureApi (экран по File) + internal-реализация поверх core:document:api.
 
 :core:common-ui
   Общий UI для переиспользования: тема (MonitoringDevicesTheme), значки (AppIcons),
@@ -52,9 +58,9 @@
 
 ```text
 app -> scanner, features
-app, features:*:impl -> core:common-ui
-app -> features:file-manager:impl -> features:file-manager:api
-app -> features:document-viewer:impl -> features:document-viewer:api, core:document:api
+app, features:file-manager, features:document-viewer -> core:common-ui
+app -> features:file-manager
+app -> features:document-viewer -> core:document:api
 app -> core:document:impl -> core:document:api, odr-core-android
 ```
 
@@ -149,7 +155,7 @@ OpenDocument.core не рисует диаграммы DrawingML. `OfficeReader`
 Нераспознанные диаграммы остаются как есть, при ошибке рендерится исходный файл.
 Логи: `adb logcat -s OfficeReader`.
 
-## Структура `features:file-manager:impl`
+## Структура `features:file-manager`
 
 ```text
 FileManagerFeatureImpl            реализация FileManagerFeatureApi
@@ -263,7 +269,7 @@ ViewModel держит текущий шаг (`dialog: ChoiceDialogUi<Choice>?` 
 | Модули | DI | Как |
 | --- | --- | --- |
 | `core:*` | без фреймворка | `core:document:impl` отдаёт одну публичную точку `DocumentCore(context).reader`, всё остальное `internal`; `core:common-ui` без зависимостей |
-| `features:*:impl` | Hilt | `@Inject constructor`, `@HiltViewModel`, `internal` Hilt-модуль `@InstallIn(SingletonComponent)` с `@Binds` для `*FeatureApi` |
+| `features:*` | Hilt | `@Inject constructor`, `@HiltViewModel`, `internal` Hilt-модуль `@InstallIn(SingletonComponent)` с `@Binds` для `*FeatureApi` |
 | `app` | Hilt | `@HiltAndroidApp`, `@AndroidEntryPoint`; `di/DocumentCoreModule` отдаёт `DocumentReader` как `@Singleton` |
 
 Параметры экрана, которые приходят через API фичи (например `File` у просмотрщика), передаются

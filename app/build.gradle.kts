@@ -44,8 +44,8 @@ android {
 
 dependencies {
     implementation(project(":core:common-ui"))
-    implementation(project(":features:file-manager:impl"))
-    implementation(project(":features:document-viewer:impl"))
+    implementation(project(":features:file-manager"))
+    implementation(project(":features:document-viewer"))
     implementation(project(":core:document:impl"))
     implementation(project(":features:nearby-scanner"))
     implementation(project(":features:condition-data-fetcher"))

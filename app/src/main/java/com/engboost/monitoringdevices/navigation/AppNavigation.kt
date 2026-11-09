@@ -8,8 +8,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.android.appmanager.feature.documentviewer.api.DocumentViewerFeatureApi
-import com.android.appmanager.feature.filemanager.api.FileManagerFeatureApi
+import com.android.appmanager.feature.documentviewer.DocumentViewerFeatureApi
+import com.android.appmanager.feature.filemanager.FileManagerFeatureApi
 import com.android.appmanager.feature.nearbyscanner.NearbyScanner
 import com.android.appmanager.feature.nearbyscanner.ui.navigateToNearbyScan
 import com.android.appmanager.feature.nearbyscanner.ui.nearbyScanScreen
