@@ -2,10 +2,13 @@ package com.engboost.monitoringdevices
 
 import android.app.Application
 import com.engboost.monitoringdevices.sample.SampleFilesSeeder
+import com.engboost.monitoringdevices.scanner.NearbyScanner
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
 class MonitoringDevicesApplication : Application() {
+    val scanner: NearbyScanner by lazy { NearbyScanner(this) }
+
     override fun onCreate() {
         super.onCreate()
 

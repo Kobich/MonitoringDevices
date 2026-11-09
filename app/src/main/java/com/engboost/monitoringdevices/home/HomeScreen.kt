@@ -1,6 +1,7 @@
 package com.engboost.monitoringdevices.home
 
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
@@ -8,20 +9,30 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 
 @Composable
 internal fun HomeScreen(
     onFileManagerClick: () -> Unit,
+    onScannerClick: () -> Unit,
+    onFeatureTestClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Column(
         modifier = modifier
             .fillMaxSize()
             .safeDrawingPadding(),
-        contentAlignment = Alignment.Center
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Button(onClick = onFileManagerClick) {
             Text(text = "File manager")
+        }
+        Button(onClick = onScannerClick) {
+            Text(text = "Open nearby scanner")
+        }
+        Button(onClick = onFeatureTestClick) {
+            Text(text = "Test features")
         }
     }
 }

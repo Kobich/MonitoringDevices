@@ -1,13 +1,18 @@
 # Архитектура
 
-Ветка `feature/file-manager` — чистый проект, не зависит от `master`.
-`app` показывает стартовый экран с кнопкой перехода в фичу файлового менеджера.
+В проекте две части: файловый менеджер с просмотрщиком документов (этот файл) и сканер Wi-Fi / Bluetooth
+с условиями (`:scanner`, `:features`, см. [architecture-scanner.md](architecture-scanner.md)).
+`app` показывает стартовый экран с кнопками перехода в файловый менеджер, сканер и тест условий.
 
 ## Модули
 
 ```text
 :app
   Точка входа, Hilt (@HiltAndroidApp, DocumentCoreModule), навигация (Navigation Compose).
+
+:scanner, :features
+  Сканеры Wi-Fi / Bluetooth и их экраны; условия (время, гео, Wi-Fi, Bluetooth).
+  Описаны в architecture-scanner.md. minSdk 36, поэтому и у app minSdk 36.
 
 :feature:filemanager:api
   FileManagerFeatureApi — внешний контракт фичи (Composable-экран + onBackClick).
@@ -30,6 +35,7 @@
 ```
 
 ```text
+app -> scanner, features
 app, feature:*:impl -> core:common-ui
 app -> feature:filemanager:impl -> feature:filemanager:api
 app -> feature:viewer:impl -> feature:viewer:api, core:document:api
@@ -98,7 +104,7 @@ document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocum
   паролем (входит в хэш ключа), поэтому без пароля он заново спросит пароль. Расшифрованный HTML
   лежит в приватном `cacheDir`.
 - Готовый документ берётся из кэша без ожидания `Mutex`: им ждут только конвертации.
-- Библиотека требует Android 8 (API 26), приложение — minSdk 23: `tools:overrideLibrary` в манифестах
+- Библиотека требует Android 8 (API 26), а `core:document:impl` — minSdk 23: `tools:overrideLibrary` в манифестах
   `app` и `core:document:impl`, `OfficeReader` регистрируется только на API 26+.
 - Показ: WebView + `WebViewAssetLoader` (`InternalStoragePathHandler` на папку результата): без сети,
   без доступа к файлам; остальные запросы блокируются, JS-интерфейсов нет.

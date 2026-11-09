@@ -23,13 +23,15 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val scanner = (application as MonitoringDevicesApplication).scanner
         enableEdgeToEdge()
         setContent {
             MonitoringDevicesTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     AppNavigation(
                         fileManagerFeature = fileManagerFeature,
-                        documentViewerFeature = documentViewerFeature
+                        documentViewerFeature = documentViewerFeature,
+                        scanner = scanner
                     )
                 }
             }

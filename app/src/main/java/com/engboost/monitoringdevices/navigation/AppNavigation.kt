@@ -10,13 +10,18 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.engboost.monitoringdevices.feature.filemanager.api.FileManagerFeatureApi
 import com.engboost.monitoringdevices.feature.viewer.api.DocumentViewerFeatureApi
+import com.engboost.monitoringdevices.featuretest.FeatureTestScreen
 import com.engboost.monitoringdevices.home.HomeScreen
+import com.engboost.monitoringdevices.scanner.NearbyScanner
+import com.engboost.monitoringdevices.scanner.ui.navigateToNearbyScan
+import com.engboost.monitoringdevices.scanner.ui.nearbyScanScreen
 import java.io.File
 
 @Composable
 internal fun AppNavigation(
     fileManagerFeature: FileManagerFeatureApi,
     documentViewerFeature: DocumentViewerFeatureApi,
+    scanner: NearbyScanner,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -28,8 +33,14 @@ internal fun AppNavigation(
     ) {
         composable(AppDestination.HOME) {
             HomeScreen(
-                onFileManagerClick = { navController.navigate(AppDestination.FILE_MANAGER) }
+                onFileManagerClick = { navController.navigate(AppDestination.FILE_MANAGER) },
+                onScannerClick = { navController.navigateToNearbyScan() },
+                onFeatureTestClick = { navController.navigate(AppDestination.FEATURE_TEST) }
             )
+        }
+        nearbyScanScreen(scanner = scanner)
+        composable(AppDestination.FEATURE_TEST) {
+            FeatureTestScreen()
         }
         composable(AppDestination.FILE_MANAGER) {
             fileManagerFeature.FileManagerScreen(
@@ -55,6 +66,7 @@ internal fun AppNavigation(
 private object AppDestination {
     const val HOME = "home"
     const val FILE_MANAGER = "file_manager"
+    const val FEATURE_TEST = "feature_test"
     const val ARG_PATH = "path"
     const val FILE_VIEWER = "file_viewer?$ARG_PATH={$ARG_PATH}"
 
