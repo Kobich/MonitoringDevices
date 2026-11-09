@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="common_ui_back">Back</string>
+    <string name="common_ui_percent">%1$d%%</string>
+
     <string name="common_ui_connection_connected">Connected</string>
     <string name="common_ui_connection_connecting">Connecting…</string>
     <string name="common_ui_connection_disconnected">Disconnected</string>

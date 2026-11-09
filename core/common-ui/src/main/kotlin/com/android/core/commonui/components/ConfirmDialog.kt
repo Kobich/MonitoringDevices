@@ -15,12 +15,12 @@ import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.theme.MonitoringDevicesTheme
 
 /**
- * Dialog with a title, a body and one or two text buttons.
+ * Dialog with a title, a body in [content] and a confirm button; [dismissLabel] adds a second button.
  * [destructive] paints the confirm button with the error color (delete, disconnect, reset).
  * [dismissible] = `false` ignores back and taps outside: the user has to press a button.
  */
 @Composable
-fun AppAlertDialog(
+fun ConfirmDialog(
     title: String,
     confirmLabel: String,
     onConfirm: () -> Unit,
@@ -58,65 +58,36 @@ fun AppAlertDialog(
     )
 }
 
-/** [AppAlertDialog] with plain [text] as the body. */
-@Composable
-fun AppAlertDialog(
-    title: String,
-    text: String,
-    confirmLabel: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-    dismissLabel: String? = null,
-    icon: ImageVector? = null,
-    destructive: Boolean = false,
-    confirmEnabled: Boolean = true,
-    dismissible: Boolean = true
-) {
-    AppAlertDialog(
-        title = title,
-        confirmLabel = confirmLabel,
-        onConfirm = onConfirm,
-        onDismiss = onDismiss,
-        modifier = modifier,
-        dismissLabel = dismissLabel,
-        icon = icon,
-        destructive = destructive,
-        confirmEnabled = confirmEnabled,
-        dismissible = dismissible,
-        content = { Text(text = text) }
-    )
-}
-
 @Preview
 @Composable
-private fun AppAlertDialogPreview() {
+private fun ConfirmDialogPreview() {
     MonitoringDevicesTheme(dynamicColor = false) {
-        AppAlertDialog(
+        ConfirmDialog(
             title = "Remove device?",
-            text = "The device will disappear from the list. You can add it again later.",
             confirmLabel = "Remove",
             dismissLabel = "Cancel",
             icon = AppIcons.Delete,
             destructive = true,
             onConfirm = {},
             onDismiss = {}
-        )
+        ) {
+            Text(text = "The device will disappear from the list. You can add it again later.")
+        }
     }
 }
 
 @Preview
 @Composable
-private fun AppAlertDialogProgressPreview() {
+private fun ConfirmDialogProgressPreview() {
     MonitoringDevicesTheme(dynamicColor = false) {
-        AppAlertDialog(
+        ConfirmDialog(
             title = "Updating firmware",
             confirmLabel = "Hide",
             dismissible = false,
             onConfirm = {},
             onDismiss = {}
         ) {
-            AppProgressBar(progress = 0.42f, label = "Uploading", showPercent = true)
+            ProgressBar(progress = 0.42f, label = "Uploading", showPercent = true)
         }
     }
 }

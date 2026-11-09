@@ -11,8 +11,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
+import com.android.core.commonui.R
 import com.android.core.commonui.icons.AppIcons
+import com.android.core.commonui.theme.MonitoringDevicesTheme
 
 /** Doesn't expose experimental Material 3 types, so callers need no opt-in. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -22,7 +26,7 @@ fun BackTopAppBar(
     onNavigationClick: () -> Unit,
     modifier: Modifier = Modifier,
     navigationIcon: ImageVector = AppIcons.Back,
-    navigationContentDescription: String = "Back",
+    navigationContentDescription: String = stringResource(R.string.common_ui_back),
     /** [Color.Unspecified] keeps the theme default. */
     containerColor: Color = Color.Unspecified,
     actions: @Composable RowScope.() -> Unit = {}
@@ -42,4 +46,16 @@ fun BackTopAppBar(
         },
         modifier = modifier
     )
+}
+
+@Preview
+@Composable
+private fun BackTopAppBarPreview() {
+    MonitoringDevicesTheme(dynamicColor = false) {
+        BackTopAppBar(title = "Quarterly report.docx", onNavigationClick = {}) {
+            IconButton(onClick = {}) {
+                Icon(imageVector = AppIcons.More, contentDescription = null)
+            }
+        }
+    }
 }

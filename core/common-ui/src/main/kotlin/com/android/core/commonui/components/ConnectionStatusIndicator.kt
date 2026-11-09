@@ -51,27 +51,10 @@ fun ConnectionStatusIndicator(
     modifier: Modifier = Modifier,
     label: String = connectionStatusLabel(status)
 ) {
-    val scheme = MaterialTheme.colorScheme
-    val containerColor by animateColorAsState(
-        targetValue = when (status) {
-            ConnectionStatus.CONNECTED -> scheme.primaryContainer
-            ConnectionStatus.CONNECTING -> scheme.secondaryContainer
-            ConnectionStatus.DISCONNECTED -> Color.Transparent
-        },
-        label = "statusContainer"
-    )
-    val contentColor by animateColorAsState(
-        targetValue = when (status) {
-            ConnectionStatus.CONNECTED -> scheme.onPrimaryContainer
-            ConnectionStatus.CONNECTING -> scheme.onSecondaryContainer
-            ConnectionStatus.DISCONNECTED -> scheme.onSurfaceVariant
-        },
-        label = "statusContent"
-    )
-    val borderColor by animateColorAsState(
-        targetValue = if (status == ConnectionStatus.DISCONNECTED) scheme.outline else Color.Transparent,
-        label = "statusBorder"
-    )
+    val colors = connectionStatusColors(status)
+    val containerColor by animateColorAsState(targetValue = colors.container, label = "statusContainer")
+    val contentColor by animateColorAsState(targetValue = colors.content, label = "statusContent")
+    val borderColor by animateColorAsState(targetValue = colors.border, label = "statusBorder")
 
     Surface(
         shape = CircleShape,
@@ -141,6 +124,32 @@ fun connectionStatusLabel(status: ConnectionStatus): String = stringResource(
         ConnectionStatus.CONNECTED -> R.string.common_ui_connection_connected
     }
 )
+
+private class StatusColors(val container: Color, val content: Color, val border: Color)
+
+@Composable
+private fun connectionStatusColors(status: ConnectionStatus): StatusColors {
+    val scheme = MaterialTheme.colorScheme
+    return when (status) {
+        ConnectionStatus.CONNECTED -> StatusColors(
+            container = scheme.primaryContainer,
+            content = scheme.onPrimaryContainer,
+            border = Color.Transparent
+        )
+
+        ConnectionStatus.CONNECTING -> StatusColors(
+            container = scheme.secondaryContainer,
+            content = scheme.onSecondaryContainer,
+            border = Color.Transparent
+        )
+
+        ConnectionStatus.DISCONNECTED -> StatusColors(
+            container = Color.Transparent,
+            content = scheme.onSurfaceVariant,
+            border = scheme.outline
+        )
+    }
+}
 
 @Preview(showBackground = true)
 @Composable

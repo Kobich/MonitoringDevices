@@ -39,8 +39,8 @@
 
 :core:common-ui
   Общий UI для переиспользования: тема (MonitoringDevicesTheme), значки (AppIcons),
-  компоненты (BackTopAppBar, CenteredContent, LoadingContent, MessageContent, AppAlertDialog,
-  AppProgressBar, ConnectionStatusIndicator).
+  компоненты (BackTopAppBar, CenteredContent, LoadingContent, MessageContent, ConfirmDialog,
+  ProgressBar, ConnectionStatusIndicator), rememberDelayedVisibility.
   Не зависит от фич и core:document; фичи и app подключают его через implementation.
 
 :core:document:api
@@ -227,13 +227,17 @@ icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + св�
 components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
               CenteredContent { ... }, LoadingContent(text), MessageContent(title, text, actionLabel)
               SelectionIndicator(selected): круглая отметка выбора с анимацией
-              AppAlertDialog(title, text | content { }, confirmLabel, dismissLabel, destructive, dismissible)
-              AppProgressBar(progress: Float? (null = неизвестен), label, showPercent)
+              ConfirmDialog(title, confirmLabel, dismissLabel, destructive, dismissible) { тело }
+              ProgressBar(progress: Float? (null = неизвестен), label, showPercent)
               ConnectionStatus: DISCONNECTED, CONNECTING, CONNECTED
               ConnectionStatusIndicator(status, label) / ConnectionStatusIcon(status): плашка и значок;
                 статус видно по форме, а не только по цвету: CONNECTED — залитая плашка + ссылка,
                 CONNECTING — спиннер, DISCONNECTED — пустая обведённая плашка + перечёркнутая ссылка
+state/        rememberDelayedVisibility(visible): true, только если visible держится дольше задержки
 ```
+
+Один публичный компонент — один файл с его именем, превью в том же файле. Имена по назначению,
+без префикса `App` (кроме `AppIcons`).
 
 Компоненты без состояния: всё приходит параметрами, события уходят колбэками; таймеры, логика
 переходов и ViewModel — в фичах.

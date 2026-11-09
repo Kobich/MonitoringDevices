@@ -15,7 +15,7 @@ import com.android.appmanager.feature.documentviewer.impl.presentation.model.Vie
 import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.MessageContent
-import com.android.core.commonui.components.rememberDelayedVisibility
+import com.android.core.commonui.state.rememberDelayedVisibility
 import com.android.core.document.api.document.AudioDocument
 import com.android.core.document.api.document.HtmlDocument
 import com.android.core.document.api.document.ImageDocument

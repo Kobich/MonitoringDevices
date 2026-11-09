@@ -42,8 +42,8 @@ import com.android.appmanager.feature.filemanager.impl.presentation.model.FileMa
 import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.MessageContent
-import com.android.core.commonui.components.rememberDelayedVisibility
 import com.android.core.commonui.icons.AppIcons
+import com.android.core.commonui.state.rememberDelayedVisibility
 
 @Composable
 internal fun FileManagerScreen(

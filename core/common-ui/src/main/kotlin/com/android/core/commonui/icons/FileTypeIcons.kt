@@ -1,6 +1,10 @@
 package com.android.core.commonui.icons
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,8 +14,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.addPathNodes
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.android.core.commonui.theme.MonitoringDevicesTheme
 
 /** Colors are part of the icons: draw them with [FileTypeIcon] / `Image`, not with a tinted `Icon`. */
 object FileTypeIcons {
@@ -133,4 +139,15 @@ fun FileTypeIcon(
         contentDescription = contentDescription,
         modifier = modifier.size(size)
     )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Preview(showBackground = true)
+@Composable
+private fun FileTypeIconPreview() {
+    MonitoringDevicesTheme(dynamicColor = false) {
+        FlowRow(modifier = Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FileKind.entries.forEach { kind -> FileTypeIcon(kind = kind) }
+        }
+    }
 }

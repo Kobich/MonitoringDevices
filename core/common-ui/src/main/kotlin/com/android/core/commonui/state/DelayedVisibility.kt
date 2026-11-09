@@ -1,4 +1,4 @@
-package com.android.core.commonui.components
+package com.android.core.commonui.state
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
