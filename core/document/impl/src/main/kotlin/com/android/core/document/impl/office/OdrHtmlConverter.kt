@@ -5,6 +5,7 @@ import app.opendocument.core.DecodedFile
 import app.opendocument.core.Html
 import app.opendocument.core.HtmlConfig
 import app.opendocument.core.HtmlView
+import app.opendocument.core.HtmlViewportMode
 import app.opendocument.core.Odr
 import app.opendocument.core.OdrException
 import com.android.core.document.api.DocumentFormat
@@ -76,6 +77,10 @@ internal class OdrHtmlConverter(
                         // The viewer serves the output folder as a site: links to styles, scripts
                         // and images must be relative, not absolute file system paths.
                         relativeResourcePaths = true
+                        // Pages, slides and drawings open fitted to the screen width, and the library's
+                        // script refits them on rotation. Sheets have no page width: they stay at 100% and scroll.
+                        viewportMode = HtmlViewportMode.FIT_WIDTH_BY_VIEW
+                        spreadsheetViewportMode = HtmlViewportMode.ACTUAL_SIZE
                     }
                     Html.translate(readable, config).use { service ->
                         val views = service.listViews()
