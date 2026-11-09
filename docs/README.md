@@ -4,7 +4,6 @@
 
 ## Основные страницы
 
-- [Архитектура](architecture.md) — модули приложения, файловый менеджер, просмотрщик, common-ui.
 - [Архитектура сканера](architecture-scanner.md) — `:features:nearby-scanner`: раскладка пакетов, движение данных и правила именования.
 - [Ограничения платформы](platform-limitations.md) — фактическое поведение Wi-Fi и Bluetooth.
 - [Исследование Android API](android-wireless-monitoring-research.md) — расширенный технический контекст и ссылки на внешние источники.
@@ -12,7 +11,6 @@
 ## Модули
 
 - [`:features:nearby-scanner`](modules/scanner.md) — фича: API, реализация сканеров и экраны.
-- [`:app`](modules/app.md) — хост-приложение для ручной проверки.
 
 ## Подключение в другой проект
 
