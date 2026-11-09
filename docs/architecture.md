@@ -6,6 +6,9 @@
 
 ## Модули
 
+Пакеты: core — `com.android.core.*`, фичи — `com.android.appmanager.feature.*`
+(`filemanager`, `viewer`, `scanner`, `conditiondatafetcher`), приложение — `com.engboost.monitoringdevices`.
+
 ```text
 :app
   Точка входа, Hilt (@HiltAndroidApp, DocumentCoreModule), навигация (Navigation Compose).
@@ -203,6 +206,8 @@ icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + св�
               FileKind.of(name, isDirectory): FOLDER, PDF, DOCUMENT, SPREADSHEET, PRESENTATION,
                 TEXT, IMAGE, AUDIO, VIDEO, ARCHIVE, OTHER (по расширению)
               FileTypeIcons / FileTypeIcon(kind, size): цветные векторные значки файлов
+              IconCatalogScreen: все значки на одном экране (главный экран -> Icons);
+                новый значок AppIcons добавлять и в его список
 components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
               CenteredContent { ... }, LoadingContent(text), MessageContent(title, text, actionLabel)
               SelectionIndicator(selected): круглая отметка выбора с анимацией

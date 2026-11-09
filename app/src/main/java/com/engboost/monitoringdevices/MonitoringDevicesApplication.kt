@@ -1,8 +1,8 @@
 package com.engboost.monitoringdevices
 
 import android.app.Application
+import com.android.appmanager.feature.scanner.NearbyScanner
 import com.engboost.monitoringdevices.sample.SampleFilesSeeder
-import com.engboost.monitoringdevices.scanner.NearbyScanner
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp

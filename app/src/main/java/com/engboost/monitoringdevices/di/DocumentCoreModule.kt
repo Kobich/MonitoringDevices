@@ -1,8 +1,8 @@
 package com.engboost.monitoringdevices.di
 
 import android.content.Context
-import com.engboost.monitoringdevices.core.document.api.DocumentReader
-import com.engboost.monitoringdevices.core.document.impl.DocumentCore
+import com.android.core.document.api.DocumentReader
+import com.android.core.document.impl.DocumentCore
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

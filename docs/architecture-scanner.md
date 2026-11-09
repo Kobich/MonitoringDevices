@@ -24,7 +24,7 @@ Radio (сотовая сеть) и Bluetooth Classic не поддерживаю
 Каждый сканер — самостоятельный пакет: публичный интерфейс `*ScannerApi`, его модели, события и конфигурация лежат рядом, а реализация — `internal`-класс `*ScannerImpl`. В корне только `NearbyScanner`, который объединяет оба сканера.
 
 ```text
-com.engboost.monitoringdevices.scanner
+com.android.appmanager.feature.scanner
 ├── NearbyScanner.kt                 public    API фичи: wifi + bluetooth
 ├── NearbyScannerConfig.kt           public    Конфигурация обоих сканеров
 ├── wifi/
@@ -92,7 +92,7 @@ scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 Пакет `ui/` устроен так же, как сканеры: `wifi/` и `bluetooth/` с одинаковым набором файлов и `common/` для общего.
 
 ```text
-com.engboost.monitoringdevices.scanner.ui
+com.android.appmanager.feature.scanner.ui
 ├── NearbyScanScreen.kt      public  Экран фичи с вкладками Wi-Fi и Bluetooth
 ├── NearbyScanNavigation.kt  public  NEARBY_SCAN_ROUTE, nearbyScanScreen(), navigateToNearbyScan()
 ├── common/      ScanStatus, PermissionRequestUi, PermissionRequestEffect, ScanWhileVisibleEffect,

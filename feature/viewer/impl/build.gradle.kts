@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.engboost.monitoringdevices.feature.viewer.impl"
+    namespace = "com.android.appmanager.feature.viewer.impl"
     compileSdk {
         version = release(36)
     }

@@ -16,6 +16,7 @@ internal fun HomeScreen(
     onFileManagerClick: () -> Unit,
     onScannerClick: () -> Unit,
     onFeatureTestClick: () -> Unit,
+    onIconsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -33,6 +34,9 @@ internal fun HomeScreen(
         }
         Button(onClick = onFeatureTestClick) {
             Text(text = "Test features")
+        }
+        Button(onClick = onIconsClick) {
+            Text(text = "Icons")
         }
     }
 }

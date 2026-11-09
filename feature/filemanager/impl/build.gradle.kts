@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace = "com.engboost.monitoringdevices.feature.filemanager.impl"
+    namespace = "com.android.appmanager.feature.filemanager.impl"
     compileSdk {
         version = release(36)
     }

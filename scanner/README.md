@@ -21,7 +21,7 @@
 Структура пакетов:
 
 ```text
-com.engboost.monitoringdevices.scanner
+com.android.appmanager.feature.scanner
 ├── NearbyScanner.kt / NearbyScannerConfig.kt   Точка входа фичи и конфигурация
 ├── wifi/        WifiScannerApi, ScannedWifiNetwork, WifiScanEvent, WifiScanConfig; WifiScannerImpl (internal)
 ├── bluetooth/   BluetoothScannerApi, ScannedBluetoothDevice, BluetoothScanEvent, BluetoothScanConfig;

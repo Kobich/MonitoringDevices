@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.engboost.monitoringdevices.scanner"
+    namespace = "com.android.appmanager.feature.scanner"
     compileSdk {
         version = release(36) {
             minorApiLevel = 1

@@ -3,7 +3,7 @@ plugins {
 }
 
 android {
-    namespace = "com.engboost.monitoringdevices.core.document.impl"
+    namespace = "com.android.core.document.impl"
     compileSdk {
         version = release(36)
     }
