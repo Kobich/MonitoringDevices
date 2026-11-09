@@ -116,6 +116,7 @@ fun ConnectionStatusIcon(
     }
 }
 
+/** Text of [status] from the module strings: "Connected", "Connecting…", "Disconnected". */
 @Composable
 fun connectionStatusLabel(status: ConnectionStatus): String = stringResource(
     when (status) {

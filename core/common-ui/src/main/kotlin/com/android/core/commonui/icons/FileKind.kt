@@ -1,5 +1,6 @@
 package com.android.core.commonui.icons
 
+/** What a file system entry is, by its name only; decides its [FileTypeIcon]. */
 enum class FileKind {
     FOLDER,
     PDF,
@@ -14,6 +15,7 @@ enum class FileKind {
     OTHER;
 
     companion object {
+        /** Kind by the extension of [fileName], ignoring case; [OTHER] for an unknown one. */
         fun of(fileName: String, isDirectory: Boolean): FileKind {
             if (isDirectory) return FOLDER
             val extension = fileName.substringAfterLast('.', missingDelimiterValue = "").lowercase()

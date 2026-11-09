@@ -2,6 +2,7 @@ package com.android.core.document.api
 
 import java.io.File
 
+/** File types [DocumentReader] can open, one entry per type. */
 enum class DocumentFormat(vararg extensions: String) {
     PDF("pdf"),
 
@@ -53,9 +54,11 @@ enum class DocumentFormat(vararg extensions: String) {
     WEBM("webm"),
     MKV("mkv");
 
+    /** Lower-case file extensions of this format, without a dot. */
     val extensions: Set<String> = extensions.toSet()
 
     companion object {
+        /** Format by the extension of [file], ignoring case; `null` if the type isn't supported. */
         fun of(file: File): DocumentFormat? {
             val extension = file.extension.lowercase()
             return entries.firstOrNull { format -> extension in format.extensions }

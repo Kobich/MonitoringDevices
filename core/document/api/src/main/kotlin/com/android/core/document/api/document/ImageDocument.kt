@@ -4,10 +4,15 @@ import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import com.android.core.document.api.DocumentReadException
 
+/** An image whose pixels are decoded on demand for the size it is shown at. */
 interface ImageDocument : Document {
+    /** Width as shown, with EXIF rotation applied. */
     val widthPx: Int
+
+    /** Height as shown, with EXIF rotation applied. */
     val heightPx: Int
 
+    /** A GIF or an animated WebP: try [decodeAnimation] before [decode]. */
     val isAnimated: Boolean
 
     /**
