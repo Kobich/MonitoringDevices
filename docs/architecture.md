@@ -189,7 +189,7 @@ Screen -> callback -> ViewModel
 ```text
 theme/        MonitoringDevicesTheme: системные цвета устройства (Material You на Android 12+,
                 базовая палитра Material 3 ниже), светлая/тёмная по системе; типографика
-icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + свои Folder, File (ImageVector)
+icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + свои Folder, File, Link, LinkOff (ImageVector)
               FileKind.of(name, isDirectory): FOLDER, PDF, DOCUMENT, SPREADSHEET, PRESENTATION,
                 TEXT, IMAGE, AUDIO, VIDEO, ARCHIVE, OTHER (по расширению)
               FileTypeIcons / FileTypeIcon(kind, size): цветные векторные значки файлов
@@ -199,9 +199,13 @@ components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
               AppAlertDialog(title, text | content { }, confirmLabel, dismissLabel, destructive, dismissible)
               AppProgressBar(progress: Float? (null = неизвестен), label, showPercent)
               ConnectionStatus: DISCONNECTED, CONNECTING, CONNECTED
-              ConnectionStatusIndicator(status, label) / ConnectionStatusDot(status): плашка и точка,
-                CONNECTED — primary, CONNECTING — tertiary с пульсацией, DISCONNECTED — error
+              ConnectionStatusIndicator(status, label) / ConnectionStatusIcon(status): плашка и значок;
+                статус видно по форме, а не только по цвету: CONNECTED — залитая плашка + ссылка,
+                CONNECTING — спиннер, DISCONNECTED — пустая обведённая плашка + перечёркнутая ссылка
 ```
+
+Компоненты без состояния: всё приходит параметрами, события уходят колбэками; таймеры, логика
+переходов и ViewModel — в фичах.
 
 Правила: цвета только из `MaterialTheme.colorScheme`, без захардкоженных `Color(0x...)` (кроме цветных
 значков файлов); строки — в `res/values/strings.xml` модуля с префиксом `common_ui_`;

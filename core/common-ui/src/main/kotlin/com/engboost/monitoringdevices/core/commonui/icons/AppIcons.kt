@@ -47,6 +47,26 @@ object AppIcons {
         )
     }
 
+    val Link: ImageVector by lazy {
+        icon(
+            name = "Link",
+            pathData = "M3.9,12c0,-1.71 1.39,-3.1 3.1,-3.1h4V7H7c-2.76,0 -5,2.24 -5,5s2.24,5 5,5h4v-1.9H7" +
+                "c-1.71,0 -3.1,-1.39 -3.1,-3.1zM8,13h8v-2H8v2zM17,7h-4v1.9h4c1.71,0 3.1,1.39 3.1,3.1" +
+                "s-1.39,3.1 -3.1,3.1h-4V17h4c2.76,0 5,-2.24 5,-5s-2.24,-5 -5,-5z"
+        )
+    }
+
+    /** Crossed-out [Link]: no connection. */
+    val LinkOff: ImageVector by lazy {
+        icon(
+            name = "LinkOff",
+            pathData = "M17,7h-4v1.9h4c1.71,0 3.1,1.39 3.1,3.1 0,1.43 -0.98,2.63 -2.31,2.98l1.46,1.46" +
+                "C20.88,15.61 22,13.95 22,12c0,-2.76 -2.24,-5 -5,-5zM16,11h-2.19l2,2H16zM2,4.27l3.11,3.11" +
+                "C3.29,8.12 2,9.91 2,12c0,2.76 2.24,5 5,5h4v-1.9H7c-1.71,0 -3.1,-1.39 -3.1,-3.1 0,-1.59 1.21,-2.9 2.76,-3.07" +
+                "L8.73,11H8v2h2.73L13,15.27V17h1.73l4.01,4L20,19.74 3.27,3 2,4.27z"
+        )
+    }
+
     private fun icon(name: String, pathData: String): ImageVector {
         return ImageVector.Builder(
             name = name,
