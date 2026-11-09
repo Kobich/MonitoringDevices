@@ -2,11 +2,8 @@ package com.android.appmanager.feature.filemanager.impl.presentation.screen
 
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -21,6 +18,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import com.android.appmanager.feature.filemanager.impl.R
 import com.android.appmanager.feature.filemanager.impl.presentation.model.DeletionUi
+import com.android.core.commonui.components.ConfirmDialog
 
 @Composable
 internal fun DeleteConfirmationDialog(
@@ -28,21 +26,16 @@ internal fun DeleteConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = deletion.title) },
-        text = { Text(text = deletion.text) },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(text = stringResource(R.string.fm_delete), color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.fm_cancel))
-            }
-        }
-    )
+    ConfirmDialog(
+        title = deletion.title,
+        confirmLabel = stringResource(R.string.fm_delete),
+        dismissLabel = stringResource(R.string.fm_cancel),
+        destructive = true,
+        onConfirm = onConfirm,
+        onDismiss = onDismiss
+    ) {
+        Text(text = deletion.text)
+    }
 }
 
 @Composable
@@ -59,31 +52,24 @@ internal fun CreateDirectoryDialog(
         focusRequester.requestFocus()
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(text = stringResource(R.string.fm_new_folder)) },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = { value -> name = value },
-                label = { Text(text = stringResource(R.string.fm_folder_name)) },
-                singleLine = true,
-                isError = error != null,
-                supportingText = { error?.let { message -> Text(text = message) } },
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (!isBusy) onConfirm(name) }),
-                modifier = Modifier.focusRequester(focusRequester)
-            )
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirm(name) }, enabled = !isBusy) {
-                Text(text = stringResource(R.string.fm_create))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(text = stringResource(R.string.fm_cancel))
-            }
-        }
-    )
+    ConfirmDialog(
+        title = stringResource(R.string.fm_new_folder),
+        confirmLabel = stringResource(R.string.fm_create),
+        dismissLabel = stringResource(R.string.fm_cancel),
+        confirmEnabled = !isBusy,
+        onConfirm = { onConfirm(name) },
+        onDismiss = onDismiss
+    ) {
+        OutlinedTextField(
+            value = name,
+            onValueChange = { value -> name = value },
+            label = { Text(text = stringResource(R.string.fm_folder_name)) },
+            singleLine = true,
+            isError = error != null,
+            supportingText = { error?.let { message -> Text(text = message) } },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { if (!isBusy) onConfirm(name) }),
+            modifier = Modifier.focusRequester(focusRequester)
+        )
+    }
 }

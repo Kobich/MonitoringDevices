@@ -18,7 +18,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -42,6 +41,7 @@ import com.android.appmanager.feature.filemanager.impl.presentation.model.FileMa
 import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.MessageContent
+import com.android.core.commonui.components.ProgressBar
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.state.rememberDelayedVisibility
 
@@ -99,7 +99,7 @@ internal fun FileManagerScreen(
             val isProgressVisible = rememberDelayedVisibility(state.isBusy || state.isLoading)
             Box(modifier = Modifier.fillMaxWidth().height(4.dp)) {
                 if (isProgressVisible && state.entries.isNotEmpty()) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    ProgressBar(progress = null, modifier = Modifier.fillMaxWidth())
                 }
             }
             Breadcrumbs(
