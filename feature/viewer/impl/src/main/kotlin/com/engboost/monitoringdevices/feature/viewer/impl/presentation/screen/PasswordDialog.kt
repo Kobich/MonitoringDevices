@@ -9,11 +9,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.engboost.monitoringdevices.feature.viewer.impl.R
 
 @Composable
 internal fun PasswordDialog(
-    error: String?,
+    isWrongPassword: Boolean,
     onSubmit: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -21,26 +23,28 @@ internal fun PasswordDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(text = "Password required") },
+        title = { Text(text = stringResource(R.string.viewer_password_title)) },
         text = {
             OutlinedTextField(
                 value = password,
                 onValueChange = { value -> password = value },
-                label = { Text(text = "Password") },
+                label = { Text(text = stringResource(R.string.viewer_password_label)) },
                 singleLine = true,
-                isError = error != null,
-                supportingText = { error?.let { message -> Text(text = message) } },
+                isError = isWrongPassword,
+                supportingText = {
+                    if (isWrongPassword) Text(text = stringResource(R.string.viewer_password_wrong))
+                },
                 visualTransformation = PasswordVisualTransformation()
             )
         },
         confirmButton = {
             TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty()) {
-                Text(text = "Open")
+                Text(text = stringResource(R.string.viewer_open))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Cancel")
+                Text(text = stringResource(R.string.viewer_cancel))
             }
         }
     )

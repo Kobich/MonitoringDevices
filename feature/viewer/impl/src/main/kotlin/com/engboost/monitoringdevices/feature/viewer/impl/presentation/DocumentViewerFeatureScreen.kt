@@ -23,10 +23,9 @@ internal fun DocumentViewerFeatureScreen(
 
     DocumentViewerScreen(
         state = viewModel.uiState,
+        audioPlayback = viewModel.audioPlayback,
         onBackClick = onBackClick,
         onPageSelected = viewModel::onPageSelected,
-        onPlayPauseClick = viewModel::onPlayPauseClick,
-        onSeek = viewModel::onSeek,
         onRetryClick = viewModel::onRetryClick,
         onPasswordSubmit = viewModel::onPasswordSubmit,
         onPasswordDismiss = viewModel::onPasswordDismiss,

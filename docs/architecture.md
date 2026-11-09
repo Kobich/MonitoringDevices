@@ -38,6 +38,9 @@ app -> core:document:impl -> core:document:api, odr-core-android
 `:feature:viewer` показывает документ по `File`: `DocumentReader.read(file)` -> `when (document)`:
 `HtmlDocument` — WebView, `PdfDocument` — список страниц-битмапов, `TextDocument` — текст построчно,
 `ImageDocument` — картинка с pinch-zoom, `AudioDocument` — плеер.
+`DocumentViewerViewModel` только открывает документ (пароль, ошибки) и владеет им:
+`ViewerContent` = `Loading` / `Loaded(document)` / `Error(текст из ресурсов, детали)`, разбор по типу — на экране.
+Тексты — в `res/values/strings.xml` модуля (префикс `viewer_`).
 
 ## `core:document:api`
 
@@ -82,7 +85,8 @@ document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocum
 | `AudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor`, всё опционально | — |
 | `OfficeReader` | docx, pptx (диаграммы картинками); doc, odt, rtf, pages, xlsx, xls, ods, csv, numbers, ppt, odp, key, odg | OpenDocument.core -> HTML, Android 8+ | диаграммы в xlsx; качество iWork/odg на реальных файлах |
 
-Плеер в просмотрщике: интерфейс `AudioPlayer`, сейчас `MediaPlayerAudioPlayer`; пауза при уходе
+Плеер в просмотрщике: `AudioPlayback` (состояние, прогресс, play/pause/seek) поверх интерфейса
+`AudioPlayer`, сейчас `MediaPlayerAudioPlayer`; ViewModel создаёт его для аудио и освобождает, пауза при уходе
 экрана в фон. Фон, уведомление, audio focus -> Media3 (ExoPlayer).
 
 ### OpenDocument.core

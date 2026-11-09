@@ -1,41 +1,30 @@
 package com.engboost.monitoringdevices.feature.viewer.impl.presentation.model
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
-import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
-import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
-import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
-import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
-import com.engboost.monitoringdevices.core.document.api.document.TextDocument
+import com.engboost.monitoringdevices.core.document.api.document.Document
 
 @Immutable
 internal data class DocumentViewerUiState(
     val title: String,
     val content: ViewerContent,
-    val passwordDialog: PasswordDialogUi?,
-    val audioPlayback: AudioPlaybackUi?
+    val passwordDialog: PasswordDialogUi?
 )
 
-/** The documents stay owned (and closed) by the ViewModel. */
+/** The document stays owned (and closed) by the ViewModel. */
 @Immutable
 internal sealed interface ViewerContent {
     data object Loading : ViewerContent
 
-    data class Html(val document: HtmlDocument, val selectedPageIndex: Int) : ViewerContent
+    /** [selectedPageIndex] is the open tab of an `HtmlDocument`. */
+    data class Loaded(val document: Document, val selectedPageIndex: Int = 0) : ViewerContent
 
-    data class Pdf(val document: PdfDocument) : ViewerContent
-
-    data class Text(val document: TextDocument) : ViewerContent
-
-    data class Image(val document: ImageDocument) : ViewerContent
-
-    data class Audio(val document: AudioDocument) : ViewerContent
-
-    data class Error(val message: String) : ViewerContent
+    data class Error(@StringRes val title: Int, val details: String? = null) : ViewerContent
 }
 
 @Immutable
 internal data class PasswordDialogUi(
-    val error: String?
+    val isWrongPassword: Boolean
 )
 
 @Immutable
@@ -44,5 +33,5 @@ internal data class AudioPlaybackUi(
     val isPlaying: Boolean,
     val positionMs: Long,
     val durationMs: Long,
-    val error: String?
+    val isFailed: Boolean
 )

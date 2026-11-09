@@ -31,6 +31,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -38,15 +40,15 @@ import com.engboost.monitoringdevices.core.commonui.icons.AppIcons
 import com.engboost.monitoringdevices.core.commonui.icons.FileKind
 import com.engboost.monitoringdevices.core.commonui.icons.FileTypeIcon
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
+import com.engboost.monitoringdevices.feature.viewer.impl.R
+import com.engboost.monitoringdevices.feature.viewer.impl.presentation.AudioPlayback
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.AudioPlaybackUi
 import java.util.Locale
 
 @Composable
 internal fun AudioDocumentContent(
     document: AudioDocument,
-    playback: AudioPlaybackUi?,
-    onPlayPauseClick: () -> Unit,
-    onSeek: (Long) -> Unit,
+    playback: AudioPlayback?,
     modifier: Modifier = Modifier
 ) {
     val artwork by produceState<Bitmap?>(initialValue = null, document) {
@@ -71,7 +73,7 @@ internal fun AudioDocumentContent(
             if (cover != null) {
                 Image(
                     bitmap = cover.asImageBitmap(),
-                    contentDescription = "Cover",
+                    contentDescription = stringResource(R.string.viewer_cover),
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -98,12 +100,13 @@ internal fun AudioDocumentContent(
             }
         }
 
-        PlaybackControls(
-            playback = playback,
-            fallbackDurationMs = document.durationMs ?: 0,
-            onPlayPauseClick = onPlayPauseClick,
-            onSeek = onSeek
-        )
+        if (playback != null) {
+            PlaybackControls(
+                playback = playback.state,
+                onPlayPauseClick = playback::onPlayPauseClick,
+                onSeek = playback::onSeek
+            )
+        }
 
         technicalInfo(document).takeIf { it.isNotEmpty() }?.let { info ->
             Text(
@@ -117,15 +120,14 @@ internal fun AudioDocumentContent(
 
 @Composable
 private fun PlaybackControls(
-    playback: AudioPlaybackUi?,
-    fallbackDurationMs: Long,
+    playback: AudioPlaybackUi,
     onPlayPauseClick: () -> Unit,
     onSeek: (Long) -> Unit
 ) {
-    val durationMs = playback?.durationMs?.takeIf { it > 0 } ?: fallbackDurationMs
+    val durationMs = playback.durationMs
     // While the thumb is dragged the slider shows the drag position, not the player's.
     var dragPositionMs by remember { mutableStateOf<Float?>(null) }
-    val positionMs = dragPositionMs ?: (playback?.positionMs ?: 0L).toFloat()
+    val positionMs = dragPositionMs ?: playback.positionMs.toFloat()
 
     Column(
         modifier = Modifier.widthIn(max = 480.dp),
@@ -139,7 +141,7 @@ private fun PlaybackControls(
                 dragPositionMs = null
             },
             valueRange = 0f..durationMs.toFloat().coerceAtLeast(1f),
-            enabled = playback?.isReady == true,
+            enabled = playback.isReady,
             modifier = Modifier.fillMaxWidth()
         )
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -148,17 +150,17 @@ private fun PlaybackControls(
         }
 
         when {
-            playback?.error != null -> Text(
-                text = playback.error,
+            playback.isFailed -> Text(
+                text = stringResource(R.string.viewer_playback_failed),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodyMedium
             )
 
-            playback?.isReady != true -> CircularProgressIndicator(modifier = Modifier.padding(8.dp))
+            !playback.isReady -> CircularProgressIndicator(modifier = Modifier.padding(8.dp))
             else -> FilledIconButton(onClick = onPlayPauseClick, modifier = Modifier.size(72.dp)) {
                 Icon(
                     imageVector = if (playback.isPlaying) AppIcons.Pause else AppIcons.Play,
-                    contentDescription = if (playback.isPlaying) "Pause" else "Play",
+                    contentDescription = stringResource(if (playback.isPlaying) R.string.viewer_pause else R.string.viewer_play),
                     modifier = Modifier.size(36.dp)
                 )
             }
@@ -166,18 +168,20 @@ private fun PlaybackControls(
     }
 }
 
+@Composable
 private fun technicalInfo(document: AudioDocument): String {
+    val channels = document.channelCount?.let { count ->
+        when (count) {
+            1 -> stringResource(R.string.viewer_mono)
+            2 -> stringResource(R.string.viewer_stereo)
+            else -> pluralStringResource(R.plurals.viewer_channels, count, count)
+        }
+    }
     return listOfNotNull(
-        document.name.substringAfterLast('.', "").uppercase().takeIf { it.isNotEmpty() },
-        document.sampleRateHz?.let { rate -> String.format(Locale.US, "%.1f kHz", rate / 1000.0) },
-        document.channelCount?.let { channels ->
-            when (channels) {
-                1 -> "Mono"
-                2 -> "Stereo"
-                else -> "$channels channels"
-            }
-        },
-        document.bitrateBps?.let { bitrate -> "${bitrate / 1000} kbps" }
+        document.format.name,
+        document.sampleRateHz?.let { rate -> stringResource(R.string.viewer_sample_rate_khz, rate / 1000.0) },
+        channels,
+        document.bitrateBps?.let { bitrate -> stringResource(R.string.viewer_bitrate_kbps, bitrate / 1000) }
     ).joinToString(" · ")
 }
 

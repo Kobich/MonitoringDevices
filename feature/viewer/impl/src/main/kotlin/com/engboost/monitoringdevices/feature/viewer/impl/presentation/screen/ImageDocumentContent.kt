@@ -29,9 +29,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.viewinterop.AndroidView
 import com.engboost.monitoringdevices.core.commonui.components.MessageContent
 import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
+import com.engboost.monitoringdevices.feature.viewer.impl.R
 
 @Composable
 internal fun ImageDocumentContent(
@@ -69,7 +71,7 @@ internal fun ImageDocumentContent(
                         }
                     }
                 },
-                onFailure = { MessageContent(title = "Can't show the image") }
+                onFailure = { MessageContent(title = stringResource(R.string.viewer_image_failed)) }
             )
         }
     }

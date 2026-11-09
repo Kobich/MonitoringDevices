@@ -14,8 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.document.api.document.TextDocument
+import com.engboost.monitoringdevices.feature.viewer.impl.R
 
 /** Line by line in a lazy list, so megabytes of text don't go into one `Text`. */
 @Composable
@@ -26,12 +29,11 @@ internal fun TextDocumentContent(
     val lines = remember(document) { document.text.lines() }
 
     Column(modifier = modifier) {
-        val info = buildString {
-            append(document.charsetName)
-            append(" · ")
-            append(if (lines.size == 1) "1 line" else "${lines.size} lines")
-            if (document.isTruncated) append(" · the file is too long, only the beginning is shown")
-        }
+        val info = listOfNotNull(
+            document.charsetName,
+            pluralStringResource(R.plurals.viewer_lines, lines.size, lines.size),
+            if (document.isTruncated) stringResource(R.string.viewer_text_truncated) else null
+        ).joinToString(" · ")
         Text(
             text = info,
             style = MaterialTheme.typography.labelMedium,

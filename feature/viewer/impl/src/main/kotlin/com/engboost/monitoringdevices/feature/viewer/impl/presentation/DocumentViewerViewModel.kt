@@ -1,22 +1,18 @@
 package com.engboost.monitoringdevices.feature.viewer.impl.presentation
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException
-import com.engboost.monitoringdevices.core.document.api.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.DocumentReadException.Reason
+import com.engboost.monitoringdevices.core.document.api.DocumentReader
 import com.engboost.monitoringdevices.core.document.api.document.AudioDocument
 import com.engboost.monitoringdevices.core.document.api.document.Document
-import com.engboost.monitoringdevices.core.document.api.document.HtmlDocument
-import com.engboost.monitoringdevices.core.document.api.document.ImageDocument
-import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
-import com.engboost.monitoringdevices.core.document.api.document.TextDocument
-import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayer
+import com.engboost.monitoringdevices.feature.viewer.impl.R
 import com.engboost.monitoringdevices.feature.viewer.impl.domain.player.AudioPlayerFactory
-import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.AudioPlaybackUi
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.DocumentViewerUiState
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.PasswordDialogUi
 import com.engboost.monitoringdevices.feature.viewer.impl.presentation.model.ViewerContent
@@ -26,8 +22,6 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -47,17 +41,13 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private var openedDocument: Document? = null
     private var password: String? = null
 
-    private var audioPlayer: AudioPlayer? = null
-    private var progressJob: Job? = null
-
     var uiState by mutableStateOf(
-        DocumentViewerUiState(
-            title = file.name,
-            content = ViewerContent.Loading,
-            passwordDialog = null,
-            audioPlayback = null
-        )
+        DocumentViewerUiState(title = file.name, content = ViewerContent.Loading, passwordDialog = null)
     )
+        private set
+
+    /** Present while an audio document is shown. */
+    var audioPlayback by mutableStateOf<AudioPlayback?>(null)
         private set
 
     init {
@@ -65,7 +55,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     fun onPageSelected(index: Int) {
-        val content = uiState.content as? ViewerContent.Html ?: return
+        val content = uiState.content as? ViewerContent.Loaded ?: return
         uiState = uiState.copy(content = content.copy(selectedPageIndex = index))
     }
 
@@ -76,14 +66,15 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     fun onPasswordDismiss() {
-        uiState = uiState.copy(
-            passwordDialog = null,
-            content = ViewerContent.Error("The document is protected with a password")
-        )
+        uiState = uiState.copy(passwordDialog = null).withError(R.string.viewer_password_protected)
     }
 
     fun onRetryClick() {
         load()
+    }
+
+    fun onScreenStopped() {
+        audioPlayback?.pause()
     }
 
     private fun load() {
@@ -92,156 +83,56 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
 
         loadJob = viewModelScope.launch {
             try {
-                val document = reader.read(file, password)
-                replaceOpenedDocument(document)
-                show(document)
+                show(reader.read(file, password))
             } catch (error: CancellationException) {
                 throw error
             } catch (error: DocumentReadException) {
                 handleReadError(error)
             } catch (error: Exception) {
-                showError(error.toDisplayMessage())
+                uiState = uiState.withError(R.string.viewer_error_io, error.message)
             }
         }
     }
 
     private fun show(document: Document) {
-        val content = when (document) {
-            is HtmlDocument -> ViewerContent.Html(document = document, selectedPageIndex = 0)
-            is PdfDocument -> ViewerContent.Pdf(document)
-            is TextDocument -> ViewerContent.Text(document)
-            is ImageDocument -> ViewerContent.Image(document)
-            is AudioDocument -> ViewerContent.Audio(document)
+        closeOpenedDocument()
+        openedDocument = document
+        if (document is AudioDocument) {
+            audioPlayback = AudioPlayback(
+                player = audioPlayerFactory.create(document.file),
+                scope = viewModelScope,
+                knownDurationMs = document.durationMs ?: 0
+            )
         }
-        uiState = uiState.copy(content = content)
-        if (document is AudioDocument) startAudio(document)
+        uiState = uiState.copy(content = ViewerContent.Loaded(document))
     }
 
     private fun handleReadError(error: DocumentReadException) {
-        when (error.reason) {
-            Reason.PASSWORD_REQUIRED -> uiState = uiState.copy(passwordDialog = PasswordDialogUi(error = null))
-            Reason.INVALID_PASSWORD -> uiState = uiState.copy(passwordDialog = PasswordDialogUi(error = "Wrong password"))
-            Reason.NOT_FOUND -> showError("File not found")
-            Reason.UNSUPPORTED_FORMAT -> showError(error.message?.takeIf { it.isNotBlank() } ?: "This file type isn't supported")
-            Reason.CORRUPTED -> showError("The file is damaged or has an unknown structure")
-            Reason.TOO_LARGE -> showError("The file is too large")
-            Reason.IO_ERROR -> showError("Can't read the file: ${error.toDisplayMessage()}")
+        uiState = when (error.reason) {
+            Reason.PASSWORD_REQUIRED -> uiState.copy(passwordDialog = PasswordDialogUi(isWrongPassword = false))
+            Reason.INVALID_PASSWORD -> uiState.copy(passwordDialog = PasswordDialogUi(isWrongPassword = true))
+            Reason.NOT_FOUND -> uiState.withError(R.string.viewer_error_not_found)
+            Reason.UNSUPPORTED_FORMAT -> uiState.withError(R.string.viewer_error_unsupported, error.details())
+            Reason.CORRUPTED -> uiState.withError(R.string.viewer_error_corrupted)
+            Reason.TOO_LARGE -> uiState.withError(R.string.viewer_error_too_large)
+            Reason.IO_ERROR -> uiState.withError(R.string.viewer_error_io, error.details())
         }
     }
 
-    private fun showError(message: String) {
-        uiState = uiState.copy(content = ViewerContent.Error(message))
-    }
+    private fun DocumentViewerUiState.withError(@StringRes title: Int, details: String? = null) =
+        copy(content = ViewerContent.Error(title, details))
 
-    private fun replaceOpenedDocument(document: Document) {
-        releaseAudio()
-        openedDocument?.takeIf { it !== document }?.close()
-        openedDocument = document
-    }
+    /** The message, unless it only repeats the reason. */
+    private fun DocumentReadException.details(): String? = message?.takeIf { it.isNotBlank() && it != reason.name }
 
-    fun onPlayPauseClick() {
-        val player = audioPlayer ?: return
-        if (player.isPlaying) {
-            player.pause()
-            stopProgressUpdates()
-        } else {
-            player.play()
-            startProgressUpdates()
-        }
-        updatePlayback()
-    }
-
-    fun onSeek(positionMs: Long) {
-        audioPlayer?.seekTo(positionMs)
-        updatePlayback(positionMs = positionMs)
-    }
-
-    fun onScreenStopped() {
-        val player = audioPlayer ?: return
-        if (player.isPlaying) {
-            player.pause()
-            stopProgressUpdates()
-            updatePlayback()
-        }
-    }
-
-    private fun startAudio(document: AudioDocument) {
-        val player = audioPlayerFactory.create(document.file)
-        audioPlayer = player
-        uiState = uiState.copy(
-            audioPlayback = AudioPlaybackUi(
-                isReady = false,
-                isPlaying = false,
-                positionMs = 0,
-                durationMs = document.durationMs ?: 0,
-                error = null
-            )
-        )
-        player.setOnCompletionListener {
-            stopProgressUpdates()
-            player.seekTo(0)
-            updatePlayback(positionMs = 0)
-        }
-        viewModelScope.launch {
-            try {
-                player.prepare()
-                uiState = uiState.copy(audioPlayback = uiState.audioPlayback?.copy(isReady = true))
-                updatePlayback()
-            } catch (error: CancellationException) {
-                throw error
-            } catch (error: Exception) {
-                uiState = uiState.copy(audioPlayback = uiState.audioPlayback?.copy(error = error.toDisplayMessage()))
-            }
-        }
-    }
-
-    private fun startProgressUpdates() {
-        progressJob?.cancel()
-        progressJob = viewModelScope.launch {
-            while (isActive) {
-                updatePlayback()
-                delay(PROGRESS_INTERVAL_MS)
-            }
-        }
-    }
-
-    private fun stopProgressUpdates() {
-        progressJob?.cancel()
-        progressJob = null
-    }
-
-    private fun updatePlayback(positionMs: Long? = null) {
-        val player = audioPlayer ?: return
-        val current = uiState.audioPlayback ?: return
-        uiState = uiState.copy(
-            audioPlayback = current.copy(
-                isPlaying = player.isPlaying,
-                positionMs = positionMs ?: player.positionMs,
-                durationMs = player.durationMs.takeIf { it > 0 } ?: current.durationMs
-            )
-        )
-    }
-
-    private fun releaseAudio() {
-        stopProgressUpdates()
-        audioPlayer?.release()
-        audioPlayer = null
-        uiState = uiState.copy(audioPlayback = null)
-    }
-
-    override fun onCleared() {
-        stopProgressUpdates()
-        audioPlayer?.release()
-        audioPlayer = null
+    private fun closeOpenedDocument() {
+        audioPlayback?.release()
+        audioPlayback = null
         openedDocument?.close()
         openedDocument = null
     }
 
-    private fun Throwable.toDisplayMessage(): String {
-        return message?.takeIf { it.isNotBlank() } ?: this::class.java.simpleName
-    }
-
-    private companion object {
-        const val PROGRESS_INTERVAL_MS = 200L
+    override fun onCleared() {
+        closeOpenedDocument()
     }
 }

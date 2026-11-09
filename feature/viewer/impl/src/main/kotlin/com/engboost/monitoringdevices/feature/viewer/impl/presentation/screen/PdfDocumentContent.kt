@@ -30,9 +30,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.engboost.monitoringdevices.core.document.api.document.PageSize
 import com.engboost.monitoringdevices.core.document.api.document.PdfDocument
+import com.engboost.monitoringdevices.feature.viewer.impl.R
 
 @Composable
 internal fun PdfDocumentContent(
@@ -66,7 +68,7 @@ internal fun PdfDocumentContent(
                     .padding(bottom = 16.dp)
             ) {
                 Text(
-                    text = "$currentPage / ${document.pageCount}",
+                    text = stringResource(R.string.viewer_page_counter, currentPage, document.pageCount),
                     color = MaterialTheme.colorScheme.inverseOnSurface,
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -102,14 +104,14 @@ private fun PdfPage(
         when {
             page != null -> Image(
                 bitmap = page.asImageBitmap(),
-                contentDescription = "Page ${pageIndex + 1}",
+                contentDescription = stringResource(R.string.viewer_page, pageIndex + 1),
                 contentScale = ContentScale.FillWidth,
                 modifier = Modifier.fillMaxSize()
             )
 
             result == null -> CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
             else -> Text(
-                text = "Can't show page ${pageIndex + 1}",
+                text = stringResource(R.string.viewer_page_failed, pageIndex + 1),
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.DarkGray
             )

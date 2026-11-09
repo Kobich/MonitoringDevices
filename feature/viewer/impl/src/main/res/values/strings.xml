@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="viewer_opening">Opening…</string>
+    <string name="viewer_retry">Retry</string>
+
+    <string name="viewer_error_not_found">File not found</string>
+    <string name="viewer_error_unsupported">This file type isn\'t supported</string>
+    <string name="viewer_error_corrupted">The file is damaged or has an unknown structure</string>
+    <string name="viewer_error_too_large">The file is too large</string>
+    <string name="viewer_error_io">Can\'t read the file</string>
+    <string name="viewer_password_protected">The document is protected with a password</string>
+
+    <string name="viewer_password_title">Password required</string>
+    <string name="viewer_password_label">Password</string>
+    <string name="viewer_password_wrong">Wrong password</string>
+    <string name="viewer_open">Open</string>
+    <string name="viewer_cancel">Cancel</string>
+
+    <string name="viewer_image_failed">Can\'t show the image</string>
+    <string name="viewer_page">Page %1$d</string>
+    <string name="viewer_page_failed">Can\'t show page %1$d</string>
+    <string name="viewer_page_counter">%1$d / %2$d</string>
+
+    <plurals name="viewer_lines">
+        <item quantity="one">%1$d line</item>
+        <item quantity="other">%1$d lines</item>
+    </plurals>
+    <string name="viewer_text_truncated">the file is too long, only the beginning is shown</string>
+
+    <string name="viewer_cover">Cover</string>
+    <string name="viewer_play">Play</string>
+    <string name="viewer_pause">Pause</string>
+    <string name="viewer_playback_failed">Can\'t play the file</string>
+    <string name="viewer_sample_rate_khz">%1$.1f kHz</string>
+    <string name="viewer_bitrate_kbps">%1$d kbps</string>
+    <string name="viewer_mono">Mono</string>
+    <string name="viewer_stereo">Stereo</string>
+    <plurals name="viewer_channels">
+        <item quantity="one">%1$d channel</item>
+        <item quantity="other">%1$d channels</item>
+    </plurals>
+</resources>
