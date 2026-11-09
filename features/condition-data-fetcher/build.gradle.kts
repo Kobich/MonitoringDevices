@@ -5,9 +5,7 @@ plugins {
 android {
     namespace = "com.android.appmanager.feature.conditiondatafetcher"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(36)
     }
 
     defaultConfig {

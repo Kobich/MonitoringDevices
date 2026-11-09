@@ -7,15 +7,13 @@ plugins {
 
 android {
     namespace = "com.engboost.monitoringdevices"
-    // :features:nearby-scanner and :features:condition-data-fetcher compile against 36.1 and need minSdk 36.
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version = release(36)
     }
 
     defaultConfig {
         applicationId = "com.engboost.monitoringdevices"
+        // :features:nearby-scanner and :features:condition-data-fetcher need minSdk 36.
         minSdk = 36
         targetSdk = 36
         versionCode = 1
