@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -15,14 +16,18 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,11 +40,13 @@ import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.ConfirmDialog
 import com.android.core.commonui.components.ConnectionStatus
 import com.android.core.commonui.components.ConnectionStatusIndicator
+import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.ProgressBar
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.icons.FileKind
 import com.android.core.commonui.icons.FileTypeIcon
 import com.android.core.commonui.theme.MonitoringDevicesTheme
+import kotlinx.coroutines.delay
 
 /**
  * Components and icons of common-ui on one screen. A new component or [AppIcons] entry goes here too.
@@ -85,9 +92,22 @@ fun UiCatalogScreen(
                 }
             }
 
-            header("Components")
+            header("Progress")
             fullLineItem { ProgressBar(progress = null, label = "ProgressBar, unknown progress") }
-            fullLineItem { ProgressBar(progress = 0.42f, label = "ProgressBar with percent", showPercent = true) }
+            fullLineItem { ProgressBar(progress = 0.42f, label = "ProgressBar, 42%", showPercent = true) }
+            fullLineItem { AnimatedProgressBar() }
+            fullLineItem {
+                SampleBox(caption = "LoadingContent: full screen while opening") {
+                    LoadingContent(text = "Opening…", modifier = Modifier.height(140.dp))
+                }
+            }
+            fullLineItem {
+                SampleBox(caption = "Inline spinner: PDF page, image, player (Material, not common-ui)") {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                }
+            }
+
+            header("Connection status")
             items(ConnectionStatus.entries, key = { "status-${it.name}" }, span = { GridItemSpan(maxLineSpan) }) { status ->
                 ConnectionStatusIndicator(status = status)
             }
@@ -127,6 +147,35 @@ private fun LazyGridScope.header(title: String) {
 
 private fun LazyGridScope.fullLineItem(content: @Composable () -> Unit) {
     item(span = { GridItemSpan(maxLineSpan) }) { content() }
+}
+
+/** Fills up again and again, to see how [ProgressBar] animates changes. */
+@Composable
+private fun AnimatedProgressBar() {
+    var progress by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(500)
+            progress = if (progress >= 1f) 0f else progress + 0.1f
+        }
+    }
+    ProgressBar(progress = progress, label = "ProgressBar, changing", showPercent = true)
+}
+
+@Composable
+private fun SampleBox(caption: String, content: @Composable () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(text = caption, style = MaterialTheme.typography.bodyMedium)
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(16.dp))
+                .padding(16.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            content()
+        }
+    }
 }
 
 @Composable

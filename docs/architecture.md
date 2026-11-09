@@ -234,7 +234,7 @@ components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
                 статус видно по форме, а не только по цвету: CONNECTED — залитая плашка + ссылка,
                 CONNECTING — спиннер, DISCONNECTED — пустая обведённая плашка + перечёркнутая ссылка
 state/        rememberDelayedVisibility(visible): true, только если visible держится дольше задержки
-catalog/      UiCatalogScreen: компоненты и значки (главный экран -> UI catalog);
+catalog/      UiCatalogScreen: прогресс (полосы, спиннеры), статусы подключения, значки (главный экран -> UI catalog);
                 новый компонент или значок AppIcons добавлять и сюда
               DialogShowcaseScreen: все виды окон — диалоги, алерты, цепочка, снекбары, нижняя шторка
                 (главный экран -> Dialogs and windows); новое окно добавлять и сюда
