@@ -2,7 +2,7 @@
 
 ## Цель
 
-Вся фича — сканеры Wi-Fi и Bluetooth и их экраны — собрана в одном Android library-модуле `:scanner`, чтобы её можно было подключить в другое приложение. Приложение-хост `:app` только открывает экран фичи.
+Вся фича — сканеры Wi-Fi и Bluetooth и их экраны — собрана в одном Android library-модуле `:features:nearby-scanner`, чтобы её можно было подключить в другое приложение. Приложение-хост `:app` только открывает экран фичи.
 
 Сценарий использования — открыли приложение, посмотрели окружение, закрыли. Фоновой работы нет: сканирование идёт, пока экран открыт.
 
@@ -11,20 +11,20 @@ Radio (сотовая сеть) и Bluetooth Classic не поддерживаю
 ## Модули
 
 ```text
-:app -> :scanner
+:app -> :features:nearby-scanner
 ```
 
 | Модуль | Тип | Содержимое |
 |---|---|---|
-| `:scanner` | Android library, Compose | API и реализация сканеров, экраны фичи, разрешения в манифесте |
+| `:features:nearby-scanner` | Android library, Compose | API и реализация сканеров, экраны фичи, разрешения в манифесте |
 | `:app` | Android application | Пример хоста: `NavHost` со стартовым экраном, откуда открывается фича |
 
-## Как ориентироваться в `:scanner`
+## Как ориентироваться в `:features:nearby-scanner`
 
 Каждый сканер — самостоятельный пакет: публичный интерфейс `*ScannerApi`, его модели, события и конфигурация лежат рядом, а реализация — `internal`-класс `*ScannerImpl`. В корне только `NearbyScanner`, который объединяет оба сканера.
 
 ```text
-com.android.appmanager.feature.scanner
+com.android.appmanager.feature.nearbyscanner
 ├── NearbyScanner.kt                 public    API фичи: wifi + bluetooth
 ├── NearbyScannerConfig.kt           public    Конфигурация обоих сканеров
 ├── wifi/
@@ -92,7 +92,7 @@ scanner.bluetooth.scan()  // Flow<BluetoothScanEvent>
 Пакет `ui/` устроен так же, как сканеры: `wifi/` и `bluetooth/` с одинаковым набором файлов и `common/` для общего.
 
 ```text
-com.android.appmanager.feature.scanner.ui
+com.android.appmanager.feature.nearbyscanner.ui
 ├── NearbyScanScreen.kt      public  Экран фичи с вкладками Wi-Fi и Bluetooth
 ├── NearbyScanNavigation.kt  public  NEARBY_SCAN_ROUTE, nearbyScanScreen(), navigateToNearbyScan()
 ├── common/      ScanStatus, PermissionRequestUi, PermissionRequestEffect, ScanWhileVisibleEffect,
@@ -116,7 +116,7 @@ com.android.appmanager.feature.scanner.ui
 - `BluetoothDeviceUiMapperTest` — режимы сортировки, стабильность порядка;
 - `WifiUiStateReducerTest` — статусы, список сетей, запрос разрешений.
 
-Запуск: `./gradlew :scanner:testDebugUnitTest`.
+Запуск: `./gradlew :features:nearby-scanner:testDebugUnitTest`.
 
 ## Комментарии в коде
 

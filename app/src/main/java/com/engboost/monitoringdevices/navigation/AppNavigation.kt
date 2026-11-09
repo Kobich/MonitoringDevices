@@ -8,11 +8,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.android.appmanager.feature.documentviewer.api.DocumentViewerFeatureApi
 import com.android.appmanager.feature.filemanager.api.FileManagerFeatureApi
-import com.android.appmanager.feature.scanner.NearbyScanner
-import com.android.appmanager.feature.scanner.ui.navigateToNearbyScan
-import com.android.appmanager.feature.scanner.ui.nearbyScanScreen
-import com.android.appmanager.feature.viewer.api.DocumentViewerFeatureApi
+import com.android.appmanager.feature.nearbyscanner.NearbyScanner
+import com.android.appmanager.feature.nearbyscanner.ui.navigateToNearbyScan
+import com.android.appmanager.feature.nearbyscanner.ui.nearbyScanScreen
 import com.android.core.commonui.icons.IconCatalogScreen
 import com.engboost.monitoringdevices.featuretest.FeatureTestScreen
 import com.engboost.monitoringdevices.home.HomeScreen

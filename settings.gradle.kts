@@ -24,12 +24,14 @@ dependencyResolutionManagement {
 
 rootProject.name = "MonitoringDevices"
 include(":app")
-include(":scanner")
-include(":features")
+
 include(":core:common-ui")
 include(":core:document:api")
 include(":core:document:impl")
-include(":feature:filemanager:api")
-include(":feature:filemanager:impl")
-include(":feature:viewer:api")
-include(":feature:viewer:impl")
+
+include(":features:file-manager:api")
+include(":features:file-manager:impl")
+include(":features:document-viewer:api")
+include(":features:document-viewer:impl")
+include(":features:nearby-scanner")
+include(":features:condition-data-fetcher")

@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import com.android.appmanager.feature.documentviewer.api.DocumentViewerFeatureApi
 import com.android.appmanager.feature.filemanager.api.FileManagerFeatureApi
-import com.android.appmanager.feature.viewer.api.DocumentViewerFeatureApi
 import com.android.core.commonui.theme.MonitoringDevicesTheme
 import com.engboost.monitoringdevices.navigation.AppNavigation
 import dagger.hilt.android.AndroidEntryPoint

@@ -1,4 +1,4 @@
-# `:scanner`
+# `:features:nearby-scanner`
 
 Android library со всей фичей: сканеры Wi-Fi и Bluetooth и их экраны на Compose. DI-фреймворк не нужен. Фоновой работы нет: сканирование идёт, пока собирается Flow.
 

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.engboost.monitoringdevices"
-    // :scanner and :features compile against 36.1 and need minSdk 36.
+    // :features:nearby-scanner and :features:condition-data-fetcher compile against 36.1 and need minSdk 36.
     compileSdk {
         version = release(36) {
             minorApiLevel = 1
@@ -44,11 +44,11 @@ android {
 
 dependencies {
     implementation(project(":core:common-ui"))
-    implementation(project(":feature:filemanager:impl"))
-    implementation(project(":feature:viewer:impl"))
+    implementation(project(":features:file-manager:impl"))
+    implementation(project(":features:document-viewer:impl"))
     implementation(project(":core:document:impl"))
-    implementation(project(":scanner"))
-    implementation(project(":features"))
+    implementation(project(":features:nearby-scanner"))
+    implementation(project(":features:condition-data-fetcher"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
