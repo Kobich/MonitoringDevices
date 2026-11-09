@@ -6,7 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.Player
 import com.android.appmanager.feature.documentviewer.impl.R
+import com.android.appmanager.feature.documentviewer.impl.data.player.VideoPlayerFactory
 import com.android.appmanager.feature.documentviewer.impl.domain.player.AudioPlayerFactory
 import com.android.appmanager.feature.documentviewer.impl.presentation.model.DocumentViewerUiState
 import com.android.appmanager.feature.documentviewer.impl.presentation.model.PasswordDialogUi
@@ -16,6 +18,7 @@ import com.android.core.document.api.DocumentReadException.Reason
 import com.android.core.document.api.DocumentReader
 import com.android.core.document.api.document.AudioDocument
 import com.android.core.document.api.document.Document
+import com.android.core.document.api.document.VideoDocument
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -29,7 +32,8 @@ import java.io.File
 internal class DocumentViewerViewModel @AssistedInject constructor(
     @Assisted private val file: File,
     private val reader: DocumentReader,
-    private val audioPlayerFactory: AudioPlayerFactory
+    private val audioPlayerFactory: AudioPlayerFactory,
+    private val videoPlayerFactory: VideoPlayerFactory
 ) : ViewModel() {
 
     @AssistedFactory
@@ -48,6 +52,10 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
 
     /** Present while an audio document is shown. */
     var audioPlayback by mutableStateOf<AudioPlayback?>(null)
+        private set
+
+    /** Present while a video document is shown; kept here so playback survives rotation. */
+    var videoPlayer by mutableStateOf<Player?>(null)
         private set
 
     init {
@@ -75,6 +83,7 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
 
     fun onScreenStopped() {
         audioPlayback?.pause()
+        videoPlayer?.pause()
     }
 
     private fun load() {
@@ -104,6 +113,9 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
                 knownDurationMs = document.durationMs ?: 0
             )
         }
+        if (document is VideoDocument) {
+            videoPlayer = videoPlayerFactory.create(document.file)
+        }
         uiState = uiState.copy(content = ViewerContent.Loaded(document))
     }
 
@@ -128,6 +140,8 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private fun closeOpenedDocument() {
         audioPlayback?.release()
         audioPlayback = null
+        videoPlayer?.release()
+        videoPlayer = null
         openedDocument?.close()
         openedDocument = null
     }

@@ -44,7 +44,14 @@ enum class DocumentFormat(vararg extensions: String) {
     AAC("aac"),
     OGG("ogg", "oga"),
     OPUS("opus"),
-    FLAC("flac");
+    FLAC("flac"),
+
+    MP4("mp4"),
+    M4V("m4v"),
+    MOV("mov"),
+    THREE_GP("3gp"),
+    WEBM("webm"),
+    MKV("mkv");
 
     val extensions: Set<String> = extensions.toSet()
 

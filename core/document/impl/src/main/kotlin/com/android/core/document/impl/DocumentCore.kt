@@ -31,6 +31,7 @@ import com.android.core.document.impl.pdf.PdfReader
 import com.android.core.document.impl.svg.SvgReader
 import com.android.core.document.impl.text.MarkdownReader
 import com.android.core.document.impl.text.TextReader
+import com.android.core.document.impl.video.VideoReader
 import java.io.File
 
 /** Create one per process: readers share the conversion cache and its lock. */
@@ -44,6 +45,7 @@ class DocumentCore(context: Context) {
         // and Markdown is shown as plain text.
         val converter = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) OdrHtmlConverter(cache) else null
         val textReader = TextReader()
+        val audioReader = AudioReader()
 
         val readers = mutableListOf<FormatReader<Document>>(
             PdfReader(),
@@ -51,7 +53,8 @@ class DocumentCore(context: Context) {
             MarkdownReader(converter, textReader),
             ImageReader(),
             SvgReader(cache),
-            AudioReader()
+            audioReader,
+            VideoReader(audioReader)
         )
         if (converter != null) {
             val charts = ChartImageRenderer()

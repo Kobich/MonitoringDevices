@@ -24,6 +24,7 @@ internal fun DocumentViewerFeatureScreen(
     DocumentViewerScreen(
         state = viewModel.uiState,
         audioPlayback = viewModel.audioPlayback,
+        videoPlayer = viewModel.videoPlayer,
         onBackClick = onBackClick,
         onPageSelected = viewModel::onPageSelected,
         onRetryClick = viewModel::onRetryClick,

@@ -7,6 +7,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.media3.common.Player
 import com.android.appmanager.feature.documentviewer.impl.R
 import com.android.appmanager.feature.documentviewer.impl.presentation.AudioPlayback
 import com.android.appmanager.feature.documentviewer.impl.presentation.model.DocumentViewerUiState
@@ -20,11 +21,13 @@ import com.android.core.document.api.document.HtmlDocument
 import com.android.core.document.api.document.ImageDocument
 import com.android.core.document.api.document.PdfDocument
 import com.android.core.document.api.document.TextDocument
+import com.android.core.document.api.document.VideoDocument
 
 @Composable
 internal fun DocumentViewerScreen(
     state: DocumentViewerUiState,
     audioPlayback: AudioPlayback?,
+    videoPlayer: Player?,
     onBackClick: () -> Unit,
     onPageSelected: (Int) -> Unit,
     onRetryClick: () -> Unit,
@@ -69,6 +72,8 @@ internal fun DocumentViewerScreen(
                             playback = audioPlayback,
                             modifier = contentModifier
                         )
+
+                        is VideoDocument -> VideoDocumentContent(player = videoPlayer, modifier = contentModifier)
                     }
                 }
 

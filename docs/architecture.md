@@ -60,7 +60,7 @@ app -> core:document:impl -> core:document:api, odr-core-android
 
 `:features:document-viewer` показывает документ по `File`: `DocumentReader.read(file)` -> `when (document)`:
 `HtmlDocument` — WebView, `PdfDocument` — список страниц-битмапов, `TextDocument` — текст построчно,
-`ImageDocument` — картинка с pinch-zoom, `AudioDocument` — плеер.
+`ImageDocument` — картинка с pinch-zoom, `AudioDocument` — плеер, `VideoDocument` — видео (Media3 `PlayerView`).
 `DocumentViewerViewModel` только открывает документ (пароль, ошибки) и владеет им:
 `ViewerContent` = `Loading` / `Loaded(document)` / `Error(текст из ресурсов, детали)`, разбор по типу — на экране.
 Тексты — в `res/values/strings.xml` модуля (префикс `viewer_`).
@@ -75,17 +75,18 @@ documentReader.read(file).use { document ->
         is TextDocument -> ...    // text, charsetName, isTruncated
         is ImageDocument -> ...   // decode(maxW, maxH): Bitmap, decodeAnimation()
         is AudioDocument -> ...   // file, durationMs, title, artist, loadArtwork()
+        is VideoDocument -> ...   // file -> плеер
     }
 }
 ```
 
-Весь API — 9 файлов:
+Весь API — 10 файлов:
 
 ```text
 DocumentReader          read(file, password): Document
 DocumentFormat          формат по расширению файла, по одному значению на тип файла (PNG, JPEG, MP3, DOCX, ...)
 DocumentReadException   reason: NOT_FOUND, UNSUPPORTED_FORMAT, CORRUPTED, PASSWORD_REQUIRED, ...
-document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocument, ImageDocument, AudioDocument
+document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocument, ImageDocument, AudioDocument, VideoDocument
 ```
 
 Приложение офлайн и открывает только свои файлы, поэтому на входе всегда `File`: ни URI, ни MIME-типов.
@@ -106,11 +107,13 @@ document/               Document (sealed) + PdfDocument, HtmlDocument, TextDocum
 | `ImageReader` | png, jpg, gif, webp, bmp, heif | `BitmapFactory` + EXIF, декод с уменьшением под рамку; GIF/WebP-анимация — `ImageDecoder` (Android 9+); HEIF — Android 9+ | анимация на 6–8 |
 | `SvgReader` | svg | страница с `<img>` в WebView (скрипты SVG не выполняются) | — |
 | `AudioReader` | mp3, wav, m4a, aac, ogg, opus, flac | `MediaMetadataRetriever` + `MediaExtractor`, всё опционально | — |
+| `VideoReader` | mp4, m4v, mov, 3gp, webm, mkv | `MediaMetadataRetriever`: есть ли видео; без видео, но со звуком — открывается как аудио | AVI Android не играет |
 | `OfficeReader` | docx, pptx (диаграммы картинками); doc, odt, rtf, pages, xlsx, xls, ods, csv, numbers, ppt, odp, key, odg | OpenDocument.core -> HTML, Android 8+ | диаграммы в xlsx; качество iWork/odg на реальных файлах |
 
 Плеер в просмотрщике: `AudioPlayback` (состояние, прогресс, play/pause/seek) поверх интерфейса
 `AudioPlayer`, сейчас `MediaPlayerAudioPlayer`; ViewModel создаёт его для аудио и освобождает, пауза при уходе
-экрана в фон. Фон, уведомление, audio focus -> Media3 (ExoPlayer).
+экрана в фон. Видео: `ExoPlayer` (Media3) из `VideoPlayerFactory`; ViewModel держит его, чтобы
+воспроизведение пережило поворот экрана, ставит на паузу в фоне и освобождает вместе с документом. Фон, уведомление, audio focus -> Media3 (ExoPlayer).
 
 ### OpenDocument.core
 
