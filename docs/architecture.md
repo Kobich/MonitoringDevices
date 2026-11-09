@@ -18,7 +18,8 @@
 
 :core:common-ui
   Общий UI для переиспользования: тема (MonitoringDevicesTheme), значки (AppIcons),
-  компоненты (BackTopAppBar, CenteredContent, LoadingContent, MessageContent).
+  компоненты (BackTopAppBar, CenteredContent, LoadingContent, MessageContent, AppAlertDialog,
+  AppProgressBar, ConnectionStatusIndicator).
   Не зависит от фич и core:document; фичи и app подключают его через implementation.
 
 :core:document:api
@@ -186,7 +187,8 @@ Screen -> callback -> ViewModel
 ## `core:common-ui`
 
 ```text
-theme/        MonitoringDevicesTheme, цвета, типографика
+theme/        MonitoringDevicesTheme: системные цвета устройства (Material You на Android 12+,
+                базовая палитра Material 3 ниже), светлая/тёмная по системе; типографика
 icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + свои Folder, File (ImageVector)
               FileKind.of(name, isDirectory): FOLDER, PDF, DOCUMENT, SPREADSHEET, PRESENTATION,
                 TEXT, IMAGE, AUDIO, VIDEO, ARCHIVE, OTHER (по расширению)
@@ -194,9 +196,16 @@ icons/        AppIcons: Back, Close, Delete, More, Add, Check (Material) + св�
 components/   BackTopAppBar(title, onNavigationClick, navigationIcon, actions)
               CenteredContent { ... }, LoadingContent(text), MessageContent(title, text, actionLabel)
               SelectionIndicator(selected): круглая отметка выбора с анимацией
+              AppAlertDialog(title, text | content { }, confirmLabel, dismissLabel, destructive, dismissible)
+              AppProgressBar(progress: Float? (null = неизвестен), label, showPercent)
+              ConnectionStatus: DISCONNECTED, CONNECTING, CONNECTED
+              ConnectionStatusIndicator(status, label) / ConnectionStatusDot(status): плашка и точка,
+                CONNECTED — primary, CONNECTING — tertiary с пульсацией, DISCONNECTED — error
 ```
 
-Правила: значки в фичах только через `AppIcons` (не `Icons.*` и не drawable в фиче);
+Правила: цвета только из `MaterialTheme.colorScheme`, без захардкоженных `Color(0x...)` (кроме цветных
+значков файлов); строки — в `res/values/strings.xml` модуля с префиксом `common_ui_`;
+значки в фичах только через `AppIcons` (не `Icons.*` и не drawable в фиче);
 компонент переносится сюда, как только нужен второй фиче; без бизнес-логики и без зависимостей
 от `feature:*` / `core:document`.
 
