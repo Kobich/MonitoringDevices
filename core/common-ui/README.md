@@ -65,6 +65,7 @@ implementation(project(":core:common-ui"))
 | `ChoiceDialog(ChoiceDialogUi(title, choices, text), onChoice, onDismiss)` | Диалог-данные с любым числом вариантов `DialogChoice(value, label, destructive)`; основа цепочки окон |
 | `SelectionIndicator(selected)` | Круглая отметка выбора в списке |
 | `ConnectionStatusIndicator(status)`, `ConnectionStatusIcon(status)` | Статус подключения: `CONNECTED` — мягкий зелёный и ссылка, `CONNECTING` — янтарный и спиннер, `DISCONNECTED` — приглушённый красный и перечёркнутая ссылка. Без цвета статус различим по значку |
+| `ConnectionStatusTile(status, label, iconSize)` | Крупный статус: значок в мягком цветном круге и подпись под ним — для карточки устройства или пустой области экрана |
 | `rememberDelayedVisibility(visible)` | `true`, только если `visible` держится дольше задержки: индикатор не мигает на быстрых операциях |
 | `UiCatalogScreen(onBackClick)`, `DialogShowcaseScreen(onBackClick)` | Все компоненты, значки и окна на двух экранах |
 

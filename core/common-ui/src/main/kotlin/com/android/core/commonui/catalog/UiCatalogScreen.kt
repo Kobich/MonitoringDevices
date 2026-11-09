@@ -39,6 +39,7 @@ import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.ConfirmDialog
 import com.android.core.commonui.components.ConnectionStatus
 import com.android.core.commonui.components.ConnectionStatusIndicator
+import com.android.core.commonui.components.ConnectionStatusTile
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.ProgressBar
 import com.android.core.commonui.components.Spinner
@@ -111,6 +112,9 @@ fun UiCatalogScreen(
             header("Connection status")
             items(ConnectionStatus.entries, key = { "status-${it.name}" }, span = { GridItemSpan(maxLineSpan) }) { status ->
                 ConnectionStatusIndicator(status = status)
+            }
+            items(ConnectionStatus.entries, key = { "status-tile-${it.name}" }) { status ->
+                ConnectionStatusTile(status = status)
             }
 
             header("AppIcons")

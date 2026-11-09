@@ -98,7 +98,7 @@ fun ConnectionStatusIcon(
                 ConnectionStatus.CONNECTED -> Icon(imageVector = AppIcons.Link, contentDescription = null, tint = animatedTint)
                 ConnectionStatus.CONNECTING -> CircularProgressIndicator(
                     color = animatedTint,
-                    strokeWidth = 2.dp,
+                    strokeWidth = (size / 12).coerceAtLeast(2.dp),
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(size * 0.1f)
@@ -120,7 +120,7 @@ fun connectionStatusLabel(status: ConnectionStatus): String = stringResource(
 )
 
 @Composable
-private fun connectionStatusRole(status: ConnectionStatus): StatusColorRole {
+internal fun connectionStatusRole(status: ConnectionStatus): StatusColorRole {
     val colors = MonitoringDevicesTheme.statusColors
     return when (status) {
         ConnectionStatus.CONNECTED -> colors.positive
