@@ -4,36 +4,36 @@ import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.document.HtmlDocument
 import com.android.core.document.impl.FormatReader
-import com.android.core.document.impl.chart.ChartRasterizer
 import java.io.File
 
 /**
- * The library doesn't draw DrawingML charts: [chartRasterizer] replaces them with pictures first.
- * If that fails (e.g. an encrypted document is not a zip), the unchanged file is rendered.
+ * [patches] run in order on a copy of the file, for what the library doesn't show (charts, first-line
+ * indents). A patch that fails (e.g. an encrypted document is not a zip) is skipped: the next one gets
+ * the file as it was.
  */
 internal class OfficeReader(
     private val converter: OdrHtmlConverter,
     override val formats: Set<DocumentFormat>,
-    private val chartRasterizer: ChartRasterizer? = null
+    private val patches: List<DocumentPatch> = emptyList()
 ) : FormatReader<HtmlDocument> {
 
     override suspend fun read(file: File, format: DocumentFormat, password: String?): HtmlDocument {
-        val rasterizer = chartRasterizer
-            ?: return converter.convert(file, format, password, variant = VARIANT_AS_IS)
+        if (patches.isEmpty()) return converter.convert(file, format, password, variant = VARIANT_AS_IS)
 
-        return converter.convert(file, format, password, variant = VARIANT_CHARTS_AS_PICTURES) { original, workDirectory ->
-            val output = File(workDirectory, "charts-as-pictures.${original.extension}")
-            val replaced = runCatching { rasterizer.rasterize(original, output) }
-                .onFailure { error -> Log.w(TAG, "Chart preprocessing failed for ${original.name}", error) }
-                .getOrDefault(0)
-            Log.d(TAG, "Replaced $replaced chart(s) in ${original.name}")
-            if (replaced > 0) output else original
+        return converter.convert(file, format, password, variant = VARIANT_PATCHED) { original, workDirectory ->
+            patches.foldIndexed(original) { index, current, patch ->
+                val output = File(workDirectory, "patch-$index.${original.extension}")
+                val isChanged = runCatching { patch.apply(current, output) }
+                    .onFailure { error -> Log.w(TAG, "${patch::class.simpleName} failed for ${original.name}", error) }
+                    .getOrDefault(false)
+                if (isChanged) output else current
+            }
         }
     }
 
     private companion object {
         const val TAG = "OfficeReader"
         const val VARIANT_AS_IS = "as-is"
-        const val VARIANT_CHARTS_AS_PICTURES = "charts-as-pictures"
+        const val VARIANT_PATCHED = "patched"
     }
 }

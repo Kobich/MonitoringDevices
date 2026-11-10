@@ -15,6 +15,7 @@ internal object OoxmlXml {
     const val NS_CHART = "http://schemas.openxmlformats.org/drawingml/2006/chart"
     const val NS_DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/main"
     const val NS_PICTURE = "http://schemas.openxmlformats.org/drawingml/2006/picture"
+    const val NS_WORD = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
     const val NS_WORD_DRAWING = "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
     const val NS_RELATIONSHIPS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
     const val NS_PACKAGE_RELATIONSHIPS = "http://schemas.openxmlformats.org/package/2006/relationships"
@@ -23,6 +24,7 @@ internal object OoxmlXml {
 
     const val REL_OFFICE_DOCUMENT = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
     const val REL_IMAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+    const val REL_STYLES = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
     const val REL_THEME = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme"
 
     fun parse(input: InputStream): Document {

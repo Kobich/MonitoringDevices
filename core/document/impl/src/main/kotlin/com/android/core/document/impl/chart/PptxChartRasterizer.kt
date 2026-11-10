@@ -1,5 +1,7 @@
 package com.android.core.document.impl.chart
 
+import android.util.Log
+import com.android.core.document.impl.office.DocumentPatch
 import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_CHART
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_DRAWING
@@ -13,13 +15,15 @@ import org.w3c.dom.Element
 import java.io.File
 import java.util.zip.ZipFile
 
+private const val TAG = "PptxChartRasterizer"
+
 /** Charts on slide layouts and masters, and charts we can't parse, stay untouched. */
 internal class PptxChartRasterizer(
     private val renderer: ChartImageRenderer,
     private val parser: ChartXmlParser = ChartXmlParser()
-) : ChartRasterizer {
+) : DocumentPatch {
 
-    override fun rasterize(input: File, output: File): Int {
+    override fun apply(input: File, output: File): Boolean {
         ZipFile(input).use { zip ->
             val ooxml = OoxmlPackage(zip)
             val presentationPath = ooxml.mainPartPath(fallback = "ppt/presentation.xml")
@@ -65,9 +69,10 @@ internal class PptxChartRasterizer(
                 if (isSlideChanged) ooxml.markModified(slidePath)
             }
 
-            if (replaced == 0) return 0
+            if (replaced == 0) return false
             ooxml.writeTo(output)
-            return replaced
+            Log.d(TAG, "Replaced $replaced chart(s)")
+            return true
         }
     }
 

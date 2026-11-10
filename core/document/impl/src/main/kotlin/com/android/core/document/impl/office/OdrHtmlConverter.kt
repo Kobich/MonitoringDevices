@@ -91,15 +91,17 @@ internal class OdrHtmlConverter(
                     Html.translate(readable, config).use { service ->
                         val views = service.listViews()
                         try {
-                            return service.bringOffline(outputDirectory.path, selectViews(views))
+                            val pages = service.bringOffline(outputDirectory.path, selectViews(views))
                                 .pages()
                                 .map { page ->
                                     val file = File(page.path).let { file ->
                                         if (file.isAbsolute) file else File(outputDirectory, page.path)
                                     }
-                                    file.addStyle(EXTRA_CSS)
                                     HtmlPage(title = page.name, file = file)
                                 }
+                            val css = EXTRA_CSS + DocxFirstLineIndents.css(outputTexts(outputDirectory))
+                            pages.forEach { page -> page.file.addStyle(css) }
+                            return pages
                         } finally {
                             views.forEach { view -> runCatching { view.close() } }
                         }
@@ -126,6 +128,13 @@ internal class OdrHtmlConverter(
         val sheets = views.withFilePrefix(SHEET_FILE_PREFIX)
         if (sheets.isNotEmpty()) return sheets
         return views.withFilePrefix(DOCUMENT_FILE_PREFIX).ifEmpty { views }
+    }
+
+    /** Pages and the scripts that fill the parts of a long document in later. */
+    private fun outputTexts(outputDirectory: File): Sequence<String> {
+        return outputDirectory.walk()
+            .filter { file -> file.isFile && file.extension.lowercase() in setOf("html", "js") }
+            .map { file -> file.readText() }
     }
 
     private fun File.addStyle(css: String) {
