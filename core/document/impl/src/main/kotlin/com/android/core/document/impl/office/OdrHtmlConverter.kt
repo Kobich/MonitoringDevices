@@ -97,6 +97,7 @@ internal class OdrHtmlConverter(
                                     val file = File(page.path).let { file ->
                                         if (file.isAbsolute) file else File(outputDirectory, page.path)
                                     }
+                                    file.addStyle(EXTRA_CSS)
                                     HtmlPage(title = page.name, file = file)
                                 }
                         } finally {
@@ -127,6 +128,16 @@ internal class OdrHtmlConverter(
         return views.withFilePrefix(DOCUMENT_FILE_PREFIX).ifEmpty { views }
     }
 
+    private fun File.addStyle(css: String) {
+        val html = readText()
+        val headEnd = html.indexOf("</head>")
+        if (headEnd < 0) {
+            Log.w(TAG, "addStyle: no </head> in $name")
+            return
+        }
+        writeText(html.substring(0, headEnd) + "<style>$css</style>" + html.substring(headEnd))
+    }
+
     private fun decrypted(decoded: DecodedFile, password: String?): DecodedFile {
         if (!decoded.passwordEncrypted()) return decoded
         if (password == null) throw DocumentReadException(Reason.PASSWORD_REQUIRED)
@@ -155,6 +166,12 @@ internal class OdrHtmlConverter(
     }
 
     private companion object {
+        /**
+         * A word longer than the line breaks like in Word instead of sticking out of the page. The text
+         * box of a page is a flex item, which by default grows to the longest word, so it needs min-width 0.
+         */
+        const val EXTRA_CSS = ".odr-page-inner{min-width:0}x-p{overflow-wrap:break-word}"
+
         // Default output names of HtmlConfig: document.html, sheet{index}.html, slide{index}.html, page{index}.html.
         const val DOCUMENT_FILE_PREFIX = "document"
         const val SHEET_FILE_PREFIX = "sheet"
