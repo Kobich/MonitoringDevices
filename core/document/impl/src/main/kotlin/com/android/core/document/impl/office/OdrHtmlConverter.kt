@@ -77,8 +77,11 @@ internal class OdrHtmlConverter(
                         // The viewer serves the output folder as a site: links to styles, scripts
                         // and images must be relative, not absolute file system paths.
                         relativeResourcePaths = true
-                        // Pages, slides and drawings open fitted to the screen width, and the library's
-                        // script refits them on rotation. Sheets have no page width: they stay at 100% and scroll.
+                        // Word documents keep their pages, as in the original: without a page box the text
+                        // reflows to the screen while pictures and tables keep their size and stick out.
+                        textDocumentMargin = true
+                        // Pages, slides and drawings open fitted to the screen width as a whole, so text, pictures
+                        // and tables keep their proportions; the library's script refits them on rotation. Sheets have no page width: they stay at 100% and scroll.
                         viewportMode = HtmlViewportMode.FIT_WIDTH_BY_VIEW
                         spreadsheetViewportMode = HtmlViewportMode.ACTUAL_SIZE
                     }
