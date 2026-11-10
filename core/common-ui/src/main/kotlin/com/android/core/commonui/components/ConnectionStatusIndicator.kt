@@ -108,7 +108,8 @@ fun ConnectionStatusIcon(
                     strokeWidth = (size / 12).coerceAtLeast(2.dp),
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(size * 0.1f)
+                        // 90% of the icon: a circle looks smaller than the wide link glyphs of the same width.
+                        .padding(size * 0.05f)
                 )
 
                 ConnectionStatus.DISCONNECTED -> Icon(
