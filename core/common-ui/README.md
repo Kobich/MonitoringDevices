@@ -59,7 +59,7 @@ implementation(project(":core:common-ui"))
 |---|---|
 | `BackTopAppBar(title, onNavigationClick, actions)` | Верхняя панель с кнопкой «Назад» |
 | `CenteredContent { … }`, `LoadingContent(text)`, `MessageContent(title, text, actionLabel, onActionClick)` | Состояния экрана: по центру, загрузка, пусто или ошибка |
-| `Spinner(compact)` | Круглый индикатор загрузки: обычный для пустой области, `compact` — внутри контента. Дуга вращается медленнее стандартного индикатора Material: один оборот за 1.6 с (`TURN_MILLIS` в `Spinner.kt`) |
+| `Spinner(compact)` | Круглый индикатор загрузки: обычный для пустой области, `compact` — внутри контента. Движение как у стандартного индикатора Material (дуга вырастает и сжимается, поворачиваясь), но медленнее: цикл 2 с вместо ~1.3 с (`CYCLE_MILLIS` в `Spinner.kt`) |
 | `ProgressBar(progress, label, showPercent)` | Линейный прогресс; `progress = null` — неизвестен |
 | `ConfirmDialog(title, confirmLabel, onConfirm, onDismiss, dismissLabel, destructive, dismissible) { тело }` | Диалог с одной или двумя кнопками и любым телом: текст, поле ввода, прогресс |
 | `ChoiceDialog(ChoiceDialogUi(title, choices, text), onChoice, onDismiss)` | Диалог-данные с любым числом вариантов `DialogChoice(value, label, destructive)`; основа цепочки окон |
