@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.core.commonui.theme.MonitoringDevicesTheme
 
-/** Full-screen spinner with an optional caption. */
+/** Fills the screen. */
 @Composable
 fun LoadingContent(
     modifier: Modifier = Modifier,

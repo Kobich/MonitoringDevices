@@ -59,12 +59,12 @@ implementation(project(":core:common-ui"))
 |---|---|
 | `BackTopAppBar(title, onNavigationClick, actions)` | Верхняя панель с кнопкой «Назад» |
 | `CenteredContent { … }`, `LoadingContent(text)`, `MessageContent(title, text, actionLabel, onActionClick)` | Состояния экрана: по центру, загрузка, пусто или ошибка |
-| `Spinner(compact)` | Круглый индикатор загрузки: обычный для пустой области, `compact` — внутри контента |
+| `Spinner(compact)` | Круглый индикатор загрузки: обычный для пустой области, `compact` — внутри контента. Дуга вращается медленнее стандартного индикатора Material: один оборот за 1.6 с (`TURN_MILLIS` в `Spinner.kt`) |
 | `ProgressBar(progress, label, showPercent)` | Линейный прогресс; `progress = null` — неизвестен |
 | `ConfirmDialog(title, confirmLabel, onConfirm, onDismiss, dismissLabel, destructive, dismissible) { тело }` | Диалог с одной или двумя кнопками и любым телом: текст, поле ввода, прогресс |
 | `ChoiceDialog(ChoiceDialogUi(title, choices, text), onChoice, onDismiss)` | Диалог-данные с любым числом вариантов `DialogChoice(value, label, destructive)`; основа цепочки окон |
 | `SelectionIndicator(selected)` | Круглая отметка выбора в списке |
-| `ConnectionStatusIndicator(status)`, `ConnectionStatusIcon(status)` | Статус подключения: `CONNECTED` — мягкий зелёный и ссылка, `CONNECTING` — янтарный и спиннер, `DISCONNECTED` — приглушённый красный и перечёркнутая ссылка. Без цвета статус различим по значку |
+| `ConnectionStatusIndicator(status, label, iconSize)`, `ConnectionStatusIcon(status, size)` | Статус подключения: `CONNECTED` — мягкий зелёный и ссылка, `CONNECTING` — янтарный и спиннер, `DISCONNECTED` — приглушённый красный и перечёркнутая ссылка. Без цвета статус различим по значку. Размер значка задаётся `iconSize` / `size`: от него считаются и значок, и толщина спиннера |
 | `ConnectionStatusTile(status, label, iconSize)` | Крупный статус: значок в мягком цветном круге и подпись под ним — для карточки устройства или пустой области экрана |
 | `rememberDelayedVisibility(visible)` | `true`, только если `visible` держится дольше задержки: индикатор не мигает на быстрых операциях |
 | `UiCatalogScreen(onBackClick)`, `DialogShowcaseScreen(onBackClick)` | Все компоненты, значки и окна на двух экранах |

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -39,7 +38,7 @@ enum class ConnectionStatus {
 }
 
 /**
- * Pill with a status icon and a caption. [label] overrides the default caption of the [status].
+ * Pill with a status icon and a caption.
  *
  * Soft status colors: green when connected, amber while connecting, muted red when disconnected.
  * The icon tells it apart without colors too: link, spinner, crossed-out link.
@@ -48,7 +47,8 @@ enum class ConnectionStatus {
 fun ConnectionStatusIndicator(
     status: ConnectionStatus,
     modifier: Modifier = Modifier,
-    label: String = connectionStatusLabel(status)
+    label: String = connectionStatusLabel(status),
+    iconSize: Dp = 18.dp
 ) {
     val role = connectionStatusRole(status)
     val containerColor by animateColorAsState(targetValue = role.container, label = "statusContainer")
@@ -60,14 +60,14 @@ fun ConnectionStatusIndicator(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
         ) {
-            ConnectionStatusIcon(status = status, contentDescription = null)
+            ConnectionStatusIcon(status = status, size = iconSize, contentDescription = null)
             Text(text = label, style = MaterialTheme.typography.labelLarge)
         }
     }
 }
 
 /**
- * Only the icon, for list rows and app bars: link, spinner, crossed-out link in the status color.
+ * For list rows and app bars.
  * Pass `contentDescription = null` when a caption with the status is next to it.
  */
 @Composable
@@ -95,8 +95,15 @@ fun ConnectionStatusIcon(
     ) { shown ->
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             when (shown) {
-                ConnectionStatus.CONNECTED -> Icon(imageVector = AppIcons.Link, contentDescription = null, tint = animatedTint)
-                ConnectionStatus.CONNECTING -> CircularProgressIndicator(
+                // fillMaxSize: on its own an Icon keeps the vector's 24 dp and ignores a larger [size].
+                ConnectionStatus.CONNECTED -> Icon(
+                    imageVector = AppIcons.Link,
+                    contentDescription = null,
+                    tint = animatedTint,
+                    modifier = Modifier.fillMaxSize()
+                )
+
+                ConnectionStatus.CONNECTING -> SpinnerArc(
                     color = animatedTint,
                     strokeWidth = (size / 12).coerceAtLeast(2.dp),
                     modifier = Modifier
@@ -104,7 +111,12 @@ fun ConnectionStatusIcon(
                         .padding(size * 0.1f)
                 )
 
-                ConnectionStatus.DISCONNECTED -> Icon(imageVector = AppIcons.LinkOff, contentDescription = null, tint = animatedTint)
+                ConnectionStatus.DISCONNECTED -> Icon(
+                    imageVector = AppIcons.LinkOff,
+                    contentDescription = null,
+                    tint = animatedTint,
+                    modifier = Modifier.fillMaxSize()
+                )
             }
         }
     }

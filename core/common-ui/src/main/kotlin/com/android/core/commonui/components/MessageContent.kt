@@ -9,7 +9,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.core.commonui.theme.MonitoringDevicesTheme
 
-/** Full-screen empty or error state: title, optional details and an optional action button. */
+/** Full-screen empty or error state. */
 @Composable
 fun MessageContent(
     title: String,
