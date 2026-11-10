@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewAssetLoader
+import com.android.appmanager.feature.documentviewer.R
 import com.android.core.document.api.document.HtmlDocument
 import com.android.core.document.api.document.HtmlPage
 import java.io.ByteArrayInputStream
@@ -77,6 +78,9 @@ private fun HtmlPageWebView(
             .build()
     }
     val url = remember(directory, page) { pageUrl(directory, page.file) }
+    val fitScript = remember {
+        context.resources.openRawResource(R.raw.viewer_fit_text_flow).bufferedReader().use { it.readText() }
+    }
 
     AndroidView(
         factory = { viewContext ->
@@ -90,7 +94,7 @@ private fun HtmlPageWebView(
                     useWideViewPort = true
                     loadWithOverviewMode = true
                 }
-                webViewClient = LocalContentWebViewClient(assetLoader)
+                webViewClient = LocalContentWebViewClient(assetLoader, fitScript)
             }
         },
         update = { webView ->
@@ -104,14 +108,20 @@ private fun HtmlPageWebView(
     )
 }
 
+/** @param fitScript fits pictures and tables of a reflowed Word document to the screen width. */
 private class LocalContentWebViewClient(
-    private val assetLoader: WebViewAssetLoader
+    private val assetLoader: WebViewAssetLoader,
+    private val fitScript: String
 ) : WebViewClient() {
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse {
         return assetLoader.shouldInterceptRequest(request.url) ?: run {
             Log.w(TAG, "blocked request: ${request.url}")
             blockedResponse()
         }
+    }
+
+    override fun onPageFinished(view: WebView, url: String) {
+        view.evaluateJavascript(fitScript, null)
     }
 
     /** Links inside documents don't navigate the viewer away. */

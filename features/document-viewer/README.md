@@ -19,6 +19,7 @@ features/document-viewer/
 │       ├── AudioPlayback.kt               # состояние аудиоплеера: прогресс, play/pause/seek
 │       ├── model/                         # UiState: Loading / Loaded(document) / Error
 │       └── screen/                        # экран и по экрану на вид документа, диалог пароля
+├── src/main/res/raw/viewer_fit_text_flow.js # уменьшает картинки и таблицы Word под ширину экрана
 └── src/main/res/values/strings.xml        # строки с префиксом viewer_
 ```
 
@@ -33,7 +34,7 @@ features/document-viewer/
 | Документ | Экран |
 |---|---|
 | `PdfDocument` | Страницы списком, каждая рисуется под ширину экрана, когда становится видна |
-| `HtmlDocument` | WebView; документы и слайды вписаны по ширине экрана, таблицы в 100%, у таблиц вкладки по листам. Файлы отдаёт `WebViewAssetLoader`: без сети и доступа к файлам, остальные запросы блокируются |
+| `HtmlDocument` | WebView; слайды вписаны по ширине экрана. Текст Word переносится по ширине экрана, а картинки, диаграммы и таблицы шире экрана уменьшаются под неё (`res/raw/viewer_fit_text_flow.js`). Таблицы в 100%, у таблиц вкладки по листам. Файлы отдаёт `WebViewAssetLoader`: без сети и доступа к файлам, остальные запросы блокируются |
 | `TextDocument` | Текст построчно в ленивом списке, сверху кодировка и признак обрезки |
 | `ImageDocument` | Картинка с pinch-zoom и двойным тапом; GIF и WebP анимируются на Android 9+ |
 | `AudioDocument` | Обложка, название, плеер с перемоткой |
