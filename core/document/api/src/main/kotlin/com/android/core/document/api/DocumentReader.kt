@@ -3,14 +3,13 @@ package com.android.core.document.api
 import com.android.core.document.api.document.Document
 import java.io.File
 
-/** Opens files for showing. The implementation comes from `:core:document:impl`. */
+/** Implemented in `:core:document:impl`. */
 interface DocumentReader {
     /**
-     * Opens [file]; the format comes from its extension. Heavy work runs off the main thread.
-     * The caller must close the returned document.
+     * The format comes from the extension, not the content. Main-safe. The caller closes the document.
      *
-     * @param password for an encrypted document, after [DocumentReadException.Reason.PASSWORD_REQUIRED].
-     * @throws DocumentReadException the only error it throws, with the [DocumentReadException.Reason].
+     * @param password after [DocumentReadException.Reason.PASSWORD_REQUIRED].
+     * @throws DocumentReadException the only exception, here and in the documents' methods.
      */
     @Throws(DocumentReadException::class)
     suspend fun read(file: File, password: String? = null): Document

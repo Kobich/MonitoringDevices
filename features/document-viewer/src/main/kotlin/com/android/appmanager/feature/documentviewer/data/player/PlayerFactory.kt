@@ -14,7 +14,7 @@ import javax.inject.Inject
 
 private const val TAG = "Player"
 
-/** Media3 player for audio and video files; it must be used and released on the main thread. */
+/** The player must be used and released on the main thread. */
 internal class PlayerFactory @Inject constructor(
     @ApplicationContext private val context: Context
 ) {

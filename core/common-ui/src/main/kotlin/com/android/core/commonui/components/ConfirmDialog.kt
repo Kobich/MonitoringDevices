@@ -15,7 +15,7 @@ import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.theme.MonitoringDevicesTheme
 
 /**
- * Dialog with a title, a body in [content] and a confirm button; [dismissLabel] adds a second button.
+ * [dismissLabel] adds a second button.
  * [destructive] paints the confirm button with the error color (delete, disconnect, reset).
  * [dismissible] = `false` ignores back and taps outside: the user has to press a button.
  */

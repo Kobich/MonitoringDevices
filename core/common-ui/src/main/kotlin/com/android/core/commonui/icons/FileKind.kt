@@ -15,7 +15,6 @@ enum class FileKind {
     OTHER;
 
     companion object {
-        /** Kind by the extension of [fileName], ignoring case; [OTHER] for an unknown one. */
         fun of(fileName: String, isDirectory: Boolean): FileKind {
             if (isDirectory) return FOLDER
             val extension = fileName.substringAfterLast('.', missingDelimiterValue = "").lowercase()

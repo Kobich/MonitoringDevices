@@ -4,11 +4,10 @@ import com.android.core.document.api.DocumentFormat
 import java.io.File
 
 /**
- * A document converted to HTML for a WebView: office files, Markdown, SVG. Files live in a cache owned
- * by the reader: read them, don't modify or delete.
+ * Office files, Markdown and SVG. The files live in the reader's cache: don't modify or delete them.
  *
- * @property directory pages and their resources are inside it, so it can be served as one folder.
- * @property pages at least one: a spreadsheet has one per sheet.
+ * @property directory holds the pages and their resources, so it can be served as one folder.
+ * @property pages at least one; a spreadsheet has one per sheet.
  */
 data class HtmlDocument(
     override val name: String,
@@ -17,10 +16,7 @@ data class HtmlDocument(
     val pages: List<HtmlPage>
 ) : Document
 
-/**
- * @property title sheet, slide or document name, for tabs.
- * @property file HTML file inside [HtmlDocument.directory].
- */
+/** @property file inside [HtmlDocument.directory]. */
 data class HtmlPage(
     val title: String,
     val file: File

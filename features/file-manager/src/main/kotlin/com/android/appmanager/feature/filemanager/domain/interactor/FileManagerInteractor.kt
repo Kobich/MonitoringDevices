@@ -50,7 +50,7 @@ internal class FileManagerInteractor @Inject constructor(
     suspend fun exportToFolder(paths: List<StoragePath>, folder: Uri): TransferSummary =
         repository.exportToDirectory(paths, folder)
 
-    /** Deletes items one by one and stops at the first failure. */
+    /** Stops at the first failure. */
     suspend fun delete(paths: List<StoragePath>) {
         paths.forEach { path -> repository.delete(path) }
     }

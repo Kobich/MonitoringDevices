@@ -23,7 +23,6 @@ import com.android.core.commonui.theme.MonitoringDevicesTheme
 object FileTypeIcons {
     private val cache = mutableMapOf<FileKind, ImageVector>()
 
-    /** The colored icon of [kind], built once and cached. */
     fun forKind(kind: FileKind): ImageVector = cache.getOrPut(kind) { build(kind) }
 
     private class Style(
@@ -128,7 +127,7 @@ object FileTypeIcons {
     private const val FOLDER_FRONT = "M2,9.5A2,2 0 0 1 4,7.5H20A2,2 0 0 1 22,9.5V18A2,2 0 0 1 20,20H4A2,2 0 0 1 2,18Z"
 }
 
-/** Colored icon of a file or folder, [size] square. */
+/** [size] square. */
 @Composable
 fun FileTypeIcon(
     kind: FileKind,

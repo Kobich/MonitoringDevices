@@ -31,7 +31,7 @@ import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.theme.MonitoringDevicesTheme
 import com.android.core.commonui.theme.StatusColorRole
 
-/** UI state of a connection; features map their own connection state to it. */
+/** Features map their own connection state to it. */
 enum class ConnectionStatus {
     DISCONNECTED,
     CONNECTING,

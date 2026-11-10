@@ -22,7 +22,7 @@ import com.android.core.commonui.theme.MonitoringDevicesTheme
 import kotlin.math.roundToInt
 
 /**
- * Full-width linear progress bar with an optional caption row above it.
+ * Full width, the caption row above it.
  * [progress] in `0f..1f` (clamped, changes are animated); `null` means unknown progress (indeterminate).
  * [showPercent] is ignored while progress is unknown.
  */

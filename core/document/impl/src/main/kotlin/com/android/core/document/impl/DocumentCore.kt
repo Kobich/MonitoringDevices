@@ -37,10 +37,9 @@ import java.io.File
 
 private const val TAG = "DocumentCore"
 
-/** Builds the [DocumentReader]. Create one per process: readers share the conversion cache and its lock. */
+/** One per process: readers share the conversion cache and its lock. */
 class DocumentCore(context: Context) {
 
-    /** Reads every format of `DocumentFormat`; office formats need Android 8+. */
     val reader: DocumentReader
 
     init {

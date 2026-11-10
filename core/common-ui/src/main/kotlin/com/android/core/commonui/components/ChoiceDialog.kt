@@ -20,8 +20,7 @@ import com.android.core.commonui.theme.MonitoringDevicesTheme
  * A dialog described as data, so a ViewModel can keep it in its state. For a chain of dialogs the
  * ViewModel keeps the current step and, when a choice comes back, puts the next step (or `null`) there.
  *
- * @property choices buttons in the order they are shown; see [ChoiceDialog] for the layout.
- * @property text optional body under the title.
+ * @property choices in the order they are shown; see [ChoiceDialog] for the layout.
  */
 @Immutable
 data class ChoiceDialogUi<out T>(
@@ -34,8 +33,6 @@ data class ChoiceDialogUi<out T>(
 )
 
 /**
- * One button of a [ChoiceDialog].
- *
  * @property value what [ChoiceDialog] reports when this button is pressed.
  * @property destructive paints the label with the error color (delete, reset).
  */

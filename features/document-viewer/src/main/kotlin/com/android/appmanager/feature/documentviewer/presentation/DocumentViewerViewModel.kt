@@ -51,11 +51,10 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     )
         private set
 
-    /** Present while an audio document is shown. */
     var audioPlayback by mutableStateOf<AudioPlayback?>(null)
         private set
 
-    /** Present while a video document is shown; kept here so playback survives rotation. */
+    /** Here, not in the screen, so playback survives rotation. */
     var videoPlayer by mutableStateOf<Player?>(null)
         private set
 

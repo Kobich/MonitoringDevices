@@ -159,7 +159,7 @@ internal class FileStorageRepository @Inject constructor(
         }
     }
 
-    /** Copies [source] into [target]; [onCreated] receives the created top-level item. */
+    /** [onCreated] receives the created top-level item. */
     private suspend fun exportItem(
         source: File,
         target: DocumentFile,

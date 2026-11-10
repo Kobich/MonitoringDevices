@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "AudioPlayback"
 
-/** Playback of one audio document; [scope] must run on the main thread, like the player. */
+/** [scope] must run on the main thread, like the player. */
 internal class AudioPlayback(
     private val player: Player,
     private val scope: CoroutineScope,

@@ -13,7 +13,6 @@ interface Feature {
     fun getId(): SourceId
 }
 
-/** Returns null when the data cannot be obtained. */
 interface DataFeature<out T : DataType> : Feature {
     suspend fun getData(): T?
 }

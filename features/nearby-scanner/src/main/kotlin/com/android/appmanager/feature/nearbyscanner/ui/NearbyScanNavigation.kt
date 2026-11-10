@@ -8,7 +8,6 @@ import com.android.appmanager.feature.nearbyscanner.NearbyScanner
 
 const val NEARBY_SCAN_ROUTE = "nearby_scan"
 
-/** Adds the feature to the host navigation graph. */
 fun NavGraphBuilder.nearbyScanScreen(scanner: NearbyScanner) {
     composable(NEARBY_SCAN_ROUTE) {
         NearbyScanScreen(scanner = scanner)

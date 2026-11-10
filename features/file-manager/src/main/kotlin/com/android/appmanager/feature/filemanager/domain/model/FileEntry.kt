@@ -4,9 +4,9 @@ internal data class FileEntry(
     val path: StoragePath,
     val name: String,
     val isDirectory: Boolean,
-    /** Size in bytes, always 0 for folders. */
+    /** 0 for folders. */
     val sizeBytes: Long,
-    /** Number of direct children, always 0 for files. */
+    /** Direct children only; 0 for files. */
     val childCount: Int,
     val lastModifiedMillis: Long
 )
