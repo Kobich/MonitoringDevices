@@ -109,7 +109,7 @@ internal class RenderCache(
 
     private companion object {
         /** Bump when the output layout or renderer configuration changes. */
-        const val CACHE_VERSION = 5
+        const val CACHE_VERSION = 6
         const val MANIFEST_NAME = "pages.tsv"
         const val TEMPORARY_MARKER = "tmp-"
         const val DEFAULT_MAX_BYTES = 200L * 1024 * 1024

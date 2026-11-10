@@ -81,9 +81,11 @@ internal class OdrHtmlConverter(
                         // reflows to the screen while pictures and tables keep their size and stick out.
                         textDocumentMargin = true
                         // Pages, slides and drawings open fitted to the screen width as a whole, so text, pictures
-                        // and tables keep their proportions; the library's script refits them on rotation.
+                        // and tables keep their proportions. FIT_WIDTH leaves the scale to the WebView (overview
+                        // mode), which refits on rotation. Not FIT_WIDTH_BY_VIEW: its script measures once the page
+                        // has loaded, and a WebView that gets its size after that opens zoomed in.
                         // Sheets have no page width: they stay at 100% and scroll.
-                        viewportMode = HtmlViewportMode.FIT_WIDTH_BY_VIEW
+                        viewportMode = HtmlViewportMode.FIT_WIDTH
                         spreadsheetViewportMode = HtmlViewportMode.ACTUAL_SIZE
                     }
                     Html.translate(readable, config).use { service ->

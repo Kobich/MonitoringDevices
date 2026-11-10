@@ -87,6 +87,7 @@ private fun HtmlPageWebView(
                     allowContentAccess = false
                     builtInZoomControls = true
                     displayZoomControls = false
+                    // Both fit a document's page to the screen width (HtmlViewportMode.FIT_WIDTH in :core:document).
                     useWideViewPort = true
                     loadWithOverviewMode = true
                 }
