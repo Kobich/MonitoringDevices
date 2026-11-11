@@ -159,10 +159,13 @@ internal class OdrHtmlConverter(
 
     private companion object {
         /**
-         * A word longer than the line breaks like in Word instead of sticking out of the page. The text
-         * box of a page is a flex item, which by default grows to the longest word, so it needs min-width 0.
+         * A word longer than the line breaks like in Word instead of sticking out of the page; so does a
+         * sentence glued with non-breaking spaces. The text box of a page is a flex item, which by default
+         * grows to the longest word, so it needs min-width 0. In a table cell only `anywhere` breaks it:
+         * `break-word` doesn't lower the width the table reserves for the column, and the column would
+         * grow past its width in Word and stretch the page.
          */
-        const val EXTRA_CSS = ".odr-page-inner{min-width:0}x-p{overflow-wrap:break-word}"
+        const val EXTRA_CSS = ".odr-page-inner{min-width:0}x-p{overflow-wrap:break-word}td x-p{overflow-wrap:anywhere}"
 
         // Default output names of HtmlConfig: document.html, sheet{index}.html, slide{index}.html, page{index}.html.
         const val DOCUMENT_FILE_PREFIX = "document"
