@@ -31,14 +31,8 @@ internal fun DocumentViewerScreen(
     onBackClick: () -> Unit,
     onPageSelected: (Int) -> Unit,
     onRetryClick: () -> Unit,
-    onPasswordSubmit: (String) -> Unit,
-    onPasswordDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    state.passwordDialog?.let { dialog ->
-        PasswordDialog(isWrongPassword = dialog.isWrongPassword, onSubmit = onPasswordSubmit, onDismiss = onPasswordDismiss)
-    }
-
     Scaffold(
         modifier = modifier,
         topBar = {

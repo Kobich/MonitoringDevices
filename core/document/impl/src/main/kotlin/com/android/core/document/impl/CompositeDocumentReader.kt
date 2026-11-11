@@ -19,8 +19,8 @@ internal class CompositeDocumentReader(
         require(formats.size == formats.toSet().size) { "Several readers registered for one format" }
     }
 
-    override suspend fun read(file: File, password: String?): Document {
-        Log.d(TAG, "read: ${file.path}, size=${file.length()}, withPassword=${password != null}")
+    override suspend fun read(file: File): Document {
+        Log.d(TAG, "read: ${file.path}, size=${file.length()}")
         if (!file.isFile) {
             Log.w(TAG, "read: ${file.name} not found")
             throw DocumentReadException(Reason.NOT_FOUND, "${file.name} not found")
@@ -36,7 +36,7 @@ internal class CompositeDocumentReader(
 
         val startedAt = System.currentTimeMillis()
         try {
-            val document = mapReadErrors { reader.read(file, format, password) }
+            val document = mapReadErrors { reader.read(file, format) }
             Log.d(TAG, "read: ${file.name} opened as ${document::class.simpleName} in ${System.currentTimeMillis() - startedAt} ms")
             return document
         } catch (error: DocumentReadException) {

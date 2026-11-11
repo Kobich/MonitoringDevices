@@ -17,7 +17,7 @@ internal class SvgReader(
 ) : FormatReader<HtmlDocument> {
     override val formats = setOf(DocumentFormat.SVG)
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): HtmlDocument = withContext(ioDispatcher) {
+    override suspend fun read(file: File, format: DocumentFormat): HtmlDocument = withContext(ioDispatcher) {
         val entry = cache.find(file, VARIANT) ?: cache.store(file, VARIANT) { directory ->
             file.copyTo(File(directory, IMAGE_NAME))
             val page = File(directory, PAGE_NAME).apply { writeText(PAGE_HTML) }

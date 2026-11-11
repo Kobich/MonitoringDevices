@@ -11,7 +11,6 @@ import androidx.media3.common.Player
 import com.android.appmanager.feature.documentviewer.R
 import com.android.appmanager.feature.documentviewer.data.player.PlayerFactory
 import com.android.appmanager.feature.documentviewer.presentation.model.DocumentViewerUiState
-import com.android.appmanager.feature.documentviewer.presentation.model.PasswordDialogUi
 import com.android.appmanager.feature.documentviewer.presentation.model.ViewerContent
 import com.android.core.document.api.DocumentReadException
 import com.android.core.document.api.DocumentReadException.Reason
@@ -44,10 +43,9 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
 
     private var loadJob: Job? = null
     private var openedDocument: Document? = null
-    private var password: String? = null
 
     var uiState by mutableStateOf(
-        DocumentViewerUiState(title = file.name, content = ViewerContent.Loading, passwordDialog = null)
+        DocumentViewerUiState(title = file.name, content = ViewerContent.Loading)
     )
         private set
 
@@ -67,18 +65,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         uiState = uiState.copy(content = content.copy(selectedPageIndex = index))
     }
 
-    fun onPasswordSubmit(value: String) {
-        Log.d(TAG, "password: submitted for ${file.name}")
-        password = value
-        uiState = uiState.copy(passwordDialog = null)
-        load()
-    }
-
-    fun onPasswordDismiss() {
-        Log.d(TAG, "password: dismissed for ${file.name}")
-        uiState = uiState.copy(passwordDialog = null).withError(R.string.viewer_password_protected)
-    }
-
     fun onRetryClick() {
         load()
     }
@@ -92,11 +78,11 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private fun load() {
         loadJob?.cancel()
         uiState = uiState.copy(content = ViewerContent.Loading)
-        Log.d(TAG, "load: ${file.path}, withPassword=${password != null}")
+        Log.d(TAG, "load: ${file.path}")
 
         loadJob = viewModelScope.launch {
             try {
-                show(reader.read(file, password))
+                show(reader.read(file))
             } catch (error: CancellationException) {
                 throw error
             } catch (error: DocumentReadException) {
@@ -128,8 +114,6 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private fun handleReadError(error: DocumentReadException) {
         Log.w(TAG, "load: ${file.name} failed, reason=${error.reason}, message=${error.message}")
         uiState = when (error.reason) {
-            Reason.PASSWORD_REQUIRED -> uiState.copy(passwordDialog = PasswordDialogUi(isWrongPassword = false))
-            Reason.INVALID_PASSWORD -> uiState.copy(passwordDialog = PasswordDialogUi(isWrongPassword = true))
             Reason.NOT_FOUND -> uiState.withError(R.string.viewer_error_not_found)
             Reason.UNSUPPORTED_FORMAT -> uiState.withError(R.string.viewer_error_unsupported, error.details())
             Reason.CORRUPTED -> uiState.withError(R.string.viewer_error_corrupted)

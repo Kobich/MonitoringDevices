@@ -8,8 +8,7 @@ import java.io.File
 
 /**
  * [patches] run in order on a copy of the file, for what the library doesn't show (charts, first-line
- * indents). A patch that fails (e.g. an encrypted document is not a zip) is skipped: the next one gets
- * the file as it was.
+ * indents). A patch that fails is skipped: the next one gets the file as it was.
  */
 internal class OfficeReader(
     private val converter: OdrHtmlConverter,
@@ -17,10 +16,10 @@ internal class OfficeReader(
     private val patches: List<DocumentPatch> = emptyList()
 ) : FormatReader<HtmlDocument> {
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): HtmlDocument {
-        if (patches.isEmpty()) return converter.convert(file, format, password, variant = VARIANT_AS_IS)
+    override suspend fun read(file: File, format: DocumentFormat): HtmlDocument {
+        if (patches.isEmpty()) return converter.convert(file, format, variant = VARIANT_AS_IS)
 
-        return converter.convert(file, format, password, variant = VARIANT_PATCHED) { original, workDirectory ->
+        return converter.convert(file, format, variant = VARIANT_PATCHED) { original, workDirectory ->
             patches.foldIndexed(original) { index, current, patch ->
                 val output = File(workDirectory, "patch-$index.${original.extension}")
                 val isChanged = runCatching { patch.apply(current, output) }

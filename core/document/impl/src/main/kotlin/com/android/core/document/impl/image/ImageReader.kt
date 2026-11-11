@@ -37,7 +37,7 @@ internal class ImageReader(
         DocumentFormat.HEIF
     )
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): ImageDocument = withContext(ioDispatcher) {
+    override suspend fun read(file: File, format: DocumentFormat): ImageDocument = withContext(ioDispatcher) {
         if (format == DocumentFormat.HEIF && Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "HEIF images need Android 9 or newer")
         }
@@ -78,8 +78,6 @@ internal class ImageReader(
         override val isAnimated: Boolean
     ) : ImageDocument {
         private val isRotatedSideways = orientation in SIDEWAYS_ORIENTATIONS
-        override val widthPx: Int = if (isRotatedSideways) rawHeight else rawWidth
-        override val heightPx: Int = if (isRotatedSideways) rawWidth else rawHeight
 
         override suspend fun decode(maxWidthPx: Int, maxHeightPx: Int): Bitmap = withContext(ioDispatcher) {
             mapReadErrors {

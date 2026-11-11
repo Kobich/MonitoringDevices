@@ -2,9 +2,7 @@ package com.android.core.document.impl.pdf
 
 import android.graphics.Bitmap
 import android.graphics.Color
-import android.graphics.pdf.LoadParams
 import android.graphics.pdf.PdfRenderer
-import android.os.Build
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import com.android.core.document.api.DocumentFormat
@@ -28,10 +26,7 @@ import java.io.IOException
 
 private const val TAG = "PdfReader"
 
-/**
- * Open questions: passwords need Android 15 (API 35), no text extraction.
- * Alternatives: androidx.pdf, pdfium.
- */
+/** No text extraction; androidx.pdf or pdfium could add it. */
 internal class PdfReader(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) : FormatReader<PdfDocument> {
@@ -39,10 +34,10 @@ internal class PdfReader(
 
     private val closeScope = CoroutineScope(SupervisorJob() + ioDispatcher)
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): PdfDocument {
+    override suspend fun read(file: File, format: DocumentFormat): PdfDocument {
         var opened: PdfDocument? = null
         try {
-            return withContext(ioDispatcher) { open(file, password).also { document -> opened = document } }
+            return withContext(ioDispatcher) { open(file).also { document -> opened = document } }
         } catch (error: CancellationException) {
             // withContext drops a result that is ready when the caller is cancelled: close it here.
             opened?.close()
@@ -50,10 +45,10 @@ internal class PdfReader(
         }
     }
 
-    private fun open(file: File, password: String?): PdfDocument {
+    private fun open(file: File): PdfDocument {
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         try {
-            return RendererPdfDocument(file.name, descriptor, openRenderer(descriptor, password)).also { document ->
+            return RendererPdfDocument(file.name, descriptor, openRenderer(descriptor)).also { document ->
                 Log.d(TAG, "open: ${file.name}, pages=${document.pageCount}")
             }
         } catch (error: Throwable) {
@@ -63,25 +58,11 @@ internal class PdfReader(
         }
     }
 
-    private fun openRenderer(descriptor: ParcelFileDescriptor, password: String?): PdfRenderer {
+    private fun openRenderer(descriptor: ParcelFileDescriptor): PdfRenderer {
         try {
-            return if (password != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                PdfRenderer(descriptor, LoadParams.Builder().setPassword(password).build())
-            } else {
-                PdfRenderer(descriptor)
-            }
+            return PdfRenderer(descriptor)
         } catch (error: SecurityException) {
-            // Thrown for encrypted documents.
-            throw when {
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM -> DocumentReadException(
-                    Reason.UNSUPPORTED_FORMAT,
-                    "Password-protected PDF files need Android 15 or newer",
-                    error
-                )
-
-                password == null -> DocumentReadException(Reason.PASSWORD_REQUIRED, error.message, error)
-                else -> DocumentReadException(Reason.INVALID_PASSWORD, error.message, error)
-            }
+            throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "Encrypted PDF", error)
         } catch (error: IOException) {
             throw DocumentReadException(Reason.CORRUPTED, error.message, error)
         }

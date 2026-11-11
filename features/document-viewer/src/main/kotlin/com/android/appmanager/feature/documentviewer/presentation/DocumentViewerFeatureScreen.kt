@@ -28,8 +28,6 @@ internal fun DocumentViewerFeatureScreen(
         onBackClick = onBackClick,
         onPageSelected = viewModel::onPageSelected,
         onRetryClick = viewModel::onRetryClick,
-        onPasswordSubmit = viewModel::onPasswordSubmit,
-        onPasswordDismiss = viewModel::onPasswordDismiss,
         modifier = modifier
     )
 }

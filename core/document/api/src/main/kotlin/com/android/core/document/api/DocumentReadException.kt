@@ -12,12 +12,10 @@ class DocumentReadException(
     enum class Reason {
         NOT_FOUND,
 
-        /** Also when the format needs a newer Android version. */
+        /** Also when the format needs a newer Android version, or the file is encrypted. */
         UNSUPPORTED_FORMAT,
 
         CORRUPTED,
-        PASSWORD_REQUIRED,
-        INVALID_PASSWORD,
 
         /** Not enough memory, e.g. for a huge image; not about the file size. */
         TOO_LARGE,

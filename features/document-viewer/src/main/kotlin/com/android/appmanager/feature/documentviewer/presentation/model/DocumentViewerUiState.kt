@@ -7,8 +7,7 @@ import com.android.core.document.api.document.Document
 @Immutable
 internal data class DocumentViewerUiState(
     val title: String,
-    val content: ViewerContent,
-    val passwordDialog: PasswordDialogUi?
+    val content: ViewerContent
 )
 
 /** The document stays owned (and closed) by the ViewModel. */
@@ -21,11 +20,6 @@ internal sealed interface ViewerContent {
 
     data class Error(@StringRes val title: Int, val details: String? = null) : ViewerContent
 }
-
-@Immutable
-internal data class PasswordDialogUi(
-    val isWrongPassword: Boolean
-)
 
 @Immutable
 internal data class AudioPlaybackUi(

@@ -9,7 +9,7 @@
 ```
 core/document/api/
 └── src/main/kotlin/com/android/core/document/api/
-    ├── DocumentReader.kt          # read(file, password): Document
+    ├── DocumentReader.kt          # read(file): Document
     ├── DocumentFormat.kt          # формат по расширению файла
     ├── DocumentReadException.kt   # ошибка чтения с причиной Reason
     └── document/                  # Document (sealed) и его виды
@@ -43,9 +43,9 @@ implementation(project(":core:document:api"))
 
 | Тип | Что даёт |
 |---|---|
-| `DocumentReader.read(file, password = null): Document` | Открывает файл. Формат — по расширению. Тяжёлая работа идёт не на главном потоке. Документ нужно закрыть. |
+| `DocumentReader.read(file): Document` | Открывает файл. Формат — по расширению. Тяжёлая работа идёт не на главном потоке. Документ нужно закрыть. |
 | `DocumentFormat.of(file): DocumentFormat?` | Формат по расширению: по значению на тип (`PDF`, `DOCX`, `PNG`, `MP3`, `MP4`, …), `null` — не поддерживается. |
-| `DocumentReadException.reason` | `NOT_FOUND`, `UNSUPPORTED_FORMAT`, `CORRUPTED`, `PASSWORD_REQUIRED`, `INVALID_PASSWORD`, `TOO_LARGE`, `IO_ERROR`. Других исключений `read` и методы документов не бросают. |
+| `DocumentReadException.reason` | `NOT_FOUND`, `UNSUPPORTED_FORMAT` (в том числе зашифрованный файл: пароли не поддерживаются), `CORRUPTED`, `TOO_LARGE`, `IO_ERROR`. Других исключений `read` и методы документов не бросают. |
 
 `Document` — sealed, у него шесть видов:
 
@@ -54,7 +54,7 @@ implementation(project(":core:document:api"))
 | `PdfDocument` | PDF | `pageCount`, `pageSize(index)`, `renderPage(index, widthPx): Bitmap` |
 | `HtmlDocument` | офисные документы, Markdown, SVG | `directory` и `pages` — HTML для WebView, у таблиц страница на лист |
 | `TextDocument` | txt, log, json, xml | `text`, `charsetName`, `isTruncated` |
-| `ImageDocument` | png, jpg, gif, webp, bmp, heif | `widthPx`, `heightPx`, `decode(maxW, maxH): Bitmap`, `decodeAnimation(): Drawable?` |
+| `ImageDocument` | png, jpg, gif, webp, bmp, heif | `isAnimated`, `decode(maxW, maxH): Bitmap`, `decodeAnimation(): Drawable?` |
 | `AudioDocument` | mp3, wav, m4a, aac, ogg, opus, flac | `file`, `durationMs`, `title`, `artist`, `album`, `loadArtwork(maxSizePx)` |
 | `VideoDocument` | mp4, m4v, mov, 3gp, webm, mkv | `file` — играет просмотрщик |
 
@@ -75,6 +75,6 @@ try {
         }
     }
 } catch (error: DocumentReadException) {
-    if (error.reason == DocumentReadException.Reason.PASSWORD_REQUIRED) askPassword()
+    showError(error.reason)
 }
 ```

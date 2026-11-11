@@ -37,7 +37,7 @@ internal class AudioReader(
         DocumentFormat.FLAC
     )
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): AudioDocument = withContext(ioDispatcher) {
+    override suspend fun read(file: File, format: DocumentFormat): AudioDocument = withContext(ioDispatcher) {
         val tags = runCatching { readTags(file) }
             .onFailure { error -> Log.w(TAG, "read: no tags for ${file.name}", error) }
             .getOrNull() ?: Tags()

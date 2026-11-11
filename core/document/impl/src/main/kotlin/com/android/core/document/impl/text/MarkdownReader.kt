@@ -15,16 +15,16 @@ internal class MarkdownReader(
 ) : FormatReader<Document> {
     override val formats = setOf(DocumentFormat.MARKDOWN)
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): Document {
+    override suspend fun read(file: File, format: DocumentFormat): Document {
         if (converter != null) {
             try {
-                return converter.convert(file, format, password = null, variant = VARIANT)
+                return converter.convert(file, format, variant = VARIANT)
             } catch (error: IOException) {
                 // DocumentReadException is an IOException too: any failure falls back to plain text.
                 Log.w(TAG, "Formatted Markdown failed for ${file.name}, showing plain text", error)
             }
         }
-        return textReader.read(file, format, password = null)
+        return textReader.read(file, format)
     }
 
     private companion object {

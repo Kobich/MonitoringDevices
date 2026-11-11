@@ -21,7 +21,7 @@ internal class TextReader(
 ) : FormatReader<TextDocument> {
     override val formats = setOf(DocumentFormat.TXT, DocumentFormat.LOG, DocumentFormat.JSON, DocumentFormat.XML)
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): TextDocument = withContext(ioDispatcher) {
+    override suspend fun read(file: File, format: DocumentFormat): TextDocument = withContext(ioDispatcher) {
         // UTF-8 needs at most 4 bytes per character; one extra byte tells whether the file is longer.
         val byteLimit = maxChars.toLong() * 4
         val bytes = file.inputStream().use { input -> input.readUpTo(byteLimit + 1) }

@@ -30,12 +30,12 @@ internal class VideoReader(
         DocumentFormat.MKV
     )
 
-    override suspend fun read(file: File, format: DocumentFormat, password: String?): Document {
+    override suspend fun read(file: File, format: DocumentFormat): Document {
         val tracks = withContext(ioDispatcher) { readTracks(file) }
         Log.d(TAG, "read: ${file.name} hasVideo=${tracks.hasVideo}, hasAudio=${tracks.hasAudio}")
         return when {
             tracks.hasVideo -> VideoDocument(name = file.name, format = format, file = file)
-            tracks.hasAudio -> audioReader.read(file, format, password)
+            tracks.hasAudio -> audioReader.read(file, format)
             else -> throw DocumentReadException(Reason.CORRUPTED, "No video or audio in ${file.name}")
         }
     }

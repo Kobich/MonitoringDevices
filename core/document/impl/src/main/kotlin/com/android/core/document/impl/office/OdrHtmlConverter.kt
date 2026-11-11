@@ -1,7 +1,6 @@
 package com.android.core.document.impl.office
 
 import android.util.Log
-import app.opendocument.core.DecodedFile
 import app.opendocument.core.Html
 import app.opendocument.core.HtmlConfig
 import app.opendocument.core.HtmlView
@@ -31,30 +30,25 @@ internal class OdrHtmlConverter(
     private val mutex = Mutex()
 
     /**
-     * @param variant part of the cache key: different [prepare] steps need different values.
-     * @param prepare turns [file] into the file actually rendered (e.g. charts replaced by
-     * pictures); may write into the given work folder.
+     * [prepare] turns [file] into the file actually rendered (e.g. charts replaced by pictures) and may
+     * write into the given work folder. [variant] is part of the cache key: different [prepare] steps
+     * need different values.
      */
     suspend fun convert(
         file: File,
         format: DocumentFormat,
-        password: String?,
         variant: String,
         prepare: (file: File, workDirectory: File) -> File = { original, _ -> original }
     ): HtmlDocument = withContext(ioDispatcher) {
-        // Cached under the password, so opening without it asks for the password again.
-        // The key is hashed: the password isn't written anywhere.
-        val cacheVariant = if (password == null) variant else "$variant|password:$password"
-
         // A ready document doesn't wait for another one being converted.
-        val entry = cache.find(file, cacheVariant) ?: mutex.withLock {
-            cache.find(file, cacheVariant) ?: run {
+        val entry = cache.find(file, variant) ?: mutex.withLock {
+            cache.find(file, variant) ?: run {
                 Log.d(TAG, "convert: ${file.name} format=$format variant=$variant")
                 val startedAt = System.currentTimeMillis()
                 val workDirectory = cache.newWorkDirectory()
                 try {
                     val input = prepare(file, workDirectory)
-                    cache.store(file, cacheVariant) { outputDirectory -> render(input, password, outputDirectory) }
+                    cache.store(file, variant) { outputDirectory -> render(input, outputDirectory) }
                         .also { stored ->
                             Log.d(TAG, "convert: ${file.name} done, pages=${stored.pages.size}, ${System.currentTimeMillis() - startedAt} ms")
                         }
@@ -66,48 +60,44 @@ internal class OdrHtmlConverter(
         HtmlDocument(name = file.name, format = format, directory = entry.directory, pages = entry.pages)
     }
 
-    private fun render(input: File, password: String?, outputDirectory: File): List<HtmlPage> {
+    private fun render(input: File, outputDirectory: File): List<HtmlPage> {
         try {
             Odr.open(input.path).use { decoded ->
-                val readable = decrypted(decoded, password)
-                try {
-                    val config = HtmlConfig().apply {
-                        allowExternalContent = false
-                        editable = false
-                        // The viewer serves the output folder as a site: links to styles, scripts
-                        // and images must be relative, not absolute file system paths.
-                        relativeResourcePaths = true
-                        // Word documents keep their pages, as in the original: without a page box the text
-                        // reflows to the screen while pictures and tables keep their size and stick out.
-                        textDocumentMargin = true
-                        // Pages, slides and drawings open fitted to the screen width as a whole, so text, pictures
-                        // and tables keep their proportions. FIT_WIDTH leaves the scale to the WebView (overview
-                        // mode), which refits on rotation. Not FIT_WIDTH_BY_VIEW: its script measures once the page
-                        // has loaded, and a WebView that gets its size after that opens zoomed in.
-                        // Sheets have no page width: they stay at 100% and scroll.
-                        viewportMode = HtmlViewportMode.FIT_WIDTH
-                        spreadsheetViewportMode = HtmlViewportMode.ACTUAL_SIZE
-                    }
-                    Html.translate(readable, config).use { service ->
-                        val views = service.listViews()
-                        try {
-                            val pages = service.bringOffline(outputDirectory.path, selectViews(views))
-                                .pages()
-                                .map { page ->
-                                    val file = File(page.path).let { file ->
-                                        if (file.isAbsolute) file else File(outputDirectory, page.path)
-                                    }
-                                    HtmlPage(title = page.name, file = file)
+                if (decoded.passwordEncrypted()) throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "Encrypted document")
+                val config = HtmlConfig().apply {
+                    allowExternalContent = false
+                    editable = false
+                    // The viewer serves the output folder as a site: links to styles, scripts
+                    // and images must be relative, not absolute file system paths.
+                    relativeResourcePaths = true
+                    // Word documents keep their pages, as in the original: without a page box the text
+                    // reflows to the screen while pictures and tables keep their size and stick out.
+                    textDocumentMargin = true
+                    // Pages, slides and drawings open fitted to the screen width as a whole, so text, pictures
+                    // and tables keep their proportions. FIT_WIDTH leaves the scale to the WebView (overview
+                    // mode), which refits on rotation. Not FIT_WIDTH_BY_VIEW: its script measures once the page
+                    // has loaded, and a WebView that gets its size after that opens zoomed in.
+                    // Sheets have no page width: they stay at 100% and scroll.
+                    viewportMode = HtmlViewportMode.FIT_WIDTH
+                    spreadsheetViewportMode = HtmlViewportMode.ACTUAL_SIZE
+                }
+                Html.translate(decoded, config).use { service ->
+                    val views = service.listViews()
+                    try {
+                        val pages = service.bringOffline(outputDirectory.path, selectViews(views))
+                            .pages()
+                            .map { page ->
+                                val file = File(page.path).let { file ->
+                                    if (file.isAbsolute) file else File(outputDirectory, page.path)
                                 }
-                            val css = EXTRA_CSS + DocxFirstLineIndents.css(outputTexts(outputDirectory))
-                            pages.forEach { page -> page.file.addStyle(css) }
-                            return pages
-                        } finally {
-                            views.forEach { view -> runCatching { view.close() } }
-                        }
+                                HtmlPage(title = page.name, file = file)
+                            }
+                        val css = EXTRA_CSS + DocxFirstLineIndents.css(outputTexts(outputDirectory))
+                        pages.forEach { page -> page.file.addStyle(css) }
+                        return pages
+                    } finally {
+                        views.forEach { view -> runCatching { view.close() } }
                     }
-                } finally {
-                    if (readable !== decoded) readable.close()
                 }
             }
         } catch (error: OdrException) {
@@ -147,19 +137,12 @@ internal class OdrHtmlConverter(
         writeText(html.substring(0, headEnd) + "<style>$css</style>" + html.substring(headEnd))
     }
 
-    private fun decrypted(decoded: DecodedFile, password: String?): DecodedFile {
-        if (!decoded.passwordEncrypted()) return decoded
-        if (password == null) throw DocumentReadException(Reason.PASSWORD_REQUIRED)
-        return decoded.decrypt(password)
-    }
-
     private fun OdrException.toReadException(): DocumentReadException {
         val reason = when (this) {
             is OdrException.FileNotFound -> Reason.NOT_FOUND
-            is OdrException.FileEncrypted -> Reason.PASSWORD_REQUIRED
+            is OdrException.FileEncrypted,
             is OdrException.WrongPassword,
-            is OdrException.DecryptionFailed -> Reason.INVALID_PASSWORD
-
+            is OdrException.DecryptionFailed,
             is OdrException.UnknownFileType,
             is OdrException.UnsupportedFileType,
             is OdrException.UnknownDocumentType,

@@ -5,15 +5,13 @@ import android.graphics.drawable.Drawable
 import com.android.core.document.api.DocumentReadException
 
 interface ImageDocument : Document {
-    /** With the EXIF rotation applied, like [heightPx]. */
-    val widthPx: Int
-
-    val heightPx: Int
-
     /** A GIF or an animated WebP: try [decodeAnimation] before [decode]. */
     val isAnimated: Boolean
 
-    /** Downsampled to fit; an animated image gives its first frame. The caller owns the bitmap. */
+    /**
+     * Downsampled to fit, with the EXIF rotation applied; an animated image gives its first frame.
+     * The caller owns the bitmap.
+     */
     @Throws(DocumentReadException::class)
     suspend fun decode(maxWidthPx: Int, maxHeightPx: Int): Bitmap
 

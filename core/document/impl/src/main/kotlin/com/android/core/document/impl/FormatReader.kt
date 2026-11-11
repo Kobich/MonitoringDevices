@@ -7,5 +7,5 @@ import java.io.File
 internal interface FormatReader<out D : Document> {
     val formats: Set<DocumentFormat>
 
-    suspend fun read(file: File, format: DocumentFormat, password: String?): D
+    suspend fun read(file: File, format: DocumentFormat): D
 }
