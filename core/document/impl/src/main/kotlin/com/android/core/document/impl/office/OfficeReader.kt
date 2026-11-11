@@ -19,7 +19,12 @@ internal class OfficeReader(
     override suspend fun read(file: File, format: DocumentFormat): HtmlDocument {
         if (patches.isEmpty()) return converter.convert(file, format, variant = VARIANT_AS_IS)
 
-        return converter.convert(file, format, variant = VARIANT_PATCHED) { original, workDirectory ->
+        return converter.convert(
+            file,
+            format,
+            variant = VARIANT_PATCHED,
+            extraCss = { outputs -> patches.joinToString(separator = "") { patch -> patch.css(outputs) } }
+        ) { original, workDirectory ->
             patches.foldIndexed(original) { index, current, patch ->
                 val output = File(workDirectory, "patch-$index.${original.extension}")
                 val isChanged = runCatching { patch.apply(current, output) }

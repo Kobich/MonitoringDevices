@@ -32,12 +32,13 @@ internal class OdrHtmlConverter(
     /**
      * [prepare] turns [file] into the file actually rendered (e.g. charts replaced by pictures) and may
      * write into the given work folder. [variant] is part of the cache key: different [prepare] steps
-     * need different values.
+     * need different values. [extraCss] gets the converted HTML and its scripts, read only when it asks.
      */
     suspend fun convert(
         file: File,
         format: DocumentFormat,
         variant: String,
+        extraCss: (outputs: Sequence<String>) -> String = { "" },
         prepare: (file: File, workDirectory: File) -> File = { original, _ -> original }
     ): HtmlDocument = withContext(ioDispatcher) {
         // A ready document doesn't wait for another one being converted.
@@ -48,7 +49,7 @@ internal class OdrHtmlConverter(
                 val workDirectory = cache.newWorkDirectory()
                 try {
                     val input = prepare(file, workDirectory)
-                    cache.store(file, variant) { outputDirectory -> render(input, outputDirectory) }
+                    cache.store(file, variant) { outputDirectory -> render(input, outputDirectory, format, extraCss) }
                         .also { stored ->
                             Log.d(TAG, "convert: ${file.name} done, pages=${stored.pages.size}, ${System.currentTimeMillis() - startedAt} ms")
                         }
@@ -60,10 +61,17 @@ internal class OdrHtmlConverter(
         HtmlDocument(name = file.name, format = format, directory = entry.directory, pages = entry.pages)
     }
 
-    private fun render(input: File, outputDirectory: File): List<HtmlPage> {
+    private fun render(
+        input: File,
+        outputDirectory: File,
+        format: DocumentFormat,
+        extraCss: (Sequence<String>) -> String
+    ): List<HtmlPage> {
         try {
             Odr.open(input.path).use { decoded ->
-                if (decoded.passwordEncrypted()) throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "Encrypted document")
+                if (decoded.passwordEncrypted()) {
+                    throw DocumentReadException(Reason.UNSUPPORTED_FORMAT, "Encrypted document")
+                }
                 val config = HtmlConfig().apply {
                     allowExternalContent = false
                     editable = false
@@ -72,7 +80,8 @@ internal class OdrHtmlConverter(
                     relativeResourcePaths = true
                     // Word documents keep their pages, as in the original: without a page box the text
                     // reflows to the screen while pictures and tables keep their size and stick out.
-                    textDocumentMargin = true
+                    // Markdown has no pages: it reflows instead of showing as a shrunken A4 sheet.
+                    textDocumentMargin = format != DocumentFormat.MARKDOWN
                     // Pages, slides and drawings open fitted to the screen width as a whole, so text, pictures
                     // and tables keep their proportions. FIT_WIDTH leaves the scale to the WebView (overview
                     // mode), which refits on rotation. Not FIT_WIDTH_BY_VIEW: its script measures once the page
@@ -92,7 +101,7 @@ internal class OdrHtmlConverter(
                                 }
                                 HtmlPage(title = page.name, file = file)
                             }
-                        val css = EXTRA_CSS + DocxFirstLineIndents.css(outputTexts(outputDirectory))
+                        val css = EXTRA_CSS + extraCss(outputTexts(outputDirectory))
                         pages.forEach { page -> page.file.addStyle(css) }
                         return pages
                     } finally {

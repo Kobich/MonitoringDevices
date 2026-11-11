@@ -5,7 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import android.webkit.MimeTypeMap
+import android.widget.Toast
 import androidx.core.content.FileProvider
+import com.android.appmanager.feature.documentviewer.R
 import java.io.File
 
 private const val TAG = "OpenInOtherApp"
@@ -26,7 +28,9 @@ internal fun openInOtherApp(context: Context, file: File) {
     } catch (error: IllegalArgumentException) {
         // getUriForFile: the file is outside the folders the provider shares.
         Log.w(TAG, "open: ${file.name} can't be shared", error)
+        Toast.makeText(context, R.string.viewer_open_in_other_app_failed, Toast.LENGTH_SHORT).show()
     } catch (error: ActivityNotFoundException) {
         Log.w(TAG, "open: no app for ${file.name}", error)
+        Toast.makeText(context, R.string.viewer_open_in_other_app_failed, Toast.LENGTH_SHORT).show()
     }
 }

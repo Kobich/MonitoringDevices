@@ -3,6 +3,7 @@ package com.android.core.document.impl.office
 import android.util.Log
 import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_WORD
+import com.android.core.document.impl.ooxml.OoxmlXml.NS_XMLNS
 import com.android.core.document.impl.ooxml.OoxmlXml.REL_STYLES
 import com.android.core.document.impl.ooxml.OoxmlXml.child
 import com.android.core.document.impl.ooxml.OoxmlXml.children
@@ -48,11 +49,14 @@ internal class DocxFirstLineIndents : DocumentPatch {
     }
 
     private fun Element.insertBookmark(document: Document, name: String, id: Int) {
+        // The prefix is declared here: the serializer doesn't, and a document may bind the namespace to another one.
         val start = document.createElementNS(NS_WORD, "w:bookmarkStart").apply {
+            setAttributeNS(NS_XMLNS, "xmlns:w", NS_WORD)
             setAttributeNS(NS_WORD, "w:id", id.toString())
             setAttributeNS(NS_WORD, "w:name", name)
         }
         val end = document.createElementNS(NS_WORD, "w:bookmarkEnd").apply {
+            setAttributeNS(NS_XMLNS, "xmlns:w", NS_WORD)
             setAttributeNS(NS_WORD, "w:id", id.toString())
         }
         val properties = child(NS_WORD, "pPr")
@@ -69,22 +73,23 @@ internal class DocxFirstLineIndents : DocumentPatch {
         private const val BOOKMARK_ID_BASE = 900_000
 
         /** A leading underscore hides the bookmark in Word. The trailing `_` keeps 720 from matching 7200. */
-        private val MARK = Regex("_Odr(FirstLine|Hanging)(\\d+)_")
+        private val MARK = Regex("_Odr(FirstLine|Hanging)(\\d{1,10})_")
 
         private fun bookmarkName(twips: Int, index: Int): String {
             return if (twips > 0) "$FIRST_LINE${twips}_$index" else "$HANGING${-twips}_${index}"
         }
+    }
 
-        /** Rules for the marks in [outputs], the converted HTML and its scripts; empty when there are none. */
-        fun css(outputs: Sequence<String>): String {
-            val marks = outputs.flatMap { text -> MARK.findAll(text).map { match -> match.groupValues[1] to match.groupValues[2] } }
-                .toSet()
-            return marks.joinToString(separator = "") { (kind, twips) ->
-                val prefix = if (kind == "FirstLine") FIRST_LINE else HANGING
-                val sign = if (kind == "FirstLine") "" else "-"
-                // A twip is 1/20 of a point.
-                "x-p:has(>a[id^=\"$prefix${twips}_\"]){text-indent:$sign${twips.toInt() / 20.0}pt}"
-            }
+    /** Rules for the marks in [outputs], the converted HTML and its scripts; empty when there are none. */
+    override fun css(outputs: Sequence<String>): String {
+        val marks = outputs
+            .flatMap { text -> MARK.findAll(text).map { match -> match.groupValues[1] to match.groupValues[2] } }
+            .toSet()
+        return marks.joinToString(separator = "") { (kind, twips) ->
+            val prefix = if (kind == "FirstLine") FIRST_LINE else HANGING
+            val sign = if (kind == "FirstLine") "" else "-"
+            // A twip is 1/20 of a point.
+            "x-p:has(>a[id^=\"$prefix${twips}_\"]){text-indent:$sign${twips.toLong() / 20.0}pt}"
         }
     }
 }
@@ -96,7 +101,9 @@ private class IndentResolver(styles: Document?) {
 
     init {
         val root = styles?.documentElement
-        val all = root?.children(NS_WORD, "style").orEmpty().filter { style -> style.wordAttribute("type") == "paragraph" }
+        // A style without a type is a paragraph style.
+        val all = root?.children(NS_WORD, "style").orEmpty()
+            .filter { style -> (style.wordAttribute("type") ?: "paragraph") == "paragraph" }
         paragraphStyles = all.associateBy { style -> style.wordAttribute("styleId").orEmpty() }
         defaultStyleId = all.firstOrNull { style -> style.wordAttribute("default") in setOf("1", "true", "on") }
             ?.wordAttribute("styleId")

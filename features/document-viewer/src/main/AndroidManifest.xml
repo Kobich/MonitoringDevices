@@ -4,7 +4,7 @@
     <application>
         <!-- Hands a file to another app for comparison; only the app's files folder is reachable. -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.android.appmanager.feature.documentviewer.presentation.ViewerFileProvider"
             android:authorities="${applicationId}.documentviewer.files"
             android:exported="false"
             android:grantUriPermissions="true">
