@@ -53,7 +53,7 @@ internal class OoxmlPackage(private val zip: ZipFile) {
         return relationships(partPath).firstTargetOfType(OoxmlXml.REL_THEME)?.let(::partOrNull)
     }
 
-    /** @return id of the new image relationship of [partPath]. */
+    /** Returns the id of the new image relationship of [partPath]. */
     fun addImage(partPath: String, png: ByteArray): String {
         val relationships = relationships(partPath)
         val mediaFolder = if (partPath.contains('/')) "${partPath.substringBefore('/')}/media" else "media"

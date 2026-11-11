@@ -13,8 +13,8 @@ internal object TextDecoding {
     class BinaryContentException : Exception("The file looks binary, not text")
 
     /**
-     * @param isComplete `false` if [bytes] is a prefix of a longer file: an incomplete
-     * multibyte character at the end is then ignored instead of breaking UTF-8 detection.
+     * [isComplete] is `false` when [bytes] is a prefix of a longer file: an incomplete multibyte
+     * character at the end is then ignored instead of breaking UTF-8 detection.
      */
     fun decode(bytes: ByteArray, isComplete: Boolean): Decoded {
         bomCharset(bytes)?.let { (charset, bomSize) ->
