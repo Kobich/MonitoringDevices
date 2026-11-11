@@ -8,7 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import com.android.appmanager.feature.documentviewer.DocumentViewerFeatureApi
 import com.android.appmanager.feature.filemanager.FileManagerFeatureApi
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 import com.engboost.monitoringdevices.navigation.AppNavigation
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         val scanner = (application as MonitoringDevicesApplication).scanner
         enableEdgeToEdge()
         setContent {
-            MonitoringDevicesTheme {
+            AppTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     AppNavigation(
                         fileManagerFeature = fileManagerFeature,

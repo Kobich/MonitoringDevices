@@ -9,7 +9,7 @@
 ```
 core/common-ui/
 ├── src/main/kotlin/com/android/core/commonui/
-│   ├── theme/        # MonitoringDevicesTheme, StatusColors, типографика
+│   ├── theme/        # AppTheme, StatusColors, типографика
 │   ├── icons/        # AppIcons, FileKind, FileTypeIcons / FileTypeIcon
 │   ├── components/   # по компоненту на файл, превью в том же файле
 │   ├── state/        # rememberDelayedVisibility
@@ -24,7 +24,7 @@ core/common-ui/
 Минимальная версия SDK: 23. Версия компиляции SDK: 36.
 
 Правила модуля:
-- цвета только из `MaterialTheme.colorScheme` и `MonitoringDevicesTheme.statusColors` (кроме цветных значков файлов);
+- цвета только из `MaterialTheme.colorScheme` и `AppTheme.statusColors` (кроме цветных значков файлов);
 - строки в `res/values/strings.xml` с префиксом `common_ui_`;
 - фичи берут значки только из `AppIcons`, а не из `Icons.*` и не из своих drawable;
 - компоненты без состояния: данные приходят параметрами, события уходят колбэками; таймеры, переходы и ViewModel — в фичах;
@@ -47,8 +47,8 @@ implementation(project(":core:common-ui"))
 
 | API | Описание |
 |---|---|
-| `MonitoringDevicesTheme(darkTheme, dynamicColor) { … }` | Цвета устройства (Material You на Android 12+, базовая палитра ниже), светлая и тёмная по системе. `dynamicColor = false` — стабильные цвета для превью |
-| `MonitoringDevicesTheme.statusColors` | Цвета статусов, которых нет в Material: `positive` (ок), `pending` (в процессе), `negative` (проблема). В каждом мягкая пара `accent` (значок на фоне экрана) + `container` / `onContainer` (плашка, карточка); свои для светлой и тёмной темы |
+| `AppTheme(darkTheme, dynamicColor) { … }` | Цвета устройства (Material You на Android 12+, базовая палитра ниже), светлая и тёмная по системе. `dynamicColor = false` — стабильные цвета для превью |
+| `AppTheme.statusColors` | Цвета статусов, которых нет в Material: `positive` (ок), `pending` (в процессе), `negative` (проблема). В каждом мягкая пара `accent` (значок на фоне экрана) + `container` / `onContainer` (плашка, карточка); свои для светлой и тёмной темы |
 | `AppIcons.Back`, `Close`, `Delete`, `More`, `Add`, `Check`, `Play`, `Pause`, `Folder`, `File`, `Link`, `LinkOff` | Монохромные значки; цвет задаёт `Icon(tint = …)` |
 | `FileKind.of(fileName, isDirectory)` | Тип файла по расширению: `FOLDER`, `PDF`, `DOCUMENT`, `SPREADSHEET`, `PRESENTATION`, `TEXT`, `IMAGE`, `AUDIO`, `VIDEO`, `ARCHIVE`, `OTHER` |
 | `FileTypeIcon(kind, size)` | Цветной значок файла; рисуется как `Image`, не через `Icon` с `tint` |

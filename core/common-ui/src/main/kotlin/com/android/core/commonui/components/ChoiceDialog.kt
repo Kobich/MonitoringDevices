@@ -14,7 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.DialogProperties
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /**
  * A dialog described as data, so a ViewModel can keep it in its state. For a chain of dialogs the
@@ -91,7 +91,7 @@ private fun <T> ChoiceButton(choice: DialogChoice<T>, onChoice: (T) -> Unit) {
 @Preview
 @Composable
 private fun ChoiceDialogPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         ChoiceDialog(
             dialog = ChoiceDialogUi(
                 title = "Keep a copy?",

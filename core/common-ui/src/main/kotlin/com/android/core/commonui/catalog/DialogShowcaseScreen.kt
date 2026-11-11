@@ -35,7 +35,7 @@ import com.android.core.commonui.components.ConfirmDialog
 import com.android.core.commonui.components.DialogChoice
 import com.android.core.commonui.components.ProgressBar
 import com.android.core.commonui.icons.AppIcons
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 import kotlinx.coroutines.launch
 
 /**
@@ -274,7 +274,7 @@ private fun ShowcaseButton(text: String, onClick: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 private fun DialogShowcaseScreenPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         DialogShowcaseScreen(onBackClick = {})
     }
 }

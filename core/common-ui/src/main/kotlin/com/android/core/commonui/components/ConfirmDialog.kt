@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.DialogProperties
 import com.android.core.commonui.icons.AppIcons
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /**
  * [dismissLabel] adds a second button.
@@ -61,7 +61,7 @@ fun ConfirmDialog(
 @Preview
 @Composable
 private fun ConfirmDialogPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         ConfirmDialog(
             title = "Remove device?",
             confirmLabel = "Remove",
@@ -79,7 +79,7 @@ private fun ConfirmDialogPreview() {
 @Preview
 @Composable
 private fun ConfirmDialogProgressPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         ConfirmDialog(
             title = "Updating firmware",
             confirmLabel = "Hide",

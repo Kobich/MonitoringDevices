@@ -17,7 +17,7 @@ import androidx.compose.ui.graphics.vector.addPathNodes
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /** Colors are part of the icons: draw them with [FileTypeIcon] / `Image`, not with a tinted `Icon`. */
 object FileTypeIcons {
@@ -146,7 +146,7 @@ fun FileTypeIcon(
 @Preview(showBackground = true)
 @Composable
 private fun FileTypeIconPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         FlowRow(modifier = Modifier.padding(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FileKind.entries.forEach { kind -> FileTypeIcon(kind = kind) }
         }

@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /** Full-screen empty or error state. */
 @Composable
@@ -39,7 +39,7 @@ fun MessageContent(
 @Preview(showBackground = true)
 @Composable
 private fun MessageContentPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         MessageContent(title = "Can't open the file", text = "The file is damaged", actionLabel = "Retry")
     }
 }

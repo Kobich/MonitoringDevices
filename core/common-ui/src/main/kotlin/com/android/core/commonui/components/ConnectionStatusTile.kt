@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /**
  * Large status: the icon in a soft colored circle, the caption under it.
@@ -55,7 +55,7 @@ fun ConnectionStatusTile(
 @Preview(showBackground = true)
 @Composable
 private fun ConnectionStatusTilePreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         ConnectionStatusTileRow()
     }
 }
@@ -63,7 +63,7 @@ private fun ConnectionStatusTilePreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF141218)
 @Composable
 private fun ConnectionStatusTileDarkPreview() {
-    MonitoringDevicesTheme(darkTheme = true, dynamicColor = false) {
+    AppTheme(darkTheme = true, dynamicColor = false) {
         ConnectionStatusTileRow()
     }
 }

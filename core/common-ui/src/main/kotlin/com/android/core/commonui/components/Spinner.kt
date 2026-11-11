@@ -24,7 +24,7 @@ import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /**
  * One cycle: the arc grows, then shrinks. Material's indeterminate indicator does the same in about
@@ -106,7 +106,7 @@ internal fun spinnerTailDegrees(cycle: Float): Float {
 @Preview(showBackground = true)
 @Composable
 private fun SpinnerPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             Spinner()
             Spinner(compact = true)

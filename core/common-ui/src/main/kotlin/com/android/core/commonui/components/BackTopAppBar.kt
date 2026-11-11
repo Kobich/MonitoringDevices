@@ -16,7 +16,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import com.android.core.commonui.R
 import com.android.core.commonui.icons.AppIcons
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /** Doesn't expose experimental Material 3 types, so callers need no opt-in. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,7 +51,7 @@ fun BackTopAppBar(
 @Preview
 @Composable
 private fun BackTopAppBarPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         BackTopAppBar(title = "Quarterly report.docx", onNavigationClick = {}) {
             IconButton(onClick = {}) {
                 Icon(imageVector = AppIcons.More, contentDescription = null)

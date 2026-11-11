@@ -46,7 +46,7 @@ import com.android.core.commonui.components.Spinner
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.icons.FileKind
 import com.android.core.commonui.icons.FileTypeIcon
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 import kotlinx.coroutines.delay
 
 /**
@@ -209,7 +209,7 @@ private fun IconTile(name: String, icon: @Composable () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 private fun UiCatalogScreenPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         UiCatalogScreen(onBackClick = {})
     }
 }

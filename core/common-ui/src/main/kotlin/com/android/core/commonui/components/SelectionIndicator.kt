@@ -21,7 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.android.core.commonui.icons.AppIcons
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 
 /** Display only: the row handles clicks. */
 @Composable
@@ -65,7 +65,7 @@ fun SelectionIndicator(
 @Preview(showBackground = true)
 @Composable
 private fun SelectionIndicatorPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         Row(modifier = Modifier.padding(8.dp)) {
             SelectionIndicator(selected = false, modifier = Modifier.padding(4.dp))
             SelectionIndicator(selected = true, modifier = Modifier.padding(4.dp))

@@ -20,7 +20,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.android.core.commonui.R
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 import kotlin.math.roundToInt
 
 private val BarHeight = 8.dp
@@ -79,7 +79,7 @@ fun ProgressBar(
 @Preview(showBackground = true)
 @Composable
 private fun ProgressBarPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             ProgressBar(progress = null, label = "Searching for devices")
             ProgressBar(progress = 0.65f, label = "Downloading log", showPercent = true)

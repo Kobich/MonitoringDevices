@@ -17,10 +17,10 @@ import androidx.compose.ui.platform.LocalContext
  * the Material 3 baseline palette on older versions. Light or dark follows the system setting.
  *
  * Components take colors from `MaterialTheme.colorScheme`; only status colors ("ok", "in progress",
- * "problem") are fixed, see [StatusColors] and [MonitoringDevicesTheme.statusColors].
+ * "problem") are fixed, see [StatusColors] and [AppTheme.statusColors].
  */
 @Composable
-fun MonitoringDevicesTheme(
+fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     /** `false` gives the baseline palette everywhere: stable colors for previews. */
     dynamicColor: Boolean = true,
@@ -45,7 +45,7 @@ fun MonitoringDevicesTheme(
     }
 }
 
-object MonitoringDevicesTheme {
+object AppTheme {
     val statusColors: StatusColors
         @Composable
         @ReadOnlyComposable

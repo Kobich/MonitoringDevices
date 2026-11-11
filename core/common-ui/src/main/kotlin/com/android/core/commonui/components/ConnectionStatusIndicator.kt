@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.android.core.commonui.R
 import com.android.core.commonui.icons.AppIcons
-import com.android.core.commonui.theme.MonitoringDevicesTheme
+import com.android.core.commonui.theme.AppTheme
 import com.android.core.commonui.theme.StatusColorRole
 
 /** Features map their own connection state to it. */
@@ -95,7 +95,7 @@ fun ConnectionStatusIcon(
     ) { shown ->
         Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
             when (shown) {
-                // fillMaxSize: on its own an Icon keeps the vector's 24 dp and ignores a larger [size].
+                // fillMaxSize: on its own an Icon keeps the vector's 24 dp and ignores a larger size.
                 ConnectionStatus.CONNECTED -> Icon(
                     imageVector = AppIcons.Link,
                     contentDescription = null,
@@ -134,7 +134,7 @@ fun connectionStatusLabel(status: ConnectionStatus): String = stringResource(
 
 @Composable
 internal fun connectionStatusRole(status: ConnectionStatus): StatusColorRole {
-    val colors = MonitoringDevicesTheme.statusColors
+    val colors = AppTheme.statusColors
     return when (status) {
         ConnectionStatus.CONNECTED -> colors.positive
         ConnectionStatus.CONNECTING -> colors.pending
@@ -145,7 +145,7 @@ internal fun connectionStatusRole(status: ConnectionStatus): StatusColorRole {
 @Preview(showBackground = true)
 @Composable
 private fun ConnectionStatusIndicatorPreview() {
-    MonitoringDevicesTheme(dynamicColor = false) {
+    AppTheme(dynamicColor = false) {
         ConnectionStatusPreviewContent()
     }
 }
@@ -153,7 +153,7 @@ private fun ConnectionStatusIndicatorPreview() {
 @Preview(showBackground = true, backgroundColor = 0xFF141218)
 @Composable
 private fun ConnectionStatusIndicatorDarkPreview() {
-    MonitoringDevicesTheme(darkTheme = true, dynamicColor = false) {
+    AppTheme(darkTheme = true, dynamicColor = false) {
         ConnectionStatusPreviewContent()
     }
 }
