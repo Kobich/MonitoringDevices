@@ -3,6 +3,8 @@ package com.android.appmanager.feature.documentviewer.presentation.screen
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,6 +17,7 @@ import com.android.appmanager.feature.documentviewer.presentation.model.ViewerCo
 import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.MessageContent
+import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.state.rememberDelayedVisibility
 import com.android.core.document.api.document.AudioDocument
 import com.android.core.document.api.document.HtmlDocument
@@ -31,12 +34,24 @@ internal fun DocumentViewerScreen(
     onBackClick: () -> Unit,
     onPageSelected: (Int) -> Unit,
     onRetryClick: () -> Unit,
+    onOpenInOtherAppClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
         topBar = {
-            BackTopAppBar(title = state.title, onNavigationClick = onBackClick)
+            BackTopAppBar(
+                title = state.title,
+                onNavigationClick = onBackClick,
+                actions = {
+                    IconButton(onClick = onOpenInOtherAppClick) {
+                        Icon(
+                            imageVector = AppIcons.OpenExternal,
+                            contentDescription = stringResource(R.string.viewer_open_in_other_app)
+                        )
+                    }
+                }
+            )
         }
     ) { innerPadding ->
         Column(

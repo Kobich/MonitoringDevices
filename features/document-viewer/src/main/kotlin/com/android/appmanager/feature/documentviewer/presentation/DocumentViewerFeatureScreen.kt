@@ -2,6 +2,7 @@ package com.android.appmanager.feature.documentviewer.presentation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -20,6 +21,7 @@ internal fun DocumentViewerFeatureScreen(
 ) {
     // Don't keep playing audio behind the user's back.
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.onScreenStopped() }
+    val context = LocalContext.current
 
     DocumentViewerScreen(
         state = viewModel.uiState,
@@ -28,6 +30,7 @@ internal fun DocumentViewerFeatureScreen(
         onBackClick = onBackClick,
         onPageSelected = viewModel::onPageSelected,
         onRetryClick = viewModel::onRetryClick,
+        onOpenInOtherAppClick = { openInOtherApp(context, file) },
         modifier = modifier
     )
 }

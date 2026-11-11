@@ -2,6 +2,7 @@
 <resources>
     <string name="viewer_opening">Opening…</string>
     <string name="viewer_retry">Retry</string>
+    <string name="viewer_open_in_other_app">Open in another app</string>
 
     <string name="viewer_error_not_found">File not found</string>
     <string name="viewer_error_unsupported">This file type isn\'t supported</string>
