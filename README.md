@@ -10,6 +10,7 @@ Android-проект: фичи для работы с устройством и 
 | [`:core:common-ui`](core/common-ui/README.md) | Тема, значки, общие Compose-компоненты и окна, витрина UI. |
 | [`:core:document:api`](core/document/api/README.md) | Контракт чтения документов: PDF, офисные форматы, текст, картинки, аудио, видео. |
 | [`:core:document:impl`](core/document/impl/README.md) | Его реализация: OpenDocument.core и системные API Android. |
+| [`:core:logger:client:api`](core/logger/client/api/README.md) | Затычка клиента логгера действий: тот же API, события только в Logcat. |
 | [`:features:file-manager`](features/file-manager/README.md) | Файловый менеджер приватного хранилища: импорт, экспорт, папки. |
 | [`:features:document-viewer`](features/document-viewer/README.md) | Просмотр документов, прочитанных `:core:document`. |
 | [`:features:nearby-scanner`](features/nearby-scanner/README.md) | Сканеры Wi-Fi и Bluetooth и их Compose-экраны. |

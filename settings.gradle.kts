@@ -28,6 +28,7 @@ include(":app")
 include(":core:common-ui")
 include(":core:document:api")
 include(":core:document:impl")
+include(":core:logger:client:api")
 
 include(":features:file-manager")
 include(":features:document-viewer")
