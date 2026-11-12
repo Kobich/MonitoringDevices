@@ -35,6 +35,10 @@ app/
 | UI catalog | `UiCatalogScreen` из `:core:common-ui`: компоненты и значки |
 | Dialogs and windows | `DialogShowcaseScreen` из `:core:common-ui`: все виды окон |
 
+### Бэкап
+
+Данные приложения не покидают устройство: `allowBackup="false"` выключает облачный бэкап, а `res/xml/data_extraction_rules.xml` исключает все области и из облака, и из переноса на новый телефон (Android 12+).
+
 ### Примеры файлов (ВРЕМЕННО)
 
 Пакет `sample` при первом запуске кладёт в `filesDir` примеры для файлового менеджера и просмотрщика: docx с таблицей, картинками и диаграммами, csv, md, pdf, png, wav, тексты в UTF-8 и cp1251. Набор записывается один раз на версию (SharedPreferences `sample_files`). Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
