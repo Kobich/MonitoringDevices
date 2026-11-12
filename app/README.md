@@ -41,7 +41,7 @@ app/
 
 ### Примеры файлов (ВРЕМЕННО)
 
-Пакет `sample` при первом запуске кладёт в `filesDir` примеры для файлового менеджера и просмотрщика: docx с таблицей, картинками и диаграммами, csv, md, pdf, png, wav, тексты в UTF-8 и cp1251. Набор записывается один раз на версию (SharedPreferences `sample_files`). Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
+Пакет `sample` при первом запуске кладёт в `filesDir/storage` (корень файлового менеджера) примеры для файлового менеджера и просмотрщика: docx с таблицей, картинками и диаграммами, csv, md, pdf, png, wav, тексты в UTF-8 и cp1251. Набор записывается один раз на версию (SharedPreferences `sample_files`). Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
 
 ## Описание API
 

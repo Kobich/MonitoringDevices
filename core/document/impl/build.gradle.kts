@@ -18,6 +18,11 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
+    // android.util.Log in the code under test returns 0 instead of throwing.
+    testOptions {
+        unitTests.isReturnDefaultValues = true
+    }
 }
 
 dependencies {
@@ -27,4 +32,6 @@ dependencies {
     implementation(libs.androidx.documentfile)
     implementation(libs.androidx.exifinterface)
     implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(libs.junit)
 }

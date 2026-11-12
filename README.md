@@ -34,7 +34,9 @@ NavHost(navController = navController, startDestination = "home") {
 Сборка и тесты:
 
 ```bash
-./gradlew :app:assembleDebug :features:nearby-scanner:testDebugUnitTest :features:condition-data-fetcher:testDebugUnitTest
+./gradlew :app:assembleDebug \
+    :core:document:impl:testDebugUnitTest :features:file-manager:testDebugUnitTest \
+    :features:nearby-scanner:testDebugUnitTest :features:condition-data-fetcher:testDebugUnitTest
 ```
 
 Заметки и исследования по сканеру Wi-Fi и Bluetooth — в [docs/](docs/README.md).
