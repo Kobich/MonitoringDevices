@@ -78,16 +78,17 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onEntryClick(entry: FileEntryUi) {
-        logClick("entry", "list_item", if (entry.isDirectory) "Folder" else "File")
         when {
             uiState.isSelectionMode -> toggleSelection(entry)
             entry.isDirectory -> loadDirectory(StoragePath(entry.path))
-            else -> openFile(entry)
+            else -> {
+                logClick("open_file", "list_item", "File")
+                openFile(entry)
+            }
         }
     }
 
     override fun onEntryLongClick(entry: FileEntryUi) {
-        logClick("entry_long_press", "list_item", if (entry.isDirectory) "Folder" else "File")
         if (uiState.isSelectionMode) {
             toggleSelection(entry)
         } else {
@@ -96,14 +97,13 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onBreadcrumbClick(breadcrumb: BreadcrumbUi) {
-        logClick("breadcrumb", "button", "Breadcrumb")
         loadDirectory(StoragePath(breadcrumb.path))
     }
 
     /** Leaves selection mode first, then goes up. */
     fun onNavigateUp() {
         if (uiState.isSelectionMode) {
-            closeSelection()
+            onSelectionClose()
         } else {
             currentPath.parent()?.let(::loadDirectory)
         }
@@ -114,16 +114,10 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onSelectionClose() {
-        logClick("selection_close", "icon_button", "Close selection")
-        closeSelection()
-    }
-
-    private fun closeSelection() {
         uiState = uiState.copy(selection = null)
     }
 
     override fun onSelectAllClick() {
-        logClick("select_all", "menu_item", "Select all")
         val allPaths = uiState.entries.map { entry -> entry.path }.toSet()
         if (allPaths.isNotEmpty()) {
             uiState = uiState.copy(selection = SelectionUi(allPaths))
@@ -131,7 +125,6 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onDeleteSelectedClick() {
-        logClick("delete_selected", "icon_button", "Delete selected")
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
@@ -226,7 +219,6 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onDeleteDismiss() {
-        logClick("delete_cancel", "dialog_button", "Cancel")
         uiState = uiState.copy(pendingDeletion = null)
     }
 
@@ -243,12 +235,10 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onCreateDirectoryClick() {
-        logClick("new_folder", "menu_item", "New folder")
         uiState = uiState.copy(createDirectoryDialog = CreateDirectoryDialogUi(error = null))
     }
 
     override fun onCreateDirectoryDismiss() {
-        logClick("create_folder_cancel", "dialog_button", "Cancel")
         uiState = uiState.copy(createDirectoryDialog = null)
     }
 

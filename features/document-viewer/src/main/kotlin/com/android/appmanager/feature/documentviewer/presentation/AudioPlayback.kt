@@ -63,12 +63,10 @@ internal class AudioPlayback(
     }
 
     fun onPlayPauseClick() {
-        logClick("play_pause", "icon_button", if (player.isPlaying) "Pause" else "Play")
         if (player.isPlaying) pause() else play()
     }
 
     fun onSeek(positionMs: Long) {
-        logClick("seek", "slider", "Seek")
         Log.d(TAG, "seek: $positionMs ms")
         player.seekTo(positionMs)
         update(positionMs = positionMs)

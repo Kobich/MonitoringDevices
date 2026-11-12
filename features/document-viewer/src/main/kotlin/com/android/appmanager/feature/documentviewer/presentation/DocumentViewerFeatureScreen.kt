@@ -27,10 +27,7 @@ internal fun DocumentViewerFeatureScreen(
         state = viewModel.uiState,
         audioPlayback = viewModel.audioPlayback,
         videoPlayer = viewModel.videoPlayer,
-        onBackClick = {
-            logClick("back", "icon_button", "Back")
-            onBackClick()
-        },
+        onBackClick = onBackClick,
         onPageSelected = viewModel::onPageSelected,
         onRetryClick = viewModel::onRetryClick,
         onOpenInOtherAppClick = {

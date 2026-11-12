@@ -78,19 +78,13 @@ internal fun FileManagerFeatureScreen(
     }
 
     // Selection mode and nested folders consume Back; at the root the host handles it.
-    BackHandler(enabled = state.isSelectionMode || !state.isRoot) {
-        logClick("system_back", "system", "Back")
-        viewModel.onNavigateUp()
-    }
+    BackHandler(enabled = state.isSelectionMode || !state.isRoot, onBack = viewModel::onNavigateUp)
 
     FileManagerScreen(
         state = state,
         actions = viewModel,
         snackbarHostState = snackbarHostState,
-        onBackClick = {
-            logClick("back", "icon_button", "Back")
-            if (state.isRoot) onBackClick() else viewModel.onNavigateUp()
-        },
+        onBackClick = { if (state.isRoot) onBackClick() else viewModel.onNavigateUp() },
         modifier = modifier
     )
 }
