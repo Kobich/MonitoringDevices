@@ -15,13 +15,13 @@ app/
 │   ├── home/HomeScreen.kt               # кнопки перехода
 │   ├── di/DocumentCoreModule.kt         # DocumentReader из :core:document:impl как @Singleton
 │   ├── featuretest/FeatureTestScreen.kt # ручной вызов каждой фичи condition-data-fetcher
-│   └── sample/                          # ВРЕМЕННО: примеры файлов в filesDir
+│   └── sample/                          # ВРЕМЕННО: примеры файлов в filesDir/storage
 └── src/main/AndroidManifest.xml
 ```
 
 * **Слой:** Presentation.
 * **Ключевые технологии:** Jetpack Compose, Navigation Compose, Hilt.
-* **Зависимости:** `:core:common-ui`, `:core:document:impl`, `:features:file-manager`, `:features:document-viewer`, `:features:nearby-scanner`, `:features:condition-data-fetcher`.
+* **Зависимости:** `:core:common-ui`, `:core:document:impl`, `:core:logger:client:api` (через фичи), `:features:file-manager`, `:features:document-viewer`, `:features:nearby-scanner`, `:features:condition-data-fetcher`.
 
 Минимальная версия SDK: 36 — её требуют `:features:nearby-scanner` и `:features:condition-data-fetcher`. Версия компиляции SDK: 36.
 
@@ -43,12 +43,49 @@ app/
 
 Пакет `sample` при первом запуске кладёт в `filesDir/storage` (корень файлового менеджера) примеры для файлового менеджера и просмотрщика: docx с таблицей, картинками и диаграммами, csv, md, pdf, png, wav, тексты в UTF-8 и cp1251. Набор записывается один раз на версию (SharedPreferences `sample_files`). Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
 
+## Подключение модуля к проекту
+
+`:app` — конечное приложение, его не подключают к другим модулям. Он сам подключает фичи и реализацию чтения документов:
+
+```kotlin
+// build.gradle.kts приложения
+implementation(project(":features:file-manager"))
+implementation(project(":features:document-viewer"))
+implementation(project(":core:document:impl"))
+```
+
+Фичам нужен Hilt: `@HiltAndroidApp` на `MonitoringDevicesApplication`, `@AndroidEntryPoint` на `MainActivity`, а `DocumentReader` для просмотрщика даёт `di/DocumentCoreModule.kt`.
+
+Сборка:
+
+```bash
+./gradlew :app:assembleDebug
+```
+
 ## Описание API
 
 Модуль — конечное приложение, своего API у него нет.
 
-## Сборка
+## Примеры использования
 
-```bash
-./gradlew :app:assembleDebug
+Новый экран фичи добавляется в `navigation/AppNavigation.kt` маршрутом и кнопкой на `HomeScreen`. Так подключены файловый менеджер и просмотрщик: менеджер отдаёт выбранный файл, приложение открывает по нему просмотрщик.
+
+```kotlin
+composable(AppDestination.FILE_MANAGER) {
+    fileManagerFeature.FileManagerScreen(
+        modifier = Modifier,
+        onBackClick = { navController.popBackStack() },
+        onFileOpen = { file -> navController.navigate(AppDestination.fileViewer(file)) }
+    )
+}
+composable(
+    route = AppDestination.FILE_VIEWER,
+    arguments = listOf(navArgument(AppDestination.ARG_PATH) { type = NavType.StringType })
+) { backStackEntry ->
+    documentViewerFeature.DocumentViewerScreen(
+        file = File(backStackEntry.arguments?.getString(AppDestination.ARG_PATH).orEmpty()),
+        modifier = Modifier,
+        onBackClick = { navController.popBackStack() }
+    )
+}
 ```

@@ -52,6 +52,8 @@ features/file-manager/
 
 Логи: `adb logcat -s FileManager FileStorage`.
 
+Как файловый менеджер, просмотрщик и `:core:document` работают вместе, какие форматы открываются и какие у них ограничения — в статье [WIKI.md](WIKI.md).
+
 ## Подключение модуля к проекту
 
 ```kotlin

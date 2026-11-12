@@ -1,4 +1,4 @@
-# scanner
+# Сканер Wi-Fi и Bluetooth
 
 ## Описание
 
@@ -7,15 +7,7 @@
 ## Архитектура и стек
 
 * **Слои:** Data (`wifi/`, `bluetooth/` — сканеры поверх Android API) и Presentation (`ui/` — Compose-экраны и ViewModel). Отдельного Domain-слоя нет: сканеры отдают события, которые UI напрямую сводит в состояние.
-* **Ключевые технологии:**
-  * Kotlin Coroutines / Flow 1.8.1
-  * Jetpack Compose (BOM 2026.02.01), Material 3
-  * Navigation Compose 2.6.0
-  * Lifecycle (ViewModel, `repeatOnLifecycle`, `collectAsStateWithLifecycle`) 2.6.1
-  * Activity Compose 1.9.3, Core KTX 1.17.0
-  * Android API: `WifiManager`, `BluetoothLeScanner`
-  * SDK: `minSdk` 36, `compileSdk` 36.1 (только Android 16)
-  * Сборка (из общего проекта): Android Gradle Plugin 9.2.0, Kotlin 2.4.21
+* **Ключевые технологии:** Kotlin Coroutines / Flow, Jetpack Compose и Material 3, Navigation Compose, Lifecycle (ViewModel, `repeatOnLifecycle`, `collectAsStateWithLifecycle`), Activity Compose; Android API `WifiManager` и `BluetoothLeScanner`. Версии — в `gradle/libs.versions.toml`.
 * **Зависимости:** от модулей `:core` и `:features:condition-data-fetcher` не зависит. Только внешние зависимости: Kotlin Coroutines (api), Navigation Compose (api), Compose, Lifecycle и Activity Compose (implementation).
 
 Структура пакетов:
@@ -28,6 +20,20 @@ com.android.appmanager.feature.nearbyscanner
 │                BluetoothScannerImpl, BluetoothDeviceRegistry (internal)
 └── ui/          NearbyScanScreen, хелперы навигации; wifi/, bluetooth/, common/ (internal)
 ```
+
+Минимальная версия SDK: 36 (только Android 16). Версия компиляции SDK: 36.
+
+## Подключение модуля к проекту
+
+```kotlin
+// settings.gradle.kts
+include(":features:nearby-scanner")
+
+// build.gradle.kts приложения-хоста
+implementation(project(":features:nearby-scanner"))
+```
+
+Модуль поднимает `minSdk` приложения до 36. Разрешения объявлены в его манифесте и попадают в приложение при сборке; запрашивает их экран фичи.
 
 ## Описание API
 
@@ -94,15 +100,6 @@ com.android.appmanager.feature.nearbyscanner
 * Bluetooth: `BLUETOOTH_SCAN`, `BLUETOOTH_CONNECT`.
 
 ## Примеры использования
-
-Подключить модуль:
-
-```kotlin
-// build.gradle.kts приложения-хоста
-dependencies {
-    implementation(project(":features:nearby-scanner"))
-}
-```
 
 Создать сканер один раз, например в `Application` или в DI-контейнере:
 
