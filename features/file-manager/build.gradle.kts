@@ -27,6 +27,7 @@ android {
 
 dependencies {
     implementation(project(":core:common-ui"))
+    implementation(project(":core:logger:client:api"))
 
     // Exposed: the feature API uses Compose types (@Composable, Modifier).
     api(platform(libs.androidx.compose.bom))

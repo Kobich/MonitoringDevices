@@ -61,11 +61,13 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     fun onPageSelected(index: Int) {
+        logClick("page_tab", "tab", "Tab")
         val content = uiState.content as? ViewerContent.Loaded ?: return
         uiState = uiState.copy(content = content.copy(selectedPageIndex = index))
     }
 
     fun onRetryClick() {
+        logClick("retry", "button", "Retry")
         load()
     }
 

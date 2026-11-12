@@ -30,7 +30,7 @@ features/file-manager/
 
 * **Слой:** Presentation / Domain / Data.
 * **Ключевые технологии:** Jetpack Compose, Material 3, Hilt, Storage Access Framework (`DocumentFile`), Kotlin Coroutines.
-* **Зависимости:** `:core:common-ui`.
+* **Зависимости:** `:core:common-ui`, `:core:logger:client:api`. Нажатия пользователя уходят в `ActionLogger` из `:core:logger:client:api` (`UiActionLog.kt`, экран `file_manager`); имена файлов в лог не пишутся.
 
 Минимальная версия SDK: 23. Версия компиляции SDK: 36.
 

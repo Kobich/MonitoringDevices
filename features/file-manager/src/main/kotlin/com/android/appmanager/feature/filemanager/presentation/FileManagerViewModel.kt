@@ -78,6 +78,7 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onEntryClick(entry: FileEntryUi) {
+        logClick("entry", "list_item", if (entry.isDirectory) "Folder" else "File")
         when {
             uiState.isSelectionMode -> toggleSelection(entry)
             entry.isDirectory -> loadDirectory(StoragePath(entry.path))
@@ -86,6 +87,7 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onEntryLongClick(entry: FileEntryUi) {
+        logClick("entry_long_press", "list_item", if (entry.isDirectory) "Folder" else "File")
         if (uiState.isSelectionMode) {
             toggleSelection(entry)
         } else {
@@ -94,13 +96,14 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onBreadcrumbClick(breadcrumb: BreadcrumbUi) {
+        logClick("breadcrumb", "button", "Breadcrumb")
         loadDirectory(StoragePath(breadcrumb.path))
     }
 
     /** Leaves selection mode first, then goes up. */
     fun onNavigateUp() {
         if (uiState.isSelectionMode) {
-            onSelectionClose()
+            closeSelection()
         } else {
             currentPath.parent()?.let(::loadDirectory)
         }
@@ -111,10 +114,16 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onSelectionClose() {
+        logClick("selection_close", "icon_button", "Close selection")
+        closeSelection()
+    }
+
+    private fun closeSelection() {
         uiState = uiState.copy(selection = null)
     }
 
     override fun onSelectAllClick() {
+        logClick("select_all", "menu_item", "Select all")
         val allPaths = uiState.entries.map { entry -> entry.path }.toSet()
         if (allPaths.isNotEmpty()) {
             uiState = uiState.copy(selection = SelectionUi(allPaths))
@@ -122,6 +131,7 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onDeleteSelectedClick() {
+        logClick("delete_selected", "icon_button", "Delete selected")
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
@@ -129,6 +139,7 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onExportSelectedClick() {
+        logClick("export", "menu_item", "Export")
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
@@ -152,10 +163,12 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onImportFilesClick() {
+        logClick("import_files", "menu_item", "Import files")
         uiState = uiState.copy(picker = PickerUi.ImportFiles)
     }
 
     override fun onImportFolderClick() {
+        logClick("import_folder", "menu_item", "Import folder")
         uiState = uiState.copy(picker = PickerUi.ImportFolder)
     }
 
@@ -213,10 +226,12 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onDeleteDismiss() {
+        logClick("delete_cancel", "dialog_button", "Cancel")
         uiState = uiState.copy(pendingDeletion = null)
     }
 
     override fun onDeleteConfirm() {
+        logClick("delete_confirm", "dialog_button", "Delete")
         val entries = uiState.pendingDeletion?.entries ?: return
         Log.d(TAG, "delete: ${entries.map { it.path }}")
         uiState = uiState.copy(pendingDeletion = null, selection = null)
@@ -228,14 +243,17 @@ internal class FileManagerViewModel @Inject constructor(
     }
 
     override fun onCreateDirectoryClick() {
+        logClick("new_folder", "menu_item", "New folder")
         uiState = uiState.copy(createDirectoryDialog = CreateDirectoryDialogUi(error = null))
     }
 
     override fun onCreateDirectoryDismiss() {
+        logClick("create_folder_cancel", "dialog_button", "Cancel")
         uiState = uiState.copy(createDirectoryDialog = null)
     }
 
     override fun onCreateDirectoryConfirm(name: String) {
+        logClick("create_folder_confirm", "dialog_button", "Create")
         val parent = currentPath
         runOperation(R.string.fm_create_folder_failed) {
             val error = interactor.createDirectory(parent, name)

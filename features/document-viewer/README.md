@@ -24,7 +24,7 @@ features/document-viewer/
 
 * **Слой:** Presentation.
 * **Ключевые технологии:** Jetpack Compose, Material 3, Hilt (assisted injection: ViewModel создаётся под `File`), Media3 ExoPlayer, WebView + `WebViewAssetLoader`.
-* **Зависимости:** `:core:document:api`, `:core:common-ui`. `DocumentReader` фича берёт из графа Hilt приложения: его даёт `:core:document:impl` (см. `DocumentCoreModule` в `:app`).
+* **Зависимости:** `:core:document:api`, `:core:common-ui`, `:core:logger:client:api`. Нажатия пользователя уходят в `ActionLogger` из `:core:logger:client:api` (`UiActionLog.kt`, экран `document_viewer`); имена файлов в лог не пишутся. `DocumentReader` фича берёт из графа Hilt приложения: его даёт `:core:document:impl` (см. `DocumentCoreModule` в `:app`).
 
 Минимальная версия SDK: 23. Версия компиляции SDK: 36.
 

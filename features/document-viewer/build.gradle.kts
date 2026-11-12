@@ -27,6 +27,7 @@ android {
 
 dependencies {
     implementation(project(":core:common-ui"))
+    implementation(project(":core:logger:client:api"))
     implementation(project(":core:document:api"))
 
     // Exposed: the feature API uses Compose types (@Composable, Modifier).
