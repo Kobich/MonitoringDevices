@@ -18,12 +18,13 @@ internal class SampleFilesSeeder(
         val preferences = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
         if (preferences.getBoolean(KEY_SEEDED, false)) return
 
-        runCatching { seed(context.filesDir) }
+        runCatching { seed(File(context.filesDir, STORAGE_DIRECTORY)) }
             .onSuccess { preferences.edit().putBoolean(KEY_SEEDED, true).apply() }
             .onFailure { error -> Log.w(TAG, "Can't create sample files", error) }
     }
 
     private fun seed(root: File) {
+        root.mkdirs()
         root.writeSample("Readme.txt", README.toByteArray())
         root.writeSample("Quarterly report.docx", quarterlyReport())
         root.writeSample("Budget.csv", BUDGET_CSV.toByteArray())
@@ -155,7 +156,10 @@ internal class SampleFilesSeeder(
     private companion object {
         const val TAG = "SampleFiles"
         const val PREFERENCES = "sample_files"
-        const val KEY_SEEDED = "seeded_v3"
+        const val KEY_SEEDED = "seeded_v4"
+
+        /** The file manager's root, `FileManagerFeatureModule.STORAGE_DIRECTORY`. */
+        const val STORAGE_DIRECTORY = "storage"
 
         const val README = "Sample files created on the first launch.\nThey are temporary and will be removed before release.\n"
         const val BUDGET_CSV = "Item,January,February,March\nRent,1200,1200,1200\nSalaries,5400,5400,5600\nMarketing,800,950,700\nOther,300,250,400\n"

@@ -10,6 +10,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.io.File
 import javax.inject.Singleton
 
 @Module
@@ -21,11 +22,18 @@ internal abstract class FileManagerFeatureModule {
     abstract fun bindFeatureApi(impl: FileManagerFeatureImpl): FileManagerFeatureApi
 
     companion object {
-        /** Not `Context.dataDir`: it would also expose databases/, shared_prefs/ and cache/. */
+        /** Also in `SampleFilesSeeder` of `:app`. */
+        private const val STORAGE_DIRECTORY = "storage"
+
+        /**
+         * A folder of its own in `filesDir`: libraries keep files there too (e.g. androidx.profileinstaller's
+         * `profileInstalled`), and the user shouldn't see them. Not `Context.dataDir`: it would also expose
+         * databases/, shared_prefs/ and cache/.
+         */
         @Provides
         @Singleton
         fun provideInternalFileSource(@ApplicationContext context: Context): InternalFileSource {
-            return InternalFileSource(rootDirectory = context.filesDir)
+            return InternalFileSource(rootDirectory = File(context.filesDir, STORAGE_DIRECTORY))
         }
     }
 }
