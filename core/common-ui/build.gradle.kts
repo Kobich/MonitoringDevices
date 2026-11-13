@@ -24,11 +24,11 @@ android {
 }
 
 dependencies {
-    // Exposed: public composables of this module use Material 3 types.
+    // Exposed: public API uses Compose UI types (Modifier, Color, ImageVector).
     api(platform(libs.androidx.compose.bom))
     api(libs.androidx.compose.ui)
-    api(libs.androidx.compose.material3)
-    api(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
