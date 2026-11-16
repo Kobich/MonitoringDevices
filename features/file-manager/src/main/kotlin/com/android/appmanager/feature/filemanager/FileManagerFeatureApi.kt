@@ -6,8 +6,18 @@ import java.io.File
 
 /** The screen consumes system Back while not at the root folder or while items are selected. */
 interface FileManagerFeatureApi {
+    /** Shows [FileStorage.Default]. */
     @Composable
     fun FileManagerScreen(
+        modifier: Modifier,
+        onBackClick: () -> Unit,
+        onFileOpen: (File) -> Unit
+    )
+
+    /** Shows [storage], starting at its root; the user can't go above it. */
+    @Composable
+    fun FileManagerScreen(
+        storage: FileStorage,
         modifier: Modifier,
         onBackClick: () -> Unit,
         onFileOpen: (File) -> Unit

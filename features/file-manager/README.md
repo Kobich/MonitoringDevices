@@ -2,7 +2,9 @@
 
 ## Описание
 
-Экран приватного хранилища приложения (папка `storage` в `Context.filesDir`, чтобы служебные файлы библиотек в `filesDir` не попадали в список): папки и файлы, импорт с устройства, экспорт, удаление и создание папок. Хранилище видно только приложению, поэтому разрешения не нужны: внешние файлы приходят и уходят через системные окна выбора (Storage Access Framework). Открывать файл фича не умеет: она отдаёт его наружу, а хост решает, чем показать.
+Экран приватного хранилища приложения: папки и файлы, импорт с устройства, экспорт, удаление и создание папок. Хранилище видно только приложению, поэтому разрешения не нужны: внешние файлы приходят и уходят через системные окна выбора (Storage Access Framework). Открывать файл фича не умеет: она отдаёт его наружу, а хост решает, чем показать.
+
+У каждой фичи, которая хранит файлы, своё хранилище `FileStorage` — папка `filesDir/storage/<имя>`. Менеджер открывается на корне выбранного хранилища и выше него не поднимается. Без хранилища открывается собственное хранилище менеджера, `FileStorage.Default` (папка `file-manager`).
 
 ## Архитектура и стек
 
@@ -11,7 +13,8 @@ features/file-manager/
 ├── src/main/kotlin/com/android/appmanager/feature/filemanager/
 │   ├── FileManagerFeatureApi.kt        # публичный контракт фичи
 │   ├── FileManagerFeatureImpl.kt       # его реализация, internal
-│   ├── di/                             # Hilt-модуль: API и корень хранилища (filesDir/storage)
+│   ├── FileStorage.kt                  # хранилище фичи: имя и папка filesDir/storage/<имя>
+│   ├── di/                             # Hilt-модуль: API
 │   ├── domain/
 │   │   ├── model/                      # StoragePath, FileEntry, DirectoryContent, TransferSummary, DirectoryNameError
 │   │   └── interactor/                 # FileManagerInteractor: сортировка, откат к существующей папке, проверка имени
@@ -20,7 +23,7 @@ features/file-manager/
 │   │   └── repository/                 # FileStorageRepository: файлы, импорт, экспорт, откат частичной копии
 │   ├── presentation/
 │   │   ├── FileManagerFeatureScreen.kt # Route: ViewModel, системные пикеры, Back, snackbar
-│   │   ├── FileManagerViewModel.kt     # состояние экрана, режим выбора, операции по одной
+│   │   ├── FileManagerViewModel.kt     # состояние экрана, режим выбора, операции по одной; своя на каждое хранилище
 │   │   ├── FileManagerActions.kt       # действия экрана, их реализует ViewModel
 │   │   ├── model/ mapper/ contract/    # UiState, тексты из ресурсов, «Сохранить как» с MIME по имени файла
 │   │   └── screen/                     # FileManagerScreen, строка списка, диалоги
@@ -72,7 +75,11 @@ implementation(project(":features:file-manager"))
 
 | Метод | Описание |
 |---|---|
-| `FileManagerFeatureApi.FileManagerScreen(modifier, onBackClick, onFileOpen)` | Экран фичи. Сам обрабатывает системный Back, пока открыта не корневая папка или выделены элементы |
+| `FileManagerFeatureApi.FileManagerScreen(storage, modifier, onBackClick, onFileOpen)` | Экран хранилища `storage`. Сам обрабатывает системный Back, пока открыта не корневая папка или выделены элементы |
+| `FileManagerFeatureApi.FileManagerScreen(modifier, onBackClick, onFileOpen)` | То же для `FileStorage.Default` |
+| `FileStorage.named(name)` | Хранилище фичи. Имя — папка: 1–64 символа, строчные латинские буквы, цифры, `-` и `_`, первый символ буква или цифра; иначе `IllegalArgumentException`. Одинаковое имя — одна и та же папка |
+| `FileStorage.Default` | Собственное хранилище менеджера, папка `file-manager` |
+| `FileStorage.directory(context): File` | Папка хранилища, чтобы фича сама клала в неё файлы. Создаётся при первом открытии менеджером, до этого её может не быть |
 | `onBackClick: () -> Unit` | Пользователь хочет выйти из фичи |
 | `onFileOpen: (File) -> Unit` | Пользователь нажал на файл; хост решает, чем его показать |
 
@@ -92,4 +99,19 @@ composable("file_manager") {
         onFileOpen = { file -> navController.navigate("file_viewer?path=${Uri.encode(file.absolutePath)}") }
     )
 }
+
+// Хранилище другой фичи: менеджер покажет только filesDir/storage/reports
+private val Reports = FileStorage.named("reports")
+
+composable("reports") {
+    fileManager.FileManagerScreen(
+        storage = Reports,
+        modifier = Modifier,
+        onBackClick = { navController.popBackStack() },
+        onFileOpen = { file -> navController.navigate("file_viewer?path=${Uri.encode(file.absolutePath)}") }
+    )
+}
+
+// Фича пишет файлы в своё хранилище сама
+val report = File(Reports.directory(context).apply { mkdirs() }, "report.pdf")
 ```

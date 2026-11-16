@@ -9,22 +9,25 @@ import com.android.appmanager.feature.filemanager.domain.model.FileEntry
 import com.android.appmanager.feature.filemanager.domain.model.StoragePath
 import com.android.appmanager.feature.filemanager.domain.model.TransferSummary
 import com.android.appmanager.feature.filemanager.util.mimeTypeOf
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
-import javax.inject.Inject
 import kotlin.coroutines.coroutineContext
 
 private const val TAG = "FileStorage"
 
-/** All methods may throw [IOException]. */
-internal class FileStorageRepository @Inject constructor(
-    private val internalSource: InternalFileSource,
+/** Files under [rootDirectory]. All methods may throw [IOException]. */
+internal class FileStorageRepository @AssistedInject constructor(
+    @Assisted rootDirectory: File,
     private val documentSource: ExternalDocumentSource
 ) {
+    private val internalSource = InternalFileSource(rootDirectory)
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 
     suspend fun exists(path: StoragePath): Boolean = io {
@@ -205,6 +208,11 @@ internal class FileStorageRepository @Inject constructor(
         var directories: Int = 0
     ) {
         fun toSummary() = TransferSummary(files = files, directories = directories)
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(rootDirectory: File): FileStorageRepository
     }
 }
 

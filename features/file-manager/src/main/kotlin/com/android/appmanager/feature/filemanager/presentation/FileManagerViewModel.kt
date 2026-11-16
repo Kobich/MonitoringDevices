@@ -10,6 +10,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.android.appmanager.feature.filemanager.R
+import com.android.appmanager.feature.filemanager.data.repository.FileStorageRepository
 import com.android.appmanager.feature.filemanager.domain.interactor.FileManagerInteractor
 import com.android.appmanager.feature.filemanager.domain.model.DirectoryContent
 import com.android.appmanager.feature.filemanager.domain.model.StoragePath
@@ -21,20 +22,27 @@ import com.android.appmanager.feature.filemanager.presentation.model.FileEntryUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileManagerUiState
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
 import com.android.appmanager.feature.filemanager.presentation.model.SelectionUi
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import javax.inject.Inject
+import java.io.File
 
 private const val TAG = "FileManager"
 
-@HiltViewModel
-internal class FileManagerViewModel @Inject constructor(
-    private val interactor: FileManagerInteractor,
+/** Shows the files under [rootDirectory], the folder of a `FileStorage`. */
+@HiltViewModel(assistedFactory = FileManagerViewModel.Factory::class)
+internal class FileManagerViewModel @AssistedInject constructor(
+    @Assisted rootDirectory: File,
+    repositoryFactory: FileStorageRepository.Factory,
     private val uiMapper: FileManagerUiMapper,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel(), FileManagerActions {
+
+    private val interactor = FileManagerInteractor(repositoryFactory.create(rootDirectory))
 
     // Kept in SavedStateHandle to survive process death, e.g. while a system picker is open.
     private var currentPath: StoragePath
@@ -343,6 +351,11 @@ internal class FileManagerViewModel @Inject constructor(
             uiState = uiState.copy(isBusy = false, message = message ?: uiState.message)
             loadDirectory(currentPath)
         }
+    }
+
+    @AssistedFactory
+    interface Factory {
+        fun create(rootDirectory: File): FileManagerViewModel
     }
 
     private companion object {

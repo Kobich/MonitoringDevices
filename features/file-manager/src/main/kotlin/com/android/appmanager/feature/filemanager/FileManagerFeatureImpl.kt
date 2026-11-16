@@ -13,7 +13,23 @@ internal class FileManagerFeatureImpl @Inject constructor() : FileManagerFeature
         onBackClick: () -> Unit,
         onFileOpen: (File) -> Unit
     ) {
+        FileManagerScreen(
+            storage = FileStorage.Default,
+            modifier = modifier,
+            onBackClick = onBackClick,
+            onFileOpen = onFileOpen
+        )
+    }
+
+    @Composable
+    override fun FileManagerScreen(
+        storage: FileStorage,
+        modifier: Modifier,
+        onBackClick: () -> Unit,
+        onFileOpen: (File) -> Unit
+    ) {
         FileManagerFeatureScreen(
+            storage = storage,
             onBackClick = onBackClick,
             onFileOpen = onFileOpen,
             modifier = modifier

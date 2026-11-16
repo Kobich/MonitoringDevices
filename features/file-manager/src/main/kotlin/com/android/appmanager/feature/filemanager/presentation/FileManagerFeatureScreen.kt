@@ -11,9 +11,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import com.android.appmanager.feature.filemanager.FileStorage
 import com.android.appmanager.feature.filemanager.presentation.contract.CreateDocumentContract
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
 import com.android.appmanager.feature.filemanager.presentation.screen.FileManagerScreen
@@ -21,11 +23,17 @@ import java.io.File
 
 @Composable
 internal fun FileManagerFeatureScreen(
+    storage: FileStorage,
     onBackClick: () -> Unit,
     onFileOpen: (File) -> Unit,
-    modifier: Modifier = Modifier,
-    viewModel: FileManagerViewModel = hiltViewModel()
+    modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    // Keyed by storage: two storages on one back stack entry get a ViewModel and saved state each.
+    val viewModel = hiltViewModel<FileManagerViewModel, FileManagerViewModel.Factory>(
+        key = "file_manager:${storage.name}",
+        creationCallback = { factory -> factory.create(storage.directory(context)) }
+    )
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }
     val currentOnFileOpen by rememberUpdatedState(onFileOpen)

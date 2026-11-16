@@ -15,7 +15,7 @@ app/
 │   ├── home/HomeScreen.kt               # кнопки перехода
 │   ├── di/DocumentCoreModule.kt         # DocumentReader из :core:document:impl как @Singleton
 │   ├── featuretest/FeatureTestScreen.kt # ручной вызов каждой фичи condition-data-fetcher
-│   └── sample/                          # ВРЕМЕННО: примеры файлов в filesDir/storage
+│   └── sample/                          # ВРЕМЕННО: примеры файлов в хранилище менеджера
 └── src/main/AndroidManifest.xml
 ```
 
@@ -41,7 +41,7 @@ app/
 
 ### Примеры файлов (ВРЕМЕННО)
 
-Пакет `sample` при первом запуске кладёт в `filesDir/storage` (корень файлового менеджера) примеры для файлового менеджера и просмотрщика: docx с таблицей, картинками и диаграммами, csv, md, pdf, png, wav, тексты в UTF-8 и cp1251. Набор записывается один раз на версию (SharedPreferences `sample_files`). Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
+Пакет `sample` при первом запуске кладёт в `filesDir/storage/file-manager` (`FileStorage.Default`, корень файлового менеджера) примеры для файлового менеджера и просмотрщика: docx с таблицей, картинками и диаграммами, csv, md, pdf, png, wav, тексты в UTF-8 и cp1251. Набор записывается один раз на версию (SharedPreferences `sample_files`). Перед релизом удалить пакет `sample` и его вызов в `MonitoringDevicesApplication`.
 
 ## Подключение модуля к проекту
 

@@ -20,10 +20,10 @@
 
 | Hilt-модуль | Компонент | Что даёт | Что ждёт от приложения |
 |---|---|---|---|
-| `FileManagerFeatureModule` | `SingletonComponent` | `FileManagerFeatureApi`, `InternalFileSource` (корень `filesDir/storage`) | `@ApplicationContext` |
+| `FileManagerFeatureModule` | `SingletonComponent` | `FileManagerFeatureApi` | `@ApplicationContext` |
 | `DocumentViewerFeatureModule` | `SingletonComponent` | `DocumentViewerFeatureApi` | `DocumentReader` |
 
-ViewModel обеих фич помечены `@HiltViewModel` и создаются внутри фичи через `hiltViewModel()`. Приложению их трогать не нужно, но Activity, на которой показываются экраны, должна быть `@AndroidEntryPoint`.
+ViewModel обеих фич помечены `@HiltViewModel` и создаются внутри фичи через `hiltViewModel()` с assisted-фабрикой: у менеджера своя ViewModel на каждое хранилище, у просмотрщика — на каждый файл. Приложению их трогать не нужно, но Activity, на которой показываются экраны, должна быть `@AndroidEntryPoint`.
 
 `DocumentReader` в граф не кладёт ни один из модулей: `:core:document` сделан без DI-фреймворка. Его даёт приложение — шаг 5.
 
@@ -122,6 +122,8 @@ NavHost(navController, startDestination = "file_manager") {
 }
 ```
 
+Чтобы показать хранилище другой фичи, передайте его первым параметром: `fileManager.FileManagerScreen(storage = FileStorage.named("reports"), ...)`. Менеджер покажет только папку `filesDir/storage/reports`.
+
 Просмотрщик можно открыть и для файла не из менеджера: в `DocumentViewerScreen` передаётся любой `File`, который приложение может прочитать.
 
 ## Требования
@@ -129,7 +131,7 @@ NavHost(navController, startDestination = "file_manager") {
 - **minSdk приложения не ниже 23.** Офисные форматы открываются с Android 8 (API 26): этого требует библиотека OpenDocument.core, ниже они не поддерживаются. Модуль `:core:document:impl` разрешает её подключение при minSdk 23 через `tools:overrideLibrary`; приложению ничего для этого делать не нужно.
 - **Jetpack Compose** в приложении: экраны фич — Compose-функции, их API использует `@Composable` и `Modifier`.
 - **FileProvider.** Просмотрщик объявляет в своём манифесте провайдер `ViewerFileProvider` с authority `${applicationId}.documentviewer.files` для кнопки «Открыть в другом приложении». Свой класс выбран нарочно: с `FileProvider` приложения он не конфликтует. Конфликт будет, только если у приложения есть провайдер с таким же authority.
-- **Хранилище.** Файлы менеджера лежат в `filesDir/storage`. Резервное копирование настраивает приложение: если документы не должны уходить в облачный бэкап, исключите `storage` в `data_extraction_rules.xml` или выключите бэкап совсем.
+- **Хранилище.** Файлы всех хранилищ лежат в `filesDir/storage/<имя>`, собственные файлы менеджера — в `filesDir/storage/file-manager`. Резервное копирование настраивает приложение: если документы не должны уходить в облачный бэкап, исключите `storage` в `data_extraction_rules.xml` или выключите бэкап совсем.
 
 ## Проверка
 
