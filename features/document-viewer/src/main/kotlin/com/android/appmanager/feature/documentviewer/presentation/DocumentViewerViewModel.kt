@@ -18,10 +18,6 @@ import com.android.core.document.api.DocumentReader
 import com.android.core.document.api.document.AudioDocument
 import com.android.core.document.api.document.Document
 import com.android.core.document.api.document.VideoDocument
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedFactory
-import dagger.assisted.AssistedInject
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -29,17 +25,11 @@ import java.io.File
 
 private const val TAG = "DocumentViewer"
 
-@HiltViewModel(assistedFactory = DocumentViewerViewModel.Factory::class)
-internal class DocumentViewerViewModel @AssistedInject constructor(
-    @Assisted private val file: File,
+internal class DocumentViewerViewModel(
+    private val file: File,
     private val reader: DocumentReader,
     private val playerFactory: PlayerFactory
 ) : ViewModel() {
-
-    @AssistedFactory
-    interface Factory {
-        fun create(file: File): DocumentViewerViewModel
-    }
 
     private var loadJob: Job? = null
     private var openedDocument: Document? = null

@@ -8,15 +8,13 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
-import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
-import javax.inject.Inject
 
 private const val TAG = "Player"
 
 /** The player must be used and released on the main thread. */
-internal class PlayerFactory @Inject constructor(
-    @ApplicationContext private val context: Context
+internal class PlayerFactory(
+    private val context: Context
 ) {
     fun create(file: File): Player {
         Log.d(TAG, "create: ${file.name}")

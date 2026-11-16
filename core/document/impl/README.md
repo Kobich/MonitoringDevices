@@ -78,7 +78,7 @@ include(":core:document:impl")
 implementation(project(":core:document:impl"))
 ```
 
-DI-фреймворка внутри нет: создайте один `DocumentCore` на процесс, например в Hilt-модуле приложения.
+DI-фреймворка внутри нет: создайте один `DocumentCore` на процесс, например в `Application`.
 
 ## Описание API
 
@@ -90,11 +90,7 @@ DI-фреймворка внутри нет: создайте один `Document
 ## Примеры использования
 
 ```kotlin
-@Module
-@InstallIn(SingletonComponent::class)
-object DocumentCoreModule {
-    @Provides
-    @Singleton
-    fun provideDocumentReader(@ApplicationContext context: Context): DocumentReader = DocumentCore(context).reader
+class App : Application() {
+    val documentReader: DocumentReader by lazy { DocumentCore(this).reader }
 }
 ```

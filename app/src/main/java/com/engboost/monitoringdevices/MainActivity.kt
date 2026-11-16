@@ -6,32 +6,21 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import com.android.appmanager.feature.documentviewer.DocumentViewerFeatureApi
-import com.android.appmanager.feature.filemanager.FileManagerFeatureApi
 import com.android.core.commonui.theme.AppTheme
 import com.engboost.monitoringdevices.navigation.AppNavigation
-import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    @Inject
-    lateinit var fileManagerFeature: FileManagerFeatureApi
-
-    @Inject
-    lateinit var documentViewerFeature: DocumentViewerFeatureApi
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val scanner = (application as MonitoringDevicesApplication).scanner
+        val app = application as MonitoringDevicesApplication
         enableEdgeToEdge()
         setContent {
             AppTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
                     AppNavigation(
-                        fileManagerFeature = fileManagerFeature,
-                        documentViewerFeature = documentViewerFeature,
-                        scanner = scanner
+                        fileManagerFeature = app.fileManagerFeature,
+                        documentViewerFeature = app.documentViewerFeature,
+                        scanner = app.scanner
                     )
                 }
             }

@@ -2,25 +2,24 @@
 
 ## Описание
 
-Приложение для ручной проверки модулей на устройстве: главный экран с кнопками открывает каждую фичу и витрину UI. Модули ничего не знают друг о друге: приложение связывает их навигацией и графом Hilt.
+Приложение для ручной проверки модулей на устройстве: главный экран с кнопками открывает каждую фичу и витрину UI. Модули ничего не знают друг о друге: приложение создаёт их и связывает навигацией.
 
 ## Архитектура и стек
 
 ```
 app/
 ├── src/main/java/com/engboost/monitoringdevices/
-│   ├── MonitoringDevicesApplication.kt  # @HiltAndroidApp, создаёт NearbyScanner, кладёт примеры файлов
-│   ├── MainActivity.kt                  # @AndroidEntryPoint, тема и навигация
+│   ├── MonitoringDevicesApplication.kt  # создаёт фичи по одной на приложение, кладёт примеры файлов
+│   ├── MainActivity.kt                  # тема и навигация
 │   ├── navigation/AppNavigation.kt      # NavHost: главный экран и экраны модулей
 │   ├── home/HomeScreen.kt               # кнопки перехода
-│   ├── di/DocumentCoreModule.kt         # DocumentReader из :core:document:impl как @Singleton
 │   ├── featuretest/FeatureTestScreen.kt # ручной вызов каждой фичи condition-data-fetcher
 │   └── sample/                          # ВРЕМЕННО: примеры файлов в filesDir/storage
 └── src/main/AndroidManifest.xml
 ```
 
 * **Слой:** Presentation.
-* **Ключевые технологии:** Jetpack Compose, Navigation Compose, Hilt.
+* **Ключевые технологии:** Jetpack Compose, Navigation Compose.
 * **Зависимости:** `:core:common-ui`, `:core:document:impl`, `:core:logger:client:api` (через фичи), `:features:file-manager`, `:features:document-viewer`, `:features:nearby-scanner`, `:features:condition-data-fetcher`.
 
 Минимальная версия SDK: 36 — её требуют `:features:nearby-scanner` и `:features:condition-data-fetcher`. Версия компиляции SDK: 36.
@@ -54,7 +53,7 @@ implementation(project(":features:document-viewer"))
 implementation(project(":core:document:impl"))
 ```
 
-Фичам нужен Hilt: `@HiltAndroidApp` на `MonitoringDevicesApplication`, `@AndroidEntryPoint` на `MainActivity`, а `DocumentReader` для просмотрщика даёт `di/DocumentCoreModule.kt`.
+DI-фреймворка нет: `MonitoringDevicesApplication` создаёт каждую фичу по одной на приложение (`FileManagerFeatureApi(this)`, `DocumentViewerFeatureApi(this, DocumentCore(this).reader)`, `NearbyScanner(this)`), `MainActivity` берёт их оттуда.
 
 Сборка:
 

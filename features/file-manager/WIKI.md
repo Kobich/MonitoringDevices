@@ -191,27 +191,22 @@ implementation(project(":features:document-viewer"))
 implementation(project(":core:document:impl"))
 ```
 
-Нужен Hilt: `@HiltAndroidApp` на `Application`, `@AndroidEntryPoint` на Activity. `DocumentReader` для просмотрщика создаётся один на приложение: все чтения делят кэш и очередь конвертации.
+DI-фреймворк не нужен. Каждая фича создаётся функцией, одна на приложение, обычно в `Application`. `DocumentReader` для просмотрщика тоже один на приложение: все чтения делят кэш и очередь конвертации.
 
 ```kotlin
-@Module
-@InstallIn(SingletonComponent::class)
-object DocumentCoreModule {
-    @Provides
-    @Singleton
-    fun provideDocumentReader(@ApplicationContext context: Context): DocumentReader = DocumentCore(context).reader
+class App : Application() {
+    val documentReader: DocumentReader by lazy { DocumentCore(this).reader }
+    val fileManager: FileManagerFeatureApi by lazy { FileManagerFeatureApi(this) }
+    val documentViewer: DocumentViewerFeatureApi by lazy { DocumentViewerFeatureApi(this, documentReader) }
 }
 ```
 
 Связка экранов в навигации:
 
 ```kotlin
-@AndroidEntryPoint
-class MainActivity : ComponentActivity() {
-    @Inject lateinit var fileManager: FileManagerFeatureApi
-    @Inject lateinit var documentViewer: DocumentViewerFeatureApi
-    // ...
-}
+val app = application as App
+val fileManager = app.fileManager
+val documentViewer = app.documentViewer
 
 NavHost(navController = navController, startDestination = "file_manager") {
     composable("file_manager") {
@@ -255,7 +250,7 @@ NavHost(navController = navController, startDestination = "file_manager") {
 | Экран менеджера, режим выбора, операции | `features/file-manager/.../presentation/` |
 | Файлы, импорт, экспорт | `features/file-manager/.../data/` |
 | Правила имён папок, сортировка | `features/file-manager/.../domain/interactor/FileManagerInteractor.kt` |
-| Папка хранилища | `features/file-manager/.../di/FileManagerFeatureModule.kt` |
+| Папка хранилища, сборка зависимостей | `features/file-manager/.../FileManagerFeatureImpl.kt` |
 | Экраны просмотра | `features/document-viewer/.../presentation/screen/` |
 | Плеер аудио и видео | `features/document-viewer/.../data/player/PlayerFactory.kt`, `presentation/AudioPlayback.kt` |
 | Что можно получить из файла | `core/document/api/` |
