@@ -55,7 +55,7 @@ core/file-access/src/main/kotlin/com/android/core/fileaccess/
 
 | Метод | Описание |
 |---|---|
-| `FileAccessConfigSource.config: Flow<FileAccessConfig?>` | Реализует приложение. Должен сразу отдавать значение: экраны ждут первое, прежде чем показать закрытое. `null` и ошибка в потоке — «конфига нет» |
+| `FileAccessConfigSource.config: Flow<FileAccessConfig?>` | Реализует приложение. Должен сразу отдавать значение: экраны ждут первое, прежде чем показать закрытое. `null` и ошибка в потоке — «конфига нет»; после ошибки поток собирается заново через 5 с |
 | `FileAccessRules.config: Flow<FileAccessConfig>` | Текущий конфиг для фич; без источника — `FileAccessConfig.Unrestricted` |
 | `FileAccessConfigJson.parse(json, onProblem): FileAccessConfig?` | Разбор формата выше |
 | `FileAccessConfig.access(action): Access` | `Allowed`, `Hidden` или `PasswordRequired` |

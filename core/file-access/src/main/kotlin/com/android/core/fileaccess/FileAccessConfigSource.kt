@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.Flow
  * ```
  *
  * Screens wait for the first value before they show protected content, so emit one at once (a `StateFlow`). `null`,
- * an error in the flow and a config that didn't parse all mean no config.
+ * an error in the flow and a config that didn't parse all mean no config; after an error the flow is collected again
+ * in 5 s.
  */
 interface FileAccessConfigSource {
     val config: Flow<FileAccessConfig?>

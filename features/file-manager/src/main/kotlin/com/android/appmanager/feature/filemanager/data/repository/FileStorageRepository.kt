@@ -105,14 +105,16 @@ internal class FileStorageRepository @AssistedInject constructor(
         counter.toSummary()
     }
 
+    /** A document created for the export is removed if it fails; one the user chose to replace is kept. */
     suspend fun exportFile(path: StoragePath, destination: Uri): Unit = io {
+        val isNewDocument = !documentSource.hasContent(destination)
         try {
             internalSource.resolve(path).inputStream().use { input ->
                 documentSource.openOutput(destination).use { output -> input.copyTo(output) }
             }
         } catch (error: Throwable) {
-            Log.w(TAG, "exportFile: $path failed, removing the created document", error)
-            documentSource.deleteSingle(destination)
+            Log.w(TAG, "exportFile: $path failed, new document=$isNewDocument", error)
+            if (isNewDocument) documentSource.deleteSingle(destination)
             throw error
         }
     }

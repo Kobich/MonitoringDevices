@@ -52,7 +52,7 @@ internal fun AudioDocumentContent(
     modifier: Modifier = Modifier
 ) {
     val artwork by produceState<Bitmap?>(initialValue = null, document) {
-        value = runCatching { document.loadArtwork(maxSizePx = ARTWORK_SIZE_PX) }.getOrNull()
+        value = runCatchingCancellable { document.loadArtwork(maxSizePx = ARTWORK_SIZE_PX) }.getOrNull()
     }
 
     Column(

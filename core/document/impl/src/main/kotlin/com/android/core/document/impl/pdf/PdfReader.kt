@@ -23,6 +23,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import kotlin.math.roundToInt
 
 private const val TAG = "PdfReader"
 
@@ -86,10 +87,12 @@ internal class PdfReader(
         }
 
         override suspend fun renderPage(pageIndex: Int, widthPx: Int): Bitmap = withPage(pageIndex) { page ->
-            val width = widthPx.coerceIn(1, MAX_SIDE_PX)
-            val height = (width.toLong() * page.height.coerceAtLeast(1) / page.width.coerceAtLeast(1))
-                .toInt()
-                .coerceIn(1, MAX_SIDE_PX)
+            // Both sides shrink together: a long page cut to the limit alone would come out squashed.
+            val requestedWidth = widthPx.coerceAtLeast(1).toDouble()
+            val requestedHeight = requestedWidth * page.height.coerceAtLeast(1) / page.width.coerceAtLeast(1)
+            val scale = minOf(1.0, MAX_SIDE_PX / requestedWidth, MAX_SIDE_PX / requestedHeight)
+            val width = (requestedWidth * scale).roundToInt().coerceIn(1, MAX_SIDE_PX)
+            val height = (requestedHeight * scale).roundToInt().coerceIn(1, MAX_SIDE_PX)
             val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
             bitmap.eraseColor(Color.WHITE)
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)

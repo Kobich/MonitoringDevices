@@ -2,6 +2,7 @@ package com.android.appmanager.feature.filemanager.data.source
 
 import com.android.appmanager.feature.filemanager.domain.model.StoragePath
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
@@ -65,6 +66,31 @@ class InternalFileSourceTest {
         assertEquals("trimmed", InternalFileSource.sanitizeFileName("  trimmed  "))
         assertEquals("unnamed", InternalFileSource.sanitizeFileName(""))
         assertEquals("unnamed", InternalFileSource.sanitizeFileName(".."))
-        assertEquals(200, InternalFileSource.sanitizeFileName("x".repeat(300)).length)
+    }
+
+    @Test
+    fun `long names fit the file system limit in bytes and keep the extension`() {
+        val latin = InternalFileSource.sanitizeFileName("x".repeat(300) + ".pdf")
+        val cyrillic = InternalFileSource.sanitizeFileName("отчёт ".repeat(40) + ".docx")
+        val emoji = InternalFileSource.sanitizeFileName("😀".repeat(100) + ".txt")
+
+        listOf(latin, cyrillic, emoji).forEach { name -> assertTrue(name, name.toByteArray().size <= 243) }
+        assertTrue(latin.endsWith("x.pdf"))
+        assertTrue(cyrillic, cyrillic.startsWith("отчёт отчёт") && cyrillic.endsWith(".docx"))
+        assertTrue(emoji.endsWith("😀.txt"))
+        assertEquals("short.pdf", InternalFileSource.sanitizeFileName("short.pdf"))
+    }
+
+    @Test
+    fun `a long taken name still fits with its number`() {
+        val directory = source.resolve(StoragePath.ROOT)
+        val name = "отчёт ".repeat(40) + ".docx"
+        val first = source.uniqueChild(directory, name).apply { createNewFile() }
+        val second = source.uniqueChild(directory, name)
+
+        assertTrue(second.name, second.name.endsWith(" (1).docx"))
+        assertTrue(second.name.toByteArray().size <= 255)
+        assertTrue(second.createNewFile())
+        assertEquals(first.name.removeSuffix(".docx"), second.name.removeSuffix(" (1).docx"))
     }
 }

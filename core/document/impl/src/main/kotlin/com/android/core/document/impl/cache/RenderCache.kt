@@ -28,6 +28,9 @@ internal class RenderCache(
     private val temporaryPrefix = "$TEMPORARY_MARKER${UUID.randomUUID()}-"
     private val temporaryCounter = AtomicInteger()
 
+    /** Publishing and trimming change the folder list; rendering, the slow part, runs outside. */
+    private val lock = Any()
+
     fun find(file: File, variant: String): Entry? {
         val directory = entryDirectory(file, variant)
         val manifest = File(directory, MANIFEST_NAME)
@@ -63,15 +66,17 @@ internal class RenderCache(
             }
             File(temporary, MANIFEST_NAME).writeText(manifest)
 
-            target.deleteRecursively()
-            if (!temporary.renameTo(target)) throw IOException("Can't publish ${target.path}")
+            synchronized(lock) {
+                target.deleteRecursively()
+                if (!temporary.renameTo(target)) throw IOException("Can't publish ${target.path}")
+            }
         } catch (error: Throwable) {
             Log.w(TAG, "store: render of ${file.name} [$variant] failed, temporary folder removed", error)
             temporary.deleteRecursively()
             throw error
         }
         Log.d(TAG, "store: ${file.name} [$variant] -> ${target.name}")
-        trim(keep = target)
+        synchronized(lock) { trim(keep = target) }
         return find(file, variant) ?: throw IOException("Can't read the stored ${target.path}")
     }
 

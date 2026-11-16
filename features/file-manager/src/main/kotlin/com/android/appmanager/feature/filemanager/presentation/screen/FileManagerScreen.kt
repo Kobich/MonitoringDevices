@@ -228,6 +228,7 @@ private fun StorageActionsMenu(
     actions: FileManagerActions
 ) {
     var isExpanded by remember { mutableStateOf(false) }
+    if (!menu.canImport && !menu.canCreateFolder) return
 
     Box {
         IconButton(onClick = { isExpanded = true }, enabled = enabled) {
@@ -250,13 +251,15 @@ private fun StorageActionsMenu(
                     }
                 )
             }
-            DropdownMenuItem(
-                text = { Text(text = stringResource(R.string.fm_new_folder)) },
-                onClick = {
-                    isExpanded = false
-                    actions.onCreateDirectoryClick()
-                }
-            )
+            if (menu.canCreateFolder) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.fm_new_folder)) },
+                    onClick = {
+                        isExpanded = false
+                        actions.onCreateDirectoryClick()
+                    }
+                )
+            }
         }
     }
 }

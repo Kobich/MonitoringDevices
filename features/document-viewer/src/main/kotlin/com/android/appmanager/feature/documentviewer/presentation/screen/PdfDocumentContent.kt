@@ -85,10 +85,10 @@ private fun PdfPage(
     widthPx: Int
 ) {
     val pageSize by produceState<PageSize?>(initialValue = null, document, pageIndex) {
-        value = runCatching { document.pageSize(pageIndex) }.getOrNull()
+        value = runCatchingCancellable { document.pageSize(pageIndex) }.getOrNull()
     }
     val rendered by produceState<Result<Bitmap>?>(initialValue = null, document, pageIndex, widthPx) {
-        value = runCatching { document.renderPage(pageIndex, widthPx) }
+        value = runCatchingCancellable { document.renderPage(pageIndex, widthPx) }
     }
     val aspectRatio = pageSize?.let { size -> size.widthPt.toFloat() / size.heightPt } ?: A4_ASPECT_RATIO
 

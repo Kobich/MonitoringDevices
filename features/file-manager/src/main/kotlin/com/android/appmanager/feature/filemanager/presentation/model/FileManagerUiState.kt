@@ -90,7 +90,9 @@ internal data class FileMessageUi(
 internal data class MenuUi(
     val canImport: Boolean,
     val canExport: Boolean,
-    val canDelete: Boolean
+    val canDelete: Boolean,
+    /** Not in the config: available once the config has arrived, as the rest of the menu. */
+    val canCreateFolder: Boolean
 ) {
     /** Selection is only good for export and delete. */
     val canSelect: Boolean
@@ -98,7 +100,7 @@ internal data class MenuUi(
 
     companion object {
         /** Before the config arrives. */
-        val None = MenuUi(canImport = false, canExport = false, canDelete = false)
+        val None = MenuUi(canImport = false, canExport = false, canDelete = false, canCreateFolder = false)
     }
 }
 

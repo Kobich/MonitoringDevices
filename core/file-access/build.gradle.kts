@@ -28,6 +28,7 @@ dependencies {
     ksp(libs.hilt.compiler)
 
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     // org.json of android.jar only throws in unit tests.
     testImplementation(libs.org.json)
 }

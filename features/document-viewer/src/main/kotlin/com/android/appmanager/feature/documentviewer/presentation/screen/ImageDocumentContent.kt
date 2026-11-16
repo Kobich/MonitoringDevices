@@ -50,7 +50,7 @@ internal fun ImageDocumentContent(
         val maxHeightPx = with(density) { maxHeight.roundToPx() } * 2
 
         val result by produceState<Result<DecodedImage>?>(initialValue = null, document, maxWidthPx, maxHeightPx) {
-            value = runCatching {
+            value = runCatchingCancellable {
                 val animation = if (document.isAnimated) document.decodeAnimation(maxWidthPx, maxHeightPx) else null
                 if (animation != null) {
                     DecodedImage.Animated(animation)

@@ -103,7 +103,9 @@ internal class FileManagerViewModel @AssistedInject constructor(
         viewModelScope.launch { rules.config.collect { config -> onConfigChanged(config) } }
     }
 
+    /** The first resume comes right after init: the folder it started reading is fresh enough. */
     fun onScreenResumed() {
+        if (loadJob?.isActive == true) return
         loadDirectory(currentPath)
     }
 
@@ -275,6 +277,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
     }
 
     override fun onCreateDirectoryClick() {
+        if (!uiState.menu.canCreateFolder) return
         uiState = uiState.copy(createDirectoryDialog = CreateDirectoryDialogUi(error = null))
     }
 
@@ -342,7 +345,8 @@ internal class FileManagerViewModel @AssistedInject constructor(
         val menu = MenuUi(
             canImport = config.access(FileAction.IMPORT) != Access.Hidden,
             canExport = config.access(FileAction.EXPORT) != Access.Hidden,
-            canDelete = config.access(FileAction.DELETE) != Access.Hidden
+            canDelete = config.access(FileAction.DELETE) != Access.Hidden,
+            canCreateFolder = true
         )
         val deleteChanged = previous?.access(FileAction.DELETE) != config.access(FileAction.DELETE)
         pendingAction = null
