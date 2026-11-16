@@ -1,0 +1,22 @@
+2026-11-16 09:00:00 INFO  sensor-1 temperature=40 C
+2026-11-16 09:03:00 INFO  sensor-4 temperature=43 C
+2026-11-16 09:06:00 INFO  sensor-3 temperature=46 C
+2026-11-16 09:09:00 INFO  sensor-2 temperature=42 C
+2026-11-16 09:12:00 INFO  sensor-1 temperature=45 C
+2026-11-16 09:15:00 INFO  sensor-4 temperature=41 C
+2026-11-16 09:18:00 INFO  sensor-3 temperature=44 C
+2026-11-16 09:21:30 WARN  sensor-2 voltage dropped to 198 V
+2026-11-16 09:21:00 INFO  sensor-2 temperature=40 C
+2026-11-16 09:24:00 INFO  sensor-1 temperature=43 C
+2026-11-16 09:27:00 INFO  sensor-4 temperature=46 C
+2026-11-16 09:30:00 INFO  sensor-3 temperature=42 C
+2026-11-16 09:36:10 ERROR sensor-4 no response for 30 s, reconnecting
+2026-11-16 09:33:00 INFO  sensor-2 temperature=45 C
+2026-11-16 09:36:00 INFO  sensor-1 temperature=41 C
+2026-11-16 09:39:00 INFO  sensor-4 temperature=44 C
+2026-11-16 09:42:00 INFO  sensor-3 temperature=40 C
+2026-11-16 09:45:00 INFO  sensor-2 temperature=43 C
+2026-11-16 09:48:00 INFO  sensor-1 temperature=46 C
+2026-11-16 09:51:00 INFO  sensor-4 temperature=42 C
+2026-11-16 09:54:00 INFO  sensor-3 temperature=45 C
+2026-11-16 09:57:00 INFO  sensor-2 temperature=41 C

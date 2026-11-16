@@ -41,4 +41,4 @@ NavHost(navController = navController, startDestination = "home") {
 
 Заметки и исследования по сканеру Wi-Fi и Bluetooth — в [docs/](docs/README.md).
 
-Документ Word для проверки и показа просмотрщика — [docs/samples/word-demo.docx](docs/samples/README.md).
+Документ Word для проверки и показа просмотрщика и файлы всех поддерживаемых форматов — в [docs/samples/](docs/samples/README.md).

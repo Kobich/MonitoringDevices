@@ -39,3 +39,40 @@ python3 add_charts.py /tmp/word-demo/base.docx ../word-demo.docx
 ```
 
 `make_demo.js` собирает документ без диаграмм, `add_charts.py` вставляет две диаграммы Word с кэшем данных, как их сохраняет Word, и исправляет то, что схема Word не принимает у пакета `docx`.
+
+## formats/
+
+По файлу на каждый формат, который открывает файловый менеджер, — 45 файлов, около 5 MB. Чтобы проверить всё разом, импортируйте папку `formats` целиком через «Импорт папки».
+
+| Файлы | Что проверить |
+|---|---|
+| `document.docx`, `.doc`, `.odt`, `.rtf`, `.pdf` | один и тот же документ (`word-demo.docx`) в пяти форматах |
+| `spreadsheet.xlsx`, `.xls`, `.ods`, `.csv` | два листа вкладками, заливка шапки, объединённые ячейки, значения формул «Среднее» и «Максимум» (44,86 и 52,1) |
+| `presentation.pptx`, `.ppt`, `.odp` | титульный слайд, список с уровнями, таблица с картинкой, гистограмма |
+| `drawing.odg` | фигуры Draw: прямоугольники с подписями, линия, круг |
+| `notes.md`, `readme.markdown` | заголовки, списки, таблица, цитата, код |
+| `text-utf8.txt`, `text-cp1251.txt` | одинаковый русский текст в UTF-8 и в Windows-1251, кодировка определяется сама |
+| `events.log`, `device.json`, `config.xml` | обычный текст построчно |
+| `image.png`, `transparent.png`, `image.bmp`, `image.webp`, `photo.jpeg`, `image.heic`, `diagram.svg` | на каждой картинке подписан её формат; у `transparent.png` углы прозрачные |
+| `photo-exif-rotated.jpg` | хранится лёжа с EXIF-поворотом: подпись должна стоять прямо, картинка — вертикально |
+| `animation.gif`, `animation.webp` | анимация, 12 кадров по кругу (Android 9+) |
+| `audio.mp3`, `.m4a`, `.flac` | мелодия 8 с, название, исполнитель и обложка |
+| `audio.wav`, `.aac`, `.ogg`, `.oga`, `.opus` | та же мелодия; у wav и aac тегов нет |
+| `video.mp4`, `.m4v`, `.mov`, `.mkv` (H.264), `.webm` (VP9), `.3gp` (H.263) | 6 с тестовой картинки со звуком, формат подписан на кадре |
+| `sound-only.mp4` | mp4 без видеодорожки: должен открыться как аудио |
+
+Чего нет: `pages`, `numbers` и `key` — файлы Apple без macOS не собрать.
+
+Что показывается не так, как в исходной программе (OpenDocument.core 7.7.0):
+
+- в `presentation.ppt` нет таблицы со слайда; в `pptx` и `odp` она есть;
+- в `drawing.odg` линия без наконечника стрелки;
+- гистограмма в `presentation.pptx` рисуется приложением, на JVM это не проверялось.
+
+Пересобрать: нужны ffmpeg, LibreOffice, Pillow с `pillow-heif`, `openpyxl` и `python-pptx`.
+
+```bash
+python3 docs/samples/formats-src/make_formats.py docs/samples/formats docs/samples/word-demo.docx
+```
+
+Аудио и видео генерируются тем же скриптом (мелодия синтезируется, видео — тестовая картинка ffmpeg), поэтому у файлов нет сторонних лицензий.

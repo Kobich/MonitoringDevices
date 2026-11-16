@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300">
+  <rect width="480" height="300" fill="#f5f7fa"/>
+  <text x="24" y="40" font-family="sans-serif" font-size="22" font-weight="bold" fill="#2f5597">SVG: схема подключения</text>
+  <rect x="30" y="90" width="120" height="70" rx="10" fill="#4472c4"/>
+  <text x="90" y="131" font-family="sans-serif" font-size="16" fill="#fff" text-anchor="middle">Датчик</text>
+  <rect x="330" y="90" width="120" height="70" rx="10" fill="#ed7d31"/>
+  <text x="390" y="131" font-family="sans-serif" font-size="16" fill="#fff" text-anchor="middle">Сервер</text>
+  <line x1="150" y1="125" x2="322" y2="125" stroke="#555" stroke-width="3" marker-end="url(#arrow)"/>
+  <defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker></defs>
+  <circle cx="240" cy="230" r="34" fill="#2e7d32"/>
+  <text x="240" y="236" font-family="sans-serif" font-size="14" fill="#fff" text-anchor="middle">OK</text>
+</svg>

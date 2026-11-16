@@ -1,0 +1,26 @@
+{
+  "id": "MD-0042",
+  "name": "Шкаф управления №3",
+  "online": true,
+  "sensors": [
+    {
+      "type": "temperature",
+      "value": 45.2,
+      "unit": "C",
+      "limits": [
+        5,
+        60
+      ]
+    },
+    {
+      "type": "voltage",
+      "value": 220.5,
+      "unit": "V",
+      "limits": [
+        198,
+        242
+      ]
+    }
+  ],
+  "updatedAt": "2026-11-16T09:45:00+03:00"
+}

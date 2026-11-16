@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<monitoring interval="30">
+  <!-- Пороги срабатывания -->
+  <sensor id="temperature" min="5" max="60" unit="C"/>
+  <sensor id="voltage" min="198" max="242" unit="V"/>
+  <notify email="duty@example.com" sms="false"/>
+</monitoring>
