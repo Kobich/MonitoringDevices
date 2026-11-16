@@ -9,6 +9,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
@@ -62,6 +65,17 @@ internal fun FileEntryRow(
                     contentDescription = stringResource(if (entry.isDirectory) R.string.fm_folder else R.string.fm_file)
                 )
             }
+        },
+        trailingContent = if (entry.isLocked) {
+            {
+                Icon(
+                    imageVector = Icons.Outlined.Lock,
+                    contentDescription = stringResource(R.string.fm_locked),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            null
         },
         colors = ListItemDefaults.colors(
             containerColor = if (isSelected) {

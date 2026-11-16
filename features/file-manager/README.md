@@ -14,6 +14,7 @@ features/file-manager/
 │   ├── FileManagerFeatureApi.kt        # публичный контракт фичи
 │   ├── FileManagerFeatureImpl.kt       # его реализация, internal
 │   ├── FileStorage.kt                  # хранилище фичи: имя и папка filesDir/storage/<имя>
+│   ├── FilePasswords.kt                # пароли файлов от администратора: пути и PBKDF2-хеши
 │   ├── di/                             # Hilt-модуль: API
 │   ├── domain/
 │   │   ├── model/                      # StoragePath, FileEntry, DirectoryContent, TransferSummary, DirectoryNameError
@@ -28,7 +29,8 @@ features/file-manager/
 │   │   ├── model/ mapper/ contract/    # UiState, тексты из ресурсов, «Сохранить как» с MIME по имени файла
 │   │   └── screen/                     # FileManagerScreen, строка списка, диалоги
 │   └── util/                           # MIME-тип по имени файла
-└── src/main/res/values/strings.xml     # строки с префиксом fm_
+├── src/main/res/values/strings.xml     # строки с префиксом fm_
+└── tools/password_hash.py              # хеш пароля для конфига
 ```
 
 * **Слой:** Presentation / Domain / Data.
@@ -76,9 +78,13 @@ implementation(project(":features:file-manager"))
 | Метод | Описание |
 |---|---|
 | `FileManagerFeatureApi.FileManagerScreen(storage, modifier, onBackClick, onFileOpen)` | Экран хранилища `storage`. Сам обрабатывает системный Back, пока открыта не корневая папка или выделены элементы |
-| `FileManagerFeatureApi.FileManagerScreen(modifier, onBackClick, onFileOpen)` | То же для `FileStorage.Default` |
+| `FileManagerFeatureApi.FileManagerScreen(storage, passwords, modifier, onBackClick, onFileOpen)` | То же с паролями файлов; `passwords = null` — без паролей |
+| `FileManagerFeatureApi.FileManagerScreen(modifier, onBackClick, onFileOpen)` | `FileStorage.Default` без паролей |
 | `FileStorage.named(name)` | Хранилище фичи. Имя — папка: 1–64 символа, строчные латинские буквы, цифры, `-` и `_`, первый символ буква или цифра; иначе `IllegalArgumentException`. Одинаковое имя — одна и та же папка |
 | `FileStorage.Default` | Собственное хранилище менеджера, папка `file-manager` |
+| `FilePasswords(entries)` | Пароли файлов хранилища. Путь, указанный в двух записях, — `IllegalArgumentException` |
+| `FilePasswords.Entry(paths, password)` | Один пароль на файлы `paths`. Путь — от корня хранилища, `/` или `\`; имя без папки — файл в корне. Регистр важен. Пустой путь и `..` — `IllegalArgumentException` |
+| `PasswordHash(algorithm, iterations, salt, hash)` | Пароль как хеш PBKDF2 (`PBKDF2_HMAC_SHA256` с Android 8.0, `PBKDF2_HMAC_SHA1` на любой версии); `Algorithm.fromJcaName("PBKDF2WithHmacSHA256")` — по имени из конфига |
 | `FileStorage.directory(context): File` | Папка хранилища, чтобы фича сама клала в неё файлы. Создаётся при первом открытии менеджером, до этого её может не быть |
 | `onBackClick: () -> Unit` | Пользователь хочет выйти из фичи |
 | `onFileOpen: (File) -> Unit` | Пользователь нажал на файл; хост решает, чем его показать |
@@ -111,6 +117,24 @@ composable("reports") {
         onFileOpen = { file -> navController.navigate("file_viewer?path=${Uri.encode(file.absolutePath)}") }
     )
 }
+
+// Пароли из конфига администратора: конфиг разбирает хост, в фичу идёт готовая модель
+val passwords = remember(config) {
+    config?.let {
+        FilePasswords(it.files.map { file ->
+            FilePasswords.Entry(
+                paths = file.paths,
+                password = PasswordHash(
+                    algorithm = requireNotNull(PasswordHash.Algorithm.fromJcaName(file.password.algorithm)),
+                    iterations = file.password.iterations,
+                    salt = Base64.decode(file.password.salt, Base64.NO_WRAP),
+                    hash = Base64.decode(file.password.hash, Base64.NO_WRAP)
+                )
+            )
+        })
+    }
+}
+fileManager.FileManagerScreen(storage = Reports, passwords = passwords, ...)
 
 // Фича пишет файлы в своё хранилище сама
 val report = File(Reports.directory(context).apply { mkdirs() }, "report.pdf")

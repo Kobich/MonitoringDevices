@@ -70,6 +70,14 @@ internal fun FileManagerScreen(
         )
     }
 
+    state.passwordDialog?.let { dialog ->
+        PasswordDialog(
+            dialog = dialog,
+            onConfirm = actions::onPasswordConfirm,
+            onDismiss = actions::onPasswordDismiss
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {

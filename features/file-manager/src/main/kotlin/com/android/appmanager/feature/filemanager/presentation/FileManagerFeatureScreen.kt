@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import com.android.appmanager.feature.filemanager.FilePasswords
 import com.android.appmanager.feature.filemanager.FileStorage
 import com.android.appmanager.feature.filemanager.presentation.contract.CreateDocumentContract
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
@@ -24,6 +25,7 @@ import java.io.File
 @Composable
 internal fun FileManagerFeatureScreen(
     storage: FileStorage,
+    passwords: FilePasswords?,
     onBackClick: () -> Unit,
     onFileOpen: (File) -> Unit,
     modifier: Modifier = Modifier
@@ -32,8 +34,9 @@ internal fun FileManagerFeatureScreen(
     // Keyed by storage: two storages on one back stack entry get a ViewModel and saved state each.
     val viewModel = hiltViewModel<FileManagerViewModel, FileManagerViewModel.Factory>(
         key = "file_manager:${storage.name}",
-        creationCallback = { factory -> factory.create(storage.directory(context)) }
+        creationCallback = { factory -> factory.create(storage.directory(context), passwords) }
     )
+    LaunchedEffect(viewModel, passwords) { viewModel.onPasswordsChanged(passwords) }
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }
     val currentOnFileOpen by rememberUpdatedState(onFileOpen)

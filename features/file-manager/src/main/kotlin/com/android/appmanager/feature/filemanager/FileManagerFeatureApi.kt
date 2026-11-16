@@ -22,4 +22,17 @@ interface FileManagerFeatureApi {
         onBackClick: () -> Unit,
         onFileOpen: (File) -> Unit
     )
+
+    /**
+     * Shows [storage] with [passwords]: their files are opened, exported and deleted only after the password.
+     * `null` is the same as no passwords. New passwords apply right away and forget the ones already entered.
+     */
+    @Composable
+    fun FileManagerScreen(
+        storage: FileStorage,
+        passwords: FilePasswords?,
+        modifier: Modifier,
+        onBackClick: () -> Unit,
+        onFileOpen: (File) -> Unit
+    )
 }

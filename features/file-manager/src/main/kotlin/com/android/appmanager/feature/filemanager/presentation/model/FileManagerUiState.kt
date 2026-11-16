@@ -17,6 +17,7 @@ internal data class FileManagerUiState(
     val selection: SelectionUi?,
     val pendingDeletion: DeletionUi?,
     val createDirectoryDialog: CreateDirectoryDialogUi?,
+    val passwordDialog: PasswordDialogUi?,
     /** One-shot message for a snackbar, cleared by `onMessageShown`. */
     val message: String?,
     /** One-shot request to show a system picker, cleared by `onPickerShown`. */
@@ -34,7 +35,9 @@ internal data class FileEntryUi(
     val name: String,
     val isDirectory: Boolean,
     val kind: FileKind,
-    val details: String
+    val details: String,
+    /** Protected with a password that hasn't been entered on this screen yet. */
+    val isLocked: Boolean = false
 )
 
 @Immutable
@@ -63,6 +66,14 @@ internal data class DeletionUi(
 @Immutable
 internal data class CreateDirectoryDialogUi(
     val error: String?
+)
+
+@Immutable
+internal data class PasswordDialogUi(
+    /** The protected file the password is asked for. */
+    val fileName: String,
+    val error: String?,
+    val isChecking: Boolean
 )
 
 @Immutable

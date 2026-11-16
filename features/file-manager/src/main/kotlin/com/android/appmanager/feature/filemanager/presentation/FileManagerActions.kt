@@ -21,4 +21,6 @@ internal interface FileManagerActions {
     fun onDeleteDismiss()
     fun onCreateDirectoryConfirm(name: String)
     fun onCreateDirectoryDismiss()
+    fun onPasswordConfirm(password: String)
+    fun onPasswordDismiss()
 }

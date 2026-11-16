@@ -122,7 +122,7 @@ NavHost(navController, startDestination = "file_manager") {
 }
 ```
 
-Чтобы показать хранилище другой фичи, передайте его первым параметром: `fileManager.FileManagerScreen(storage = FileStorage.named("reports"), ...)`. Менеджер покажет только папку `filesDir/storage/reports`.
+Чтобы показать хранилище другой фичи, передайте его первым параметром: `fileManager.FileManagerScreen(storage = FileStorage.named("reports"), ...)`. Менеджер покажет только папку `filesDir/storage/reports`. Пароли файлов от администратора — параметр `passwords: FilePasswords?`, пример в README модуля.
 
 Просмотрщик можно открыть и для файла не из менеджера: в `DocumentViewerScreen` передаётся любой `File`, который приложение может прочитать.
 
