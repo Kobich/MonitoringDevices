@@ -1,7 +1,6 @@
 package com.android.core.document.impl.chart
 
 import com.android.core.document.impl.office.DocumentPatch
-import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_CHART
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_DRAWING
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_PICTURE
@@ -12,10 +11,10 @@ import com.android.core.document.impl.ooxml.OoxmlXml.ancestor
 import com.android.core.document.impl.ooxml.OoxmlXml.child
 import com.android.core.document.impl.ooxml.OoxmlXml.childElements
 import com.android.core.document.impl.ooxml.OoxmlXml.descendants
+import com.android.core.document.impl.ooxml.editWordMainPart
 import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
-import java.util.zip.ZipFile
 
 /**
  * Each chart of the main document becomes a picture of the same size.
@@ -26,32 +25,23 @@ internal class DocxChartRasterizer(
     private val parser: ChartXmlParser = ChartXmlParser()
 ) : DocumentPatch {
 
-    override fun apply(input: File, output: File): Boolean {
-        ZipFile(input).use { zip ->
-            val ooxml = OoxmlPackage(zip)
-            val documentPath = ooxml.mainPartPath(fallback = "word/document.xml")
-            val document = ooxml.part(documentPath)
-            val relationships = ooxml.relationships(documentPath)
-            val theme = ooxml.themeOf(documentPath)?.let(parser::parseTheme) ?: ChartTheme()
+    override fun apply(input: File, output: File): Boolean = editWordMainPart(input, output) { word ->
+        val theme = word.ooxml.themeOf(word.path)?.let(parser::parseTheme) ?: ChartTheme()
 
-            var replaced = 0
-            document.documentElement.descendants(NS_DRAWING, "graphicData")
-                .filter { element -> element.getAttribute("uri") == NS_CHART }
-                .forEach { graphicData ->
-                    val chartPath = relationships.target(graphicData.child(NS_CHART, "chart")?.getAttributeNS(NS_RELATIONSHIPS, "id"))
-                    val chart = chartPath?.let(ooxml::partOrNull)?.let { part -> parser.parse(part, theme) } ?: return@forEach
-                    val (cx, cy) = graphicData.extent() ?: DEFAULT_EXTENT
+        var replaced = 0
+        word.document.documentElement.descendants(NS_DRAWING, "graphicData")
+            .filter { element -> element.getAttribute("uri") == NS_CHART }
+            .forEach { graphicData ->
+                val chartId = graphicData.child(NS_CHART, "chart")?.getAttributeNS(NS_RELATIONSHIPS, "id")
+                val chartPart = word.relationships.target(chartId)?.let(word.ooxml::partOrNull)
+                val chart = chartPart?.let { part -> parser.parse(part, theme) } ?: return@forEach
+                val (cx, cy) = graphicData.extent() ?: DEFAULT_EXTENT
 
-                    val image = renderer.render(chart, theme, ChartScale.emuToPx(cx), ChartScale.emuToPx(cy))
-                    replaced++
-                    graphicData.replaceWithPicture(document, ooxml.addImage(documentPath, image), cx, cy, replaced)
-                }
-
-            if (replaced == 0) return false
-            ooxml.markModified(documentPath)
-            ooxml.writeTo(output)
-            return true
-        }
+                val image = renderer.render(chart, theme, ChartScale.emuToPx(cx), ChartScale.emuToPx(cy))
+                replaced++
+                graphicData.replaceWithPicture(word.document, word.ooxml.addImage(word.path, image), cx, cy, replaced)
+            }
+        replaced
     }
 
     private fun Element.extent(): Pair<Long, Long>? {

@@ -134,7 +134,8 @@ private class ChartPainter(
                     }
                     top += lineHeight
                 }
-                if (position == LegendPosition.TOP) area.top += blockHeight + pt(6.0) else area.bottom -= blockHeight + pt(6.0)
+                val taken = blockHeight + pt(6.0)
+                if (position == LegendPosition.TOP) area.top += taken else area.bottom -= taken
             }
 
             LegendPosition.LEFT, LegendPosition.RIGHT -> {
@@ -146,7 +147,8 @@ private class ChartPainter(
                     drawLegendItem(item, left, top, marker, gap, lineHeight, columnWidth)
                     top += lineHeight
                 }
-                if (position == LegendPosition.LEFT) area.left += columnWidth + pt(8.0) else area.right -= columnWidth + pt(8.0)
+                val taken = columnWidth + pt(8.0)
+                if (position == LegendPosition.LEFT) area.left += taken else area.right -= taken
             }
         }
     }
@@ -200,7 +202,12 @@ private class ChartPainter(
         val plotRect = if (horizontal) {
             RectF(area.left + categoryLabelWidth, area.top, area.right - pt(4.0), area.bottom - labelHeight)
         } else {
-            RectF(area.left + valueLabelWidth, area.top + labelPaint.fontSpacing / 2, area.right, area.bottom - labelHeight)
+            RectF(
+                area.left + valueLabelWidth,
+                area.top + labelPaint.fontSpacing / 2,
+                area.right,
+                area.bottom - labelHeight
+            )
         }
         if (plotRect.width() <= 0 || plotRect.height() <= 0) return
 
@@ -324,7 +331,8 @@ private class ChartPainter(
             categories.forEachIndexed { index, category ->
                 if (index % step != 0) return@forEachIndexed
                 val text = ellipsize(category, paint, axis.plot.left - pt(4.0))
-                canvas.drawText(text, axis.plot.left - pt(4.0), axis.slotCenter(index) - (paint.ascent() + paint.descent()) / 2, paint)
+                val baseline = axis.slotCenter(index) - (paint.ascent() + paint.descent()) / 2
+                canvas.drawText(text, axis.plot.left - pt(4.0), baseline, paint)
             }
         } else {
             paint.textAlign = Paint.Align.CENTER
@@ -427,7 +435,12 @@ private class ChartPainter(
         if (total <= 0) return
 
         val radius = min(area.width(), area.height()) / 2 * 0.95f
-        val oval = RectF(area.centerX() - radius, area.centerY() - radius, area.centerX() + radius, area.centerY() + radius)
+        val oval = RectF(
+            area.centerX() - radius,
+            area.centerY() - radius,
+            area.centerX() + radius,
+            area.centerY() + radius
+        )
         var angle = -90f + plot.firstSliceAngle
         strokePaint.color = Color.WHITE
         strokePaint.strokeWidth = pt(1.0)
@@ -463,11 +476,23 @@ private class ChartPainter(
         val xLabels = xTicks.map(::formatNumber)
 
         val labelWidth = yLabels.maxOf { labelPaint.measureText(it) } + pt(4.0)
-        val plot = RectF(area.left + labelWidth, area.top + labelPaint.fontSpacing / 2, area.right - pt(8.0), area.bottom - labelPaint.fontSpacing - pt(2.0))
+        val plot = RectF(
+            area.left + labelWidth,
+            area.top + labelPaint.fontSpacing / 2,
+            area.right - pt(8.0),
+            area.bottom - labelPaint.fontSpacing - pt(2.0)
+        )
         if (plot.width() <= 0 || plot.height() <= 0) return
 
-        fun xPosition(x: Double) = plot.left + ((x - xTicks.first()) / (xTicks.last() - xTicks.first())).toFloat() * plot.width()
-        fun yPosition(y: Double) = plot.bottom - ((y - yTicks.first()) / (yTicks.last() - yTicks.first())).toFloat() * plot.height()
+        fun xPosition(x: Double): Float {
+            val share = (x - xTicks.first()) / (xTicks.last() - xTicks.first())
+            return plot.left + share.toFloat() * plot.width()
+        }
+
+        fun yPosition(y: Double): Float {
+            val share = (y - yTicks.first()) / (yTicks.last() - yTicks.first())
+            return plot.bottom - share.toFloat() * plot.height()
+        }
 
         strokePaint.color = gridColor
         strokePaint.strokeWidth = pt(0.75)

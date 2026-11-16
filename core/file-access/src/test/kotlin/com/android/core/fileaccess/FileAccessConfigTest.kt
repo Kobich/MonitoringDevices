@@ -36,26 +36,26 @@ class FileAccessConfigTest {
         )!!
 
         assertEquals(emptyList<String>(), problems)
-        assertEquals(Access.Allowed, config.access(FileAction.IMPORT))
-        assertEquals(Access.PasswordRequired(Password("0000")), config.access(FileAction.EXPORT))
-        assertEquals(Access.Hidden, config.access(FileAction.DELETE))
-        assertEquals(Access.PasswordRequired(Password("1234")), config.access("file-manager/Contract.pdf"))
-        assertEquals(Access.Message("Ask the administrator"), config.access("file-manager/Budget.csv"))
-        assertEquals(Access.Allowed, config.access("file-manager/Notes.md"))
-        assertEquals(Access.Allowed, config.access("file-manager/contract.pdf"))
-        assertEquals(Access.Allowed, config.access("Contract.pdf"))
+        assertEquals(ActionAccess.Allowed, config.access(FileAction.IMPORT))
+        assertEquals(ActionAccess.PasswordRequired(Password("0000")), config.access(FileAction.EXPORT))
+        assertEquals(ActionAccess.Hidden, config.access(FileAction.DELETE))
+        assertEquals(FileAccess.PasswordRequired(Password("1234")), config.access("file-manager/Contract.pdf"))
+        assertEquals(FileAccess.Message("Ask the administrator"), config.access("file-manager/Budget.csv"))
+        assertEquals(FileAccess.Allowed, config.access("file-manager/Notes.md"))
+        assertEquals(FileAccess.Allowed, config.access("file-manager/contract.pdf"))
+        assertEquals(FileAccess.Allowed, config.access("Contract.pdf"))
     }
 
     @Test
     fun `without a menu every action is available, an empty menu has none`() {
         val noMenu = FileAccessConfigJson.parse("""{ "parameters": { "initial_files": [] } }""")!!
-        FileAction.entries.forEach { action -> assertEquals(Access.Allowed, noMenu.access(action)) }
+        FileAction.entries.forEach { action -> assertEquals(ActionAccess.Allowed, noMenu.access(action)) }
 
         val emptyMenu = FileAccessConfigJson.parse("""{ "parameters": { "menu": [] } }""")!!
-        FileAction.entries.forEach { action -> assertEquals(Access.Hidden, emptyMenu.access(action)) }
+        FileAction.entries.forEach { action -> assertEquals(ActionAccess.Hidden, emptyMenu.access(action)) }
 
-        assertEquals(Access.Allowed, FileAccessConfig.Unrestricted.access(FileAction.DELETE))
-        assertEquals(Access.Allowed, FileAccessConfig.Unrestricted.access("a.pdf"))
+        assertEquals(ActionAccess.Allowed, FileAccessConfig.Unrestricted.access(FileAction.DELETE))
+        assertEquals(FileAccess.Allowed, FileAccessConfig.Unrestricted.access("a.pdf"))
     }
 
     @Test
@@ -84,10 +84,10 @@ class FileAccessConfigTest {
             onProblem = problems::add
         )!!
 
-        assertEquals(Access.Allowed, config.access(FileAction.EXPORT))
-        assertEquals(Access.Allowed, config.access(FileAction.IMPORT))
-        assertEquals(Access.Hidden, config.access(FileAction.DELETE))
-        assertEquals(Access.PasswordRequired(Password("1")), config.access("a.pdf"))
+        assertEquals(ActionAccess.Allowed, config.access(FileAction.EXPORT))
+        assertEquals(ActionAccess.Allowed, config.access(FileAction.IMPORT))
+        assertEquals(ActionAccess.Hidden, config.access(FileAction.DELETE))
+        assertEquals(FileAccess.PasswordRequired(Password("1")), config.access("a.pdf"))
         assertEquals(setOf("a.pdf"), config.files.keys)
         assertEquals(7, problems.size)
     }
@@ -107,7 +107,8 @@ class FileAccessConfigTest {
     @Test
     fun `a file is found by its path from the root`() {
         val root = File(folder.root, "storage")
-        assertEquals("file-manager/Docs/a.pdf", AppFilesRoot.pathOf(File(root, "file-manager/Docs/../Docs/a.pdf"), root))
+        val file = File(root, "file-manager/Docs/../Docs/a.pdf")
+        assertEquals("file-manager/Docs/a.pdf", AppFilesRoot.pathOf(file, root))
         assertNull(AppFilesRoot.pathOf(root, root))
         assertNull(AppFilesRoot.pathOf(File(folder.root, "storage2/a.pdf"), root))
         assertNull(AppFilesRoot.pathOf(File(folder.root, "a.pdf"), root))

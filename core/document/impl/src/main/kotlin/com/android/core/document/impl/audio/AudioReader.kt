@@ -89,7 +89,8 @@ internal class AudioReader(
             return Track(
                 sampleRateHz = format.intOrNull(MediaFormat.KEY_SAMPLE_RATE),
                 channelCount = format.intOrNull(MediaFormat.KEY_CHANNEL_COUNT),
-                durationUs = if (format.containsKey(MediaFormat.KEY_DURATION)) format.getLong(MediaFormat.KEY_DURATION) else null
+                durationUs = format.takeIf { it.containsKey(MediaFormat.KEY_DURATION) }
+                    ?.getLong(MediaFormat.KEY_DURATION)
             )
         } finally {
             extractor.release()
@@ -135,7 +136,8 @@ internal class AudioReader(
                 val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                 BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                 val sample = BitmapSampling.sampleSize(bounds.outWidth, bounds.outHeight, maxSizePx, maxSizePx)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
+                val options = BitmapFactory.Options().apply { inSampleSize = sample }
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
             }
         }
     }

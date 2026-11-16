@@ -19,7 +19,13 @@ internal class AudioPlayback(
     knownDurationMs: Long
 ) {
     var state by mutableStateOf(
-        AudioPlaybackUi(isReady = false, isPlaying = false, positionMs = 0, durationMs = knownDurationMs, isFailed = false)
+        AudioPlaybackUi(
+            isReady = false,
+            isPlaying = false,
+            positionMs = 0,
+            durationMs = knownDurationMs,
+            isFailed = false
+        )
     )
         private set
 

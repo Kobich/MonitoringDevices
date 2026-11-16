@@ -25,8 +25,9 @@ import com.android.appmanager.feature.filemanager.presentation.model.FileMessage
 import com.android.appmanager.feature.filemanager.presentation.model.MenuUi
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
 import com.android.appmanager.feature.filemanager.presentation.model.SelectionUi
-import com.android.core.fileaccess.Access
+import com.android.core.fileaccess.ActionAccess
 import com.android.core.fileaccess.FileAccessConfig
+import com.android.core.fileaccess.FileAccess
 import com.android.core.fileaccess.FileAccessRules
 import com.android.core.fileaccess.FileAction
 import com.android.core.fileaccess.Password
@@ -114,7 +115,9 @@ internal class FileManagerViewModel @AssistedInject constructor(
                 logClick("open_file", "list_item", "File")
                 // A password is asked by the viewer: it guards the file however it's opened.
                 when (val access = config?.access(configPath(entry))) {
-                    is Access.Message -> uiState = uiState.copy(fileMessage = FileMessageUi(entry.name, access.text))
+                    is FileAccess.Message -> {
+                        uiState = uiState.copy(fileMessage = FileMessageUi(entry.name, access.text))
+                    }
                     else -> openFile(entry)
                 }
             }
@@ -292,7 +295,8 @@ internal class FileManagerViewModel @AssistedInject constructor(
         val pending = pendingAction ?: return
         val matches = pending.password.matches(password)
         if (!matches) {
-            uiState = uiState.copy(passwordDialog = uiState.passwordDialog?.copy(error = uiMapper.text(R.string.fm_password_wrong)))
+            val wrongPassword = uiMapper.text(R.string.fm_password_wrong)
+            uiState = uiState.copy(passwordDialog = uiState.passwordDialog?.copy(error = wrongPassword))
             return
         }
         pendingAction = null
@@ -311,10 +315,10 @@ internal class FileManagerViewModel @AssistedInject constructor(
 
     /** Runs [run] if the config has [action], after its password if it has one. */
     private fun withAccess(action: FileAction, run: () -> Unit) {
-        when (val access = config?.access(action) ?: Access.Hidden) {
-            Access.Allowed, is Access.Message -> run()
-            Access.Hidden -> Unit
-            is Access.PasswordRequired -> {
+        when (val access = config?.access(action) ?: ActionAccess.Hidden) {
+            ActionAccess.Allowed -> run()
+            ActionAccess.Hidden -> Unit
+            is ActionAccess.PasswordRequired -> {
                 pendingAction = PendingAction(action, access.password, run)
                 uiState = uiState.copy(passwordDialog = uiMapper.passwordDialog(action))
             }
@@ -330,9 +334,9 @@ internal class FileManagerViewModel @AssistedInject constructor(
         this.config = config
 
         val menu = MenuUi(
-            canImport = config.access(FileAction.IMPORT) != Access.Hidden,
-            canExport = config.access(FileAction.EXPORT) != Access.Hidden,
-            canDelete = config.access(FileAction.DELETE) != Access.Hidden,
+            canImport = config.access(FileAction.IMPORT) != ActionAccess.Hidden,
+            canExport = config.access(FileAction.EXPORT) != ActionAccess.Hidden,
+            canDelete = config.access(FileAction.DELETE) != ActionAccess.Hidden,
             canCreateFolder = true
         )
         val deleteChanged = previous?.access(FileAction.DELETE) != config.access(FileAction.DELETE)
@@ -348,7 +352,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
 
     private fun List<FileEntryUi>.withAccess(): List<FileEntryUi> = map { entry ->
         val access = if (entry.isDirectory) null else config?.access(configPath(entry))
-        entry.copy(isLocked = access is Access.PasswordRequired, hasMessage = access is Access.Message)
+        entry.copy(isLocked = access is FileAccess.PasswordRequired, hasMessage = access is FileAccess.Message)
     }
 
     /** Config paths start at the folder of all storages: `<storage>/<path in it>`. */

@@ -102,7 +102,11 @@ internal class ImageReader(
         private fun decodeAnimatedDrawable(maxWidthPx: Int, maxHeightPx: Int): Drawable? {
             val drawable = try {
                 ImageDecoder.decodeDrawable(ImageDecoder.createSource(file)) { decoder, info, _ ->
-                    val scale = minOf(1f, maxWidthPx.toFloat() / info.size.width, maxHeightPx.toFloat() / info.size.height)
+                    val scale = minOf(
+                        1f,
+                        maxWidthPx.toFloat() / info.size.width,
+                        maxHeightPx.toFloat() / info.size.height
+                    )
                     if (scale < 1f) {
                         decoder.setTargetSize(
                             (info.size.width * scale).toInt().coerceAtLeast(1),

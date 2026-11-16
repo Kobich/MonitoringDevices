@@ -22,18 +22,19 @@ class FileAccessConfig(
         require(this.files.size == files.size) { "Paths of the same file: ${files.keys}" }
     }
 
-    fun access(action: FileAction): Access {
-        if (actions == null) return Access.Allowed
-        if (action !in actions) return Access.Hidden
-        return actions[action]?.let(Access::PasswordRequired) ?: Access.Allowed
+    fun access(action: FileAction): ActionAccess {
+        if (actions == null) return ActionAccess.Allowed
+        if (action !in actions) return ActionAccess.Hidden
+        val password = actions[action] ?: return ActionAccess.Allowed
+        return ActionAccess.PasswordRequired(password)
     }
 
-    /** For a file at [path] from [AppFilesRoot]; never [Access.Hidden]. A message comes before a password. */
-    fun access(path: String): Access {
-        val rule = runCatching { files[normalizePath(path)] }.getOrNull() ?: return Access.Allowed
-        rule.message?.let { message -> return Access.Message(message) }
-        rule.password?.let { password -> return Access.PasswordRequired(password) }
-        return Access.Allowed
+    /** For a file at [path] from [AppFilesRoot]. A message comes before a password. */
+    fun access(path: String): FileAccess {
+        val rule = runCatching { files[normalizePath(path)] }.getOrNull() ?: return FileAccess.Allowed
+        rule.message?.let { message -> return FileAccess.Message(message) }
+        rule.password?.let { password -> return FileAccess.PasswordRequired(password) }
+        return FileAccess.Allowed
     }
 
     override fun equals(other: Any?): Boolean =
@@ -79,22 +80,32 @@ enum class FileAction(val key: String) {
 class FileRule(message: String?, val password: Password?) {
     val message: String? = message?.takeIf { it.isNotBlank() }
 
-    override fun equals(other: Any?): Boolean = other is FileRule && other.message == message && other.password == password
+    override fun equals(other: Any?): Boolean =
+        other is FileRule && other.message == message && other.password == password
 
     override fun hashCode(): Int = 31 * message.hashCode() + password.hashCode()
 }
 
-sealed interface Access {
-    data object Allowed : Access
+/** What the config lets an action do. */
+sealed interface ActionAccess {
+    data object Allowed : ActionAccess
 
-    /** The action is unavailable: hide it. */
-    data object Hidden : Access
+    /** Not in the menu of the config: hide it. */
+    data object Hidden : ActionAccess
 
-    /** Asked each time the action runs or the file opens. */
-    data class PasswordRequired(val password: Password) : Access
+    /** Asked each time the action runs. */
+    data class PasswordRequired(val password: Password) : ActionAccess
+}
+
+/** What the config lets a file do when it's opened. */
+sealed interface FileAccess {
+    data object Allowed : FileAccess
+
+    /** Asked each time the file opens. */
+    data class PasswordRequired(val password: Password) : FileAccess
 
     /** Shown instead of opening the file. */
-    data class Message(val text: String) : Access
+    data class Message(val text: String) : FileAccess
 }
 
 /** Kept as the config gives it for now; a hash can take its place without changes for callers. */

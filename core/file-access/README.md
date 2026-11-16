@@ -10,7 +10,7 @@
 
 ```
 core/file-access/src/main/kotlin/com/android/core/fileaccess/
-├── FileAccessConfig.kt        # модель: действия с паролями, правила файлов, Access, Password
+├── FileAccessConfig.kt        # модель: действия с паролями, правила файлов, ActionAccess, FileAccess, Password
 ├── FileAccessConfigJson.kt    # разбор JSON администратора
 ├── FileAccessConfigSource.kt  # откуда конфиг: реализует приложение
 ├── FileAccessRules.kt         # текущий конфиг для фич: Flow, без источника — Unrestricted
@@ -58,8 +58,8 @@ core/file-access/src/main/kotlin/com/android/core/fileaccess/
 | `FileAccessConfigSource.config: Flow<FileAccessConfig?>` | Реализует приложение. Должен сразу отдавать значение: экраны ждут первое, прежде чем показать закрытое. `null` и ошибка в потоке — «конфига нет»; после ошибки поток собирается заново через 5 с |
 | `FileAccessRules.config: Flow<FileAccessConfig>` | Текущий конфиг для фич; без источника — `FileAccessConfig.Unrestricted` |
 | `FileAccessConfigJson.parse(json, onProblem): FileAccessConfig?` | Разбор формата выше |
-| `FileAccessConfig.access(action): Access` | `Allowed`, `Hidden` или `PasswordRequired` |
-| `FileAccessConfig.access(path): Access` | `Allowed`, `Message` или `PasswordRequired` |
+| `FileAccessConfig.access(action): ActionAccess` | `Allowed`, `Hidden` или `PasswordRequired` |
+| `FileAccessConfig.access(path): FileAccess` | `Allowed`, `Message` или `PasswordRequired` |
 | `Password.matches(input)` | Сравнение пароля; `toString()` пароль не показывает |
 | `AppFilesRoot.directory(context)` / `pathOf(file, root)` | Корень файлов приложения и путь файла от него, как в конфиге |
 

@@ -22,6 +22,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
 /** No text extraction; androidx.pdf or pdfium could add it. */
@@ -69,8 +70,9 @@ internal class PdfReader(
         private val descriptor: ParcelFileDescriptor,
         private val renderer: PdfRenderer
     ) : PdfDocument {
+        /** One page at a time: PdfRenderer allows a single open page. */
         private val mutex = Mutex()
-        private var isClosed = false
+        private val isClosed = AtomicBoolean(false)
 
         override val format: DocumentFormat = DocumentFormat.PDF
         override val pageCount: Int = renderer.pageCount
@@ -95,10 +97,7 @@ internal class PdfReader(
 
         /** Returns at once; the renderer is released after a page that is rendering now. */
         override fun close() {
-            synchronized(this) {
-                if (isClosed) return
-                isClosed = true
-            }
+            if (!isClosed.compareAndSet(false, true)) return
             closeScope.launch {
                 mutex.withLock {
                     renderer.close()
@@ -111,9 +110,7 @@ internal class PdfReader(
             if (pageIndex !in 0 until pageCount) throw IndexOutOfBoundsException("Page $pageIndex of $pageCount")
             return withContext(ioDispatcher) {
                 mutex.withLock {
-                    if (synchronized(this@RendererPdfDocument) { isClosed }) {
-                        throw DocumentReadException(Reason.IO_ERROR, "Document is closed")
-                    }
+                    if (isClosed.get()) throw DocumentReadException(Reason.IO_ERROR, "Document is closed")
                     mapReadErrors { renderer.openPage(pageIndex).use(block) }
                 }
             }

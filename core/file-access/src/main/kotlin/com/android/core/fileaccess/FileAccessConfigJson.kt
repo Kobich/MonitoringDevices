@@ -27,9 +27,11 @@ object FileAccessConfigJson {
         return try {
             val root = JSONObject(json)
             val parameters = root.optJSONObject("parameters") ?: root
+            val menuItems = parameters.optArray("menu")
+            val fileItems = parameters.optArray("initial_files")
             FileAccessConfig(
-                actions = if (parameters.has("menu")) menu(parameters.getJSONArray("menu"), onProblem) else null,
-                files = if (parameters.has("initial_files")) files(parameters.getJSONArray("initial_files"), onProblem) else emptyMap()
+                actions = menuItems?.let { items -> menu(items, onProblem) },
+                files = fileItems?.let { items -> files(items, onProblem) }.orEmpty()
             )
         } catch (error: JSONException) {
             onProblem("Not a config: ${error.message}")
@@ -56,21 +58,32 @@ object FileAccessConfigJson {
     private fun files(items: JSONArray, onProblem: (String) -> Unit): Map<String, FileRule> {
         val files = linkedMapOf<String, FileRule>()
         items.objects(onProblem).forEach { item ->
-            val path = item.text("path")?.let { path -> runCatching { FileAccessConfig.normalizePath(path) }.getOrNull() }
+            val path = item.text("path")?.let(::normalizedOrNull)
             when {
                 path == null -> onProblem("Invalid file path: ${item.opt("path")}")
                 path in files -> onProblem("Repeated file path: $path")
-                else -> files[path] = FileRule(message = item.text("message"), password = item.text("password")?.let(::Password))
+                else -> {
+                    val password = item.text("password")?.let(::Password)
+                    files[path] = FileRule(message = item.text("message"), password = password)
+                }
             }
         }
         return files
     }
 
-    private fun JSONArray.objects(onProblem: (String) -> Unit): List<JSONObject> = (0 until length()).mapNotNull { index ->
-        val item = optJSONObject(index)
-        if (item == null) onProblem("Not an object: ${opt(index)}")
-        item
+    private fun JSONArray.objects(onProblem: (String) -> Unit): List<JSONObject> {
+        return (0 until length()).mapNotNull { index ->
+            val item = optJSONObject(index)
+            if (item == null) onProblem("Not an object: ${opt(index)}")
+            item
+        }
     }
+
+    /** A present field must be an array: anything else makes the config broken. */
+    private fun JSONObject.optArray(name: String): JSONArray? = if (has(name)) getJSONArray(name) else null
+
+    private fun normalizedOrNull(path: String): String? =
+        runCatching { FileAccessConfig.normalizePath(path) }.getOrNull()
 
     /** A non-empty string; `optString` would turn JSON `null` into "null". */
     private fun JSONObject.text(name: String): String? =

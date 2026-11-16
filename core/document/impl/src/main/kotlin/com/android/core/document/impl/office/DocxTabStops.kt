@@ -1,15 +1,14 @@
 package com.android.core.document.impl.office
 
-import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_WORD
 import com.android.core.document.impl.ooxml.OoxmlXml.REL_SETTINGS
 import com.android.core.document.impl.ooxml.OoxmlXml.REL_STYLES
 import com.android.core.document.impl.ooxml.OoxmlXml.child
 import com.android.core.document.impl.ooxml.OoxmlXml.children
 import com.android.core.document.impl.ooxml.OoxmlXml.descendants
+import com.android.core.document.impl.ooxml.editWordMainPart
 import org.w3c.dom.Element
 import java.io.File
-import java.util.zip.ZipFile
 import kotlin.math.roundToInt
 
 /**
@@ -20,31 +19,21 @@ import kotlin.math.roundToInt
  */
 internal class DocxTabStops : DocumentPatch {
 
-    override fun apply(input: File, output: File): Boolean {
-        ZipFile(input).use { zip ->
-            val ooxml = OoxmlPackage(zip)
-            val documentPath = ooxml.mainPartPath(fallback = "word/document.xml")
-            val document = ooxml.part(documentPath)
-            val relationships = ooxml.relationships(documentPath)
-            val styles = WordParagraphStyles(relationships.firstTargetOfType(REL_STYLES)?.let(ooxml::partOrNull))
-            val defaultStep = relationships.firstTargetOfType(REL_SETTINGS)?.let(ooxml::partOrNull)
-                ?.documentElement?.child(NS_WORD, "defaultTabStop")?.wordAttribute("val")?.toIntOrNull()
-                ?.takeIf { it > 0 } ?: DEFAULT_TAB_STOP
-            val bookmarks = WordBookmarks(document)
+    override fun apply(input: File, output: File): Boolean = editWordMainPart(input, output) { word ->
+        val styles = WordParagraphStyles(word.relationships.firstTargetOfType(REL_STYLES)?.let(word.ooxml::partOrNull))
+        val defaultStep = word.relationships.firstTargetOfType(REL_SETTINGS)?.let(word.ooxml::partOrNull)
+            ?.documentElement?.child(NS_WORD, "defaultTabStop")?.wordAttribute("val")?.toIntOrNull()
+            ?.takeIf { it > 0 } ?: DEFAULT_TAB_STOP
+        val bookmarks = WordBookmarks(word.document)
 
-            var marked = 0
-            document.documentElement.descendants(NS_WORD, "p").forEach { paragraph ->
-                if (!paragraph.hasTabs()) return@forEach
-                val stops = tabStops(styles.sources(paragraph)).takeIf { it.isNotEmpty() } ?: return@forEach
-                bookmarks.insertAtStart(paragraph, bookmarkName(defaultStep, stops, marked))
-                marked++
-            }
-
-            if (marked == 0) return false
-            ooxml.markModified(documentPath)
-            ooxml.writeTo(output)
-            return true
+        var marked = 0
+        word.document.documentElement.descendants(NS_WORD, "p").forEach { paragraph ->
+            if (!paragraph.hasTabs()) return@forEach
+            val stops = tabStops(styles.sources(paragraph)).takeIf { it.isNotEmpty() } ?: return@forEach
+            bookmarks.insertAtStart(paragraph, bookmarkName(defaultStep, stops, marked))
+            marked++
         }
+        marked
     }
 
     /** The tab the script sizes; its bottom sits on the baseline, where the leader is drawn. */

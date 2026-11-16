@@ -190,12 +190,18 @@ private fun SelectionTopBar(
         actions = {
             if (menu.canDelete) {
                 IconButton(onClick = actions::onDeleteSelectedClick, enabled = isActionsEnabled) {
-                    Icon(imageVector = AppIcons.Delete, contentDescription = stringResource(R.string.fm_delete_selected))
+                    Icon(
+                        imageVector = AppIcons.Delete,
+                        contentDescription = stringResource(R.string.fm_delete_selected)
+                    )
                 }
             }
             Box {
                 IconButton(onClick = { isMenuExpanded = true }, enabled = isActionsEnabled) {
-                    Icon(imageVector = AppIcons.More, contentDescription = stringResource(R.string.fm_selection_actions))
+                    Icon(
+                        imageVector = AppIcons.More,
+                        contentDescription = stringResource(R.string.fm_selection_actions)
+                    )
                 }
                 DropdownMenu(expanded = isMenuExpanded, onDismissRequest = { isMenuExpanded = false }) {
                     DropdownMenuItem(

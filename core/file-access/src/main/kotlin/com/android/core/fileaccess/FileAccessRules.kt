@@ -9,7 +9,10 @@ import kotlinx.coroutines.flow.retryWhen
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The current config for the features: changes while they're open, [FileAccessConfig.Unrestricted] when there's none. */
+/**
+ * The current config for the features: it changes while they're open, and it's [FileAccessConfig.Unrestricted] when
+ * there's none.
+ */
 @Singleton
 class FileAccessRules @Inject constructor(
     sources: Set<@JvmSuppressWildcards FileAccessConfigSource>

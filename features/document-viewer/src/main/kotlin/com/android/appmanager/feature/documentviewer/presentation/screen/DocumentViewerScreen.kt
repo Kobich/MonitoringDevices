@@ -78,7 +78,9 @@ internal fun DocumentViewerScreen(
         ) {
             val isLoadingVisible = rememberDelayedVisibility(state.content is ViewerContent.Loading)
             when (val content = state.content) {
-                ViewerContent.Loading -> if (isLoadingVisible) LoadingContent(text = stringResource(R.string.viewer_opening))
+                ViewerContent.Loading -> {
+                    if (isLoadingVisible) LoadingContent(text = stringResource(R.string.viewer_opening))
+                }
 
                 ViewerContent.Locked -> MessageContent(title = stringResource(R.string.viewer_locked))
 

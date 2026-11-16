@@ -90,7 +90,8 @@ internal fun AudioDocumentContent(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
-            listOfNotNull(document.artist, document.album).joinToString(" · ").takeIf { it.isNotEmpty() }?.let { subtitle ->
+            val subtitle = listOfNotNull(document.artist, document.album).joinToString(" · ")
+            if (subtitle.isNotEmpty()) {
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
@@ -160,7 +161,9 @@ private fun PlaybackControls(
             else -> FilledIconButton(onClick = onPlayPauseClick, modifier = Modifier.size(72.dp)) {
                 Icon(
                     imageVector = if (playback.isPlaying) AppIcons.Pause else AppIcons.Play,
-                    contentDescription = stringResource(if (playback.isPlaying) R.string.viewer_pause else R.string.viewer_play),
+                    contentDescription = stringResource(
+                        if (playback.isPlaying) R.string.viewer_pause else R.string.viewer_play
+                    ),
                     modifier = Modifier.size(36.dp)
                 )
             }

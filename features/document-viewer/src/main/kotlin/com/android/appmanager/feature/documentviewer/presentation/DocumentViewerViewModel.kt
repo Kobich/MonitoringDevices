@@ -19,8 +19,9 @@ import com.android.core.document.api.DocumentReader
 import com.android.core.document.api.document.AudioDocument
 import com.android.core.document.api.document.Document
 import com.android.core.document.api.document.VideoDocument
-import com.android.core.fileaccess.Access
+import com.android.core.fileaccess.ActionAccess
 import com.android.core.fileaccess.AppFilesRoot
+import com.android.core.fileaccess.FileAccess
 import com.android.core.fileaccess.FileAccessConfig
 import com.android.core.fileaccess.FileAccessRules
 import com.android.core.fileaccess.FileAction
@@ -59,8 +60,8 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     private var openedDocument: Document? = null
 
     /** What the config asked of the file when it was let through; `null` until then. */
-    private var openedWith: Access? = null
-    private var exportAccess: Access = Access.Hidden
+    private var openedWith: FileAccess? = null
+    private var exportAccess: ActionAccess = ActionAccess.Hidden
     private var pendingPassword: PendingPassword? = null
 
     var uiState by mutableStateOf(
@@ -95,9 +96,9 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     fun onOpenInOtherAppClick() {
         logClick("open_in_other_app", "icon_button", "Open in another app")
         when (val access = exportAccess) {
-            Access.Allowed, is Access.Message -> uiState = uiState.copy(isOpenInOtherAppRequested = true)
-            Access.Hidden -> Unit
-            is Access.PasswordRequired -> askPassword(PendingPassword.Export(access.password))
+            ActionAccess.Allowed -> uiState = uiState.copy(isOpenInOtherAppRequested = true)
+            ActionAccess.Hidden -> Unit
+            is ActionAccess.PasswordRequired -> askPassword(PendingPassword.Export(access.password))
         }
     }
 
@@ -110,13 +111,14 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
         val pending = pendingPassword ?: return
         val matches = pending.password.matches(password)
         if (!matches) {
-            uiState = uiState.copy(passwordDialog = uiState.passwordDialog?.copy(error = R.string.viewer_password_wrong))
+            val dialog = uiState.passwordDialog?.copy(error = R.string.viewer_password_wrong)
+            uiState = uiState.copy(passwordDialog = dialog)
             return
         }
         pendingPassword = null
         uiState = uiState.copy(passwordDialog = null)
         when (pending) {
-            is PendingPassword.OpenFile -> open(Access.PasswordRequired(pending.password))
+            is PendingPassword.OpenFile -> open(FileAccess.PasswordRequired(pending.password))
             is PendingPassword.Export -> uiState = uiState.copy(isOpenInOtherAppRequested = true)
         }
     }
@@ -133,44 +135,50 @@ internal class DocumentViewerViewModel @AssistedInject constructor(
     }
 
     private fun onConfigChanged(config: FileAccessConfig, path: String?) {
-        val access = path?.let { config.access(it) } ?: Access.Allowed
-        val previousExport = exportAccess
-        exportAccess = config.access(FileAction.EXPORT)
+        onExportAccessChanged(config.access(FileAction.EXPORT))
+        val fileAccess = path?.let { config.access(it) } ?: FileAccess.Allowed
+        val openedWith = openedWith
+        when {
+            openedWith == null -> openUnderConfig(fileAccess)
+            // A new password, or a message, while the file is open: it shouldn't stay on screen.
+            fileAccess != FileAccess.Allowed && fileAccess != openedWith -> close()
+        }
+    }
 
-        if (pendingPassword is PendingPassword.Export && exportAccess != previousExport) {
+    private fun onExportAccessChanged(access: ActionAccess) {
+        if (access == exportAccess) return
+        exportAccess = access
+        if (pendingPassword is PendingPassword.Export) {
             pendingPassword = null
             uiState = uiState.copy(passwordDialog = null)
         }
-
-        val openedWith = openedWith
-        when {
-            openedWith == null -> {
-                pendingPassword = null
-                uiState = uiState.copy(passwordDialog = null)
-                when (access) {
-                    Access.Allowed, Access.Hidden -> open(Access.Allowed)
-                    is Access.Message -> uiState = uiState.copy(content = ViewerContent.Unavailable(access.text))
-                    is Access.PasswordRequired -> {
-                        uiState = uiState.copy(content = ViewerContent.Locked)
-                        askPassword(PendingPassword.OpenFile(access.password))
-                    }
-                }
-            }
-            // A new password, or a message, while the file is open: it shouldn't stay on screen.
-            access != Access.Allowed && access != openedWith -> {
-                loadJob?.cancel()
-                closeOpenedDocument()
-                uiState = uiState.copy(content = ViewerContent.Loading, canOpenInOtherApp = false, isCloseRequested = true)
-                return
-            }
-        }
-        uiState = uiState.copy(canOpenInOtherApp = this.openedWith != null && exportAccess != Access.Hidden)
+        uiState = uiState.copy(canOpenInOtherApp = openedWith != null && access != ActionAccess.Hidden)
     }
 
-    private fun open(access: Access) {
+    /** Before the file is open: show it, its message, or ask for its password. */
+    private fun openUnderConfig(access: FileAccess) {
+        pendingPassword = null
+        uiState = uiState.copy(passwordDialog = null)
+        when (access) {
+            FileAccess.Allowed -> open(FileAccess.Allowed)
+            is FileAccess.Message -> uiState = uiState.copy(content = ViewerContent.Unavailable(access.text))
+            is FileAccess.PasswordRequired -> {
+                uiState = uiState.copy(content = ViewerContent.Locked)
+                askPassword(PendingPassword.OpenFile(access.password))
+            }
+        }
+    }
+
+    private fun open(access: FileAccess) {
         openedWith = access
-        uiState = uiState.copy(canOpenInOtherApp = exportAccess != Access.Hidden)
+        uiState = uiState.copy(canOpenInOtherApp = exportAccess != ActionAccess.Hidden)
         load()
+    }
+
+    private fun close() {
+        loadJob?.cancel()
+        closeOpenedDocument()
+        uiState = uiState.copy(content = ViewerContent.Loading, canOpenInOtherApp = false, isCloseRequested = true)
     }
 
     private fun askPassword(pending: PendingPassword) {

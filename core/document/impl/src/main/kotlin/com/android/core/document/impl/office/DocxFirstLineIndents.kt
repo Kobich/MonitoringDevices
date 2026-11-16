@@ -1,13 +1,12 @@
 package com.android.core.document.impl.office
 
-import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_WORD
 import com.android.core.document.impl.ooxml.OoxmlXml.REL_STYLES
 import com.android.core.document.impl.ooxml.OoxmlXml.child
 import com.android.core.document.impl.ooxml.OoxmlXml.descendants
+import com.android.core.document.impl.ooxml.editWordMainPart
 import org.w3c.dom.Element
 import java.io.File
-import java.util.zip.ZipFile
 import kotlin.math.roundToInt
 
 /**
@@ -17,27 +16,17 @@ import kotlin.math.roundToInt
  */
 internal class DocxFirstLineIndents : DocumentPatch {
 
-    override fun apply(input: File, output: File): Boolean {
-        ZipFile(input).use { zip ->
-            val ooxml = OoxmlPackage(zip)
-            val documentPath = ooxml.mainPartPath(fallback = "word/document.xml")
-            val document = ooxml.part(documentPath)
-            val stylesPart = ooxml.relationships(documentPath).firstTargetOfType(REL_STYLES)?.let(ooxml::partOrNull)
-            val styles = WordParagraphStyles(stylesPart)
-            val bookmarks = WordBookmarks(document)
+    override fun apply(input: File, output: File): Boolean = editWordMainPart(input, output) { word ->
+        val styles = WordParagraphStyles(word.relationships.firstTargetOfType(REL_STYLES)?.let(word.ooxml::partOrNull))
+        val bookmarks = WordBookmarks(word.document)
 
-            var marked = 0
-            document.documentElement.descendants(NS_WORD, "p").forEach { paragraph ->
-                val twips = firstLineTwips(styles.sources(paragraph)) ?: return@forEach
-                bookmarks.insertAtStart(paragraph, bookmarkName(twips, marked))
-                marked++
-            }
-
-            if (marked == 0) return false
-            ooxml.markModified(documentPath)
-            ooxml.writeTo(output)
-            return true
+        var marked = 0
+        word.document.documentElement.descendants(NS_WORD, "p").forEach { paragraph ->
+            val twips = firstLineTwips(styles.sources(paragraph)) ?: return@forEach
+            bookmarks.insertAtStart(paragraph, bookmarkName(twips, marked))
+            marked++
         }
+        marked
     }
 
     /** Rules for the marks in [outputs], the converted HTML and its scripts; empty when there are none. */
