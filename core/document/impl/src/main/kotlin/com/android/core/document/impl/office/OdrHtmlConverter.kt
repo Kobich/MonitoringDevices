@@ -32,13 +32,15 @@ internal class OdrHtmlConverter(
     /**
      * [prepare] turns [file] into the file actually rendered (e.g. charts replaced by pictures) and may
      * write into the given work folder. [variant] is part of the cache key: different [prepare] steps
-     * need different values. [extraCss] gets the converted HTML and its scripts, read only when it asks.
+     * need different values. [extraCss] gets the converted HTML and its scripts, read only when it asks;
+     * [extraScript] goes into every page as is.
      */
     suspend fun convert(
         file: File,
         format: DocumentFormat,
         variant: String,
         extraCss: (outputs: Sequence<String>) -> String = { "" },
+        extraScript: String = "",
         prepare: (file: File, workDirectory: File) -> File = { original, _ -> original }
     ): HtmlDocument = withContext(ioDispatcher) {
         // A ready document doesn't wait for another one being converted.
@@ -49,7 +51,9 @@ internal class OdrHtmlConverter(
                 val workDirectory = cache.newWorkDirectory()
                 try {
                     val input = prepare(file, workDirectory)
-                    cache.store(file, variant) { outputDirectory -> render(input, outputDirectory, format, extraCss) }
+                    cache.store(file, variant) { outputDirectory ->
+                        render(input, outputDirectory, format, extraCss, extraScript)
+                    }
                         .also { stored ->
                             Log.d(TAG, "convert: ${file.name} done, pages=${stored.pages.size}, ${System.currentTimeMillis() - startedAt} ms")
                         }
@@ -65,7 +69,8 @@ internal class OdrHtmlConverter(
         input: File,
         outputDirectory: File,
         format: DocumentFormat,
-        extraCss: (Sequence<String>) -> String
+        extraCss: (Sequence<String>) -> String,
+        extraScript: String
     ): List<HtmlPage> {
         try {
             Odr.open(input.path).use { decoded ->
@@ -102,7 +107,7 @@ internal class OdrHtmlConverter(
                                 HtmlPage(title = page.name, file = file)
                             }
                         val css = EXTRA_CSS + extraCss(outputTexts(outputDirectory))
-                        pages.forEach { page -> page.file.addStyle(css) }
+                        pages.forEach { page -> page.file.addToHead(css, extraScript) }
                         return pages
                     } finally {
                         views.forEach { view -> runCatching { view.close() } }
@@ -136,14 +141,15 @@ internal class OdrHtmlConverter(
             .map { file -> file.readText() }
     }
 
-    private fun File.addStyle(css: String) {
+    private fun File.addToHead(css: String, script: String) {
         val html = readText()
         val headEnd = html.indexOf("</head>")
         if (headEnd < 0) {
-            Log.w(TAG, "addStyle: no </head> in $name")
+            Log.w(TAG, "addToHead: no </head> in $name")
             return
         }
-        writeText(html.substring(0, headEnd) + "<style>$css</style>" + html.substring(headEnd))
+        val scriptTag = if (script.isEmpty()) "" else "<script>$script</script>"
+        writeText(html.substring(0, headEnd) + "<style>$css</style>" + scriptTag + html.substring(headEnd))
     }
 
     private fun OdrException.toReadException(): DocumentReadException {

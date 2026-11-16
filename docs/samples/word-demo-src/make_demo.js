@@ -5,7 +5,7 @@ const path = require('path');
 const {
   Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, LevelFormat, Table, TableRow, TableCell,
   WidthType, BorderStyle, ShadingType, VerticalAlign, ImageRun, TabStopType, Header, Footer, PageNumber,
-  ExternalHyperlink, FootnoteReferenceRun, UnderlineType, HighlightColor, SectionType,
+  ExternalHyperlink, Tab, FootnoteReferenceRun, UnderlineType, HighlightColor, SectionType,
   LineRuleType, HorizontalPositionRelativeFrom, VerticalPositionRelativeFrom, HorizontalPositionAlign, TextWrappingType, TextWrappingSide,
 } = require('docx');
 
@@ -69,13 +69,13 @@ children.push(
 children.push(
   h1('2. Табуляция'),
   check('столбцы встают по позициям табуляции: левой, по центру, правой и по десятичной точке; у правой — заполнитель точками.'),
-  runs([new TextRun('Слева'), new TextRun({ text: '\tПо центру', }), new TextRun('\tСправа')], {
+  runs([new TextRun('Слева'), new TextRun({ children: [new Tab(), 'По центру'] }), new TextRun({ children: [new Tab(), 'Справа'] })], {
     tabStops: [{ type: TabStopType.CENTER, position: PAGE_TEXT_WIDTH / 2 }, { type: TabStopType.RIGHT, position: PAGE_TEXT_WIDTH }],
   }),
   ...[['Введение', '3'], ['Установка датчиков', '12'], ['Журнал событий', '27']].map(([title, page]) =>
-    runs([new TextRun(title), new TextRun(`\t${page}`)], { tabStops: [{ type: TabStopType.RIGHT, position: PAGE_TEXT_WIDTH, leader: 'dot' }] })),
+    runs([new TextRun(title), new TextRun({ children: [new Tab(), page] })], { tabStops: [{ type: TabStopType.RIGHT, position: PAGE_TEXT_WIDTH, leader: 'dot' }] })),
   ...[['Напряжение', '220.5'], ['Ток', '3.75'], ['Мощность', '826.875']].map(([name, value]) =>
-    runs([new TextRun(name), new TextRun(`\t${value}`)], { tabStops: [{ type: TabStopType.DECIMAL, position: 4000 }] })),
+    runs([new TextRun(name), new TextRun({ children: [new Tab(), value] })], { tabStops: [{ type: TabStopType.DECIMAL, position: 4000 }] })),
 );
 
 // 3. Indents and spacing

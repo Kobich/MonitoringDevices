@@ -9,4 +9,8 @@ internal fun interface DocumentPatch {
 
     /** Extra CSS for the converted pages; [outputs] are the converted HTML and its scripts. */
     fun css(outputs: Sequence<String>): String = ""
+
+    /** A script for the converted pages, for what CSS can't do. */
+    val script: String
+        get() = ""
 }

@@ -23,7 +23,8 @@ internal class OfficeReader(
             file,
             format,
             variant = VARIANT_PATCHED,
-            extraCss = { outputs -> patches.joinToString(separator = "") { patch -> patch.css(outputs) } }
+            extraCss = { outputs -> patches.joinToString(separator = "") { patch -> patch.css(outputs) } },
+            extraScript = patches.joinToString(separator = "") { patch -> patch.script }
         ) { original, workDirectory ->
             patches.foldIndexed(original) { index, current, patch ->
                 val output = File(workDirectory, "patch-$index.${original.extension}")

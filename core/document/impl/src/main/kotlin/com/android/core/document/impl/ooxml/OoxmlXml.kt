@@ -25,6 +25,7 @@ internal object OoxmlXml {
     const val REL_OFFICE_DOCUMENT = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument"
     const val REL_IMAGE = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
     const val REL_STYLES = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles"
+    const val REL_SETTINGS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings"
     const val REL_THEME = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme"
 
     fun parse(input: InputStream): Document {

@@ -27,6 +27,7 @@ import com.android.core.document.impl.chart.DocxChartRasterizer
 import com.android.core.document.impl.chart.PptxChartRasterizer
 import com.android.core.document.impl.image.ImageReader
 import com.android.core.document.impl.office.DocxFirstLineIndents
+import com.android.core.document.impl.office.DocxTabStops
 import com.android.core.document.impl.office.OdrHtmlConverter
 import com.android.core.document.impl.office.OfficeReader
 import com.android.core.document.impl.pdf.PdfReader
@@ -62,7 +63,11 @@ class DocumentCore(context: Context) {
         )
         if (converter != null) {
             val charts = ChartImageRenderer()
-            readers += OfficeReader(converter, setOf(DOCX), listOf(DocxChartRasterizer(charts), DocxFirstLineIndents()))
+            readers += OfficeReader(
+                converter,
+                setOf(DOCX),
+                listOf(DocxChartRasterizer(charts), DocxFirstLineIndents(), DocxTabStops())
+            )
             readers += OfficeReader(converter, setOf(PPTX), listOf(PptxChartRasterizer(charts)))
             readers += OfficeReader(
                 converter,
