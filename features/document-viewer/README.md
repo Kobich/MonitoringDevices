@@ -17,16 +17,27 @@ features/document-viewer/
 │       ├── DocumentViewerFeatureScreen.kt # Route: ViewModel по File, пауза при уходе в фон
 │       ├── DocumentViewerViewModel.kt     # открывает документ, ошибки; владеет документом и плеерами
 │       ├── AudioPlayback.kt               # состояние аудиоплеера: прогресс, play/pause/seek
-│       ├── model/                         # UiState: Loading / Loaded(document) / Error
+│       ├── model/                         # UiState: Loading / Locked / Unavailable / Loaded(document) / Error
 │       └── screen/                        # экран и по экрану на вид документа
 └── src/main/res/values/strings.xml        # строки с префиксом viewer_
 ```
 
 * **Слой:** Presentation.
 * **Ключевые технологии:** Jetpack Compose, Material 3, Hilt (assisted injection: ViewModel создаётся под `File`), Media3 ExoPlayer, WebView + `WebViewAssetLoader`.
-* **Зависимости:** `:core:document:api`, `:core:common-ui`, `:core:logger:client:api`. Нажатия пользователя уходят в `ActionLogger` из `:core:logger:client:api` (`UiActionLog.kt`, экран `document_viewer`); имена файлов в лог не пишутся. `DocumentReader` фича берёт из графа Hilt приложения: его даёт `:core:document:impl` (см. `DocumentCoreModule` в `:app`).
+* **Зависимости:** `:core:document:api`, `:core:common-ui`, `:core:logger:client:api`, `:core:file-access` (конфиг администратора). Нажатия пользователя уходят в `ActionLogger` из `:core:logger:client:api` (`UiActionLog.kt`, экран `document_viewer`); имена файлов в лог не пишутся. `DocumentReader` фича берёт из графа Hilt приложения: его даёт `:core:document:impl` (см. `DocumentCoreModule` в `:app`).
 
 Минимальная версия SDK: 23. Версия компиляции SDK: 36.
+
+### Конфиг администратора
+
+Просмотрщик сам применяет конфиг из `FileAccessRules` модуля `:core:file-access`, как бы его ни открыли: из менеджера, по пути из другого места или заново после смерти процесса. Пока не пришёл первый конфиг, показывается загрузка.
+
+- **`message` у файла** — вместо файла показывается сообщение.
+- **`password` у файла** — пароль спрашивается при каждом открытии экрана; «Отмена» закрывает просмотрщик.
+- **«Открыть в другом приложении»** — это экспорт: кнопки нет, если `export` нет в `menu`, и спрашивается пароль экспорта, если он задан. Кнопка появляется только после того, как файл открыт.
+- **Смена конфига** — если у открытого файла появился или сменился пароль или появилось сообщение, просмотрщик закрывается (`onBackClick`).
+
+Путь в конфиге считается от `filesDir/storage`; у файлов вне этой папки правил файлов нет.
 
 ### Как показывается каждый вид
 

@@ -18,6 +18,10 @@ internal data class FileManagerUiState(
     val pendingDeletion: DeletionUi?,
     val createDirectoryDialog: CreateDirectoryDialogUi?,
     val passwordDialog: PasswordDialogUi?,
+    /** The administrator's message of a file, shown instead of opening it. */
+    val fileMessage: FileMessageUi?,
+    /** What the config makes available. */
+    val menu: MenuUi,
     /** One-shot message for a snackbar, cleared by `onMessageShown`. */
     val message: String?,
     /** One-shot request to show a system picker, cleared by `onPickerShown`. */
@@ -36,8 +40,10 @@ internal data class FileEntryUi(
     val isDirectory: Boolean,
     val kind: FileKind,
     val details: String,
-    /** Protected with a password that hasn't been entered on this screen yet. */
-    val isLocked: Boolean = false
+    /** Opens only with a password. */
+    val isLocked: Boolean = false,
+    /** Shows a message instead of opening. */
+    val hasMessage: Boolean = false
 )
 
 @Immutable
@@ -70,11 +76,31 @@ internal data class CreateDirectoryDialogUi(
 
 @Immutable
 internal data class PasswordDialogUi(
-    /** The protected file the password is asked for. */
-    val fileName: String,
-    val error: String?,
-    val isChecking: Boolean
+    val title: String,
+    val error: String?
 )
+
+@Immutable
+internal data class FileMessageUi(
+    val fileName: String,
+    val text: String
+)
+
+@Immutable
+internal data class MenuUi(
+    val canImport: Boolean,
+    val canExport: Boolean,
+    val canDelete: Boolean
+) {
+    /** Selection is only good for export and delete. */
+    val canSelect: Boolean
+        get() = canExport || canDelete
+
+    companion object {
+        /** Before the config arrives. */
+        val None = MenuUi(canImport = false, canExport = false, canDelete = false)
+    }
+}
 
 @Immutable
 internal sealed interface PickerUi {

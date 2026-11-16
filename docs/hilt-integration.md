@@ -1,6 +1,6 @@
 # Внедрение файлового менеджера и просмотрщика через Hilt
 
-Инструкция для приложения, которое уже использует Hilt и подключает три модуля: `:core:document`, `:features:file-manager` и `:features:document-viewer`.
+Инструкция для приложения, которое уже использует Hilt и подключает модули `:core:document`, `:features:file-manager` и `:features:document-viewer`, а с ними `:core:file-access` — конфиг администратора, которому подчиняются обе фичи.
 
 ## Что поставляется
 
@@ -8,6 +8,7 @@
 |---|---|---|
 | `:core:document:api` | контракт чтения файлов: `DocumentReader`, виды документов, ошибки | нет |
 | `:core:document:impl` | реализация чтения: `DocumentCore(context).reader` | нет, `DocumentReader` в граф кладёт приложение |
+| `:core:file-access` | конфиг администратора: что доступно и с каким паролем | `FileAccessModule` |
 | `:features:file-manager` | экран файлового менеджера | `FileManagerFeatureModule` |
 | `:features:document-viewer` | экран просмотра | `DocumentViewerFeatureModule` |
 
@@ -20,6 +21,7 @@
 
 | Hilt-модуль | Компонент | Что даёт | Что ждёт от приложения |
 |---|---|---|---|
+| `FileAccessModule` | `SingletonComponent` | `FileAccessRules`, пустой набор источников конфига | источник конфига, необязательно (шаг 6) |
 | `FileManagerFeatureModule` | `SingletonComponent` | `FileManagerFeatureApi` | `@ApplicationContext` |
 | `DocumentViewerFeatureModule` | `SingletonComponent` | `DocumentViewerFeatureApi` | `DocumentReader` |
 
@@ -37,6 +39,7 @@ include(":core:common-ui")
 include(":core:logger:client:api")
 include(":core:document:api")
 include(":core:document:impl")
+include(":core:file-access")
 include(":features:file-manager")
 include(":features:document-viewer")
 ```
@@ -98,7 +101,28 @@ object DocumentCoreModule {
 }
 ```
 
-**6. Навигация.** Менеджер отдаёт выбранный файл, приложение открывает по нему просмотрщик. Каждый экран лучше держать в своём `composable(...)`: тогда ViewModel фичи живёт, пока экран в стеке, и освобождается при выходе с него.
+**6. Конфиг администратора.** Обе фичи берут его из `FileAccessRules` и применяют сами, в том числе когда он меняется на открытом экране. Приложение только отдаёт источник: реализует `FileAccessConfigSource` и кладёт его в набор. Без источника конфига нет, доступно всё.
+
+```kotlin
+class StoreFileAccessConfigSource @Inject constructor(store: Store) : FileAccessConfigSource {
+    // JSON из store — FileAccessConfigJson.parse; null, ошибка в потоке или битый JSON — «конфига нет»
+    override val config: Flow<FileAccessConfig?> = store.fileManagerConfigJson.map { json ->
+        json?.let(FileAccessConfigJson::parse)
+    }
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class FileAccessConfigModule {
+    @Binds
+    @IntoSet
+    abstract fun bindConfigSource(source: StoreFileAccessConfigSource): FileAccessConfigSource
+}
+```
+
+Источник должен сразу отдавать значение (например, `StateFlow` или `DataStore.data`): экраны ждут первое значение, прежде чем показать закрытый файл или меню. `@IntoSet`, а не обычный `@Binds`, нужен затем, чтобы источник был необязательным; `Optional` в Dagger требует API 24. Формат конфига — в [WIKI менеджера](../features/file-manager/WIKI.md#конфиг-администратора).
+
+**7. Навигация.** Менеджер отдаёт выбранный файл, приложение открывает по нему просмотрщик. Каждый экран лучше держать в своём `composable(...)`: тогда ViewModel фичи живёт, пока экран в стеке, и освобождается при выходе с него.
 
 ```kotlin
 NavHost(navController, startDestination = "file_manager") {
@@ -122,7 +146,7 @@ NavHost(navController, startDestination = "file_manager") {
 }
 ```
 
-Чтобы показать хранилище другой фичи, передайте его первым параметром: `fileManager.FileManagerScreen(storage = FileStorage.named("reports"), ...)`. Менеджер покажет только папку `filesDir/storage/reports`. Пароли файлов от администратора — параметр `passwords: FilePasswords?`, пример в README модуля.
+Чтобы показать хранилище другой фичи, передайте его первым параметром: `fileManager.FileManagerScreen(storage = FileStorage.named("reports"), ...)`. Менеджер покажет только папку `filesDir/storage/reports`.
 
 Просмотрщик можно открыть и для файла не из менеджера: в `DocumentViewerScreen` передаётся любой `File`, который приложение может прочитать.
 
@@ -149,5 +173,6 @@ NavHost(navController, startDestination = "file_manager") {
 | `Hilt Activity must be attached to an @HiltAndroidApp Application` | нет `@HiltAndroidApp` | шаг 3 |
 | `Given component holder class MainActivity does not implement interface GeneratedComponent` или падение в `hiltViewModel()` | Activity без `@AndroidEntryPoint` | шаг 4 |
 | `[Dagger/DuplicateBindings] FileManagerFeatureApi is bound multiple times` | приложение само связывает API фичи | убрать свою привязку: её делает модуль фичи |
+| `IllegalStateException: More than one FileAccessConfigSource is bound` | в набор положено несколько источников | оставить один |
 | `Manifest merger failed: ... uses-sdk:minSdkVersion` | minSdk приложения ниже 23 | поднять до 23 |
 | `Manifest merger failed` с `android:authorities` | у приложения есть провайдер с authority `<applicationId>.documentviewer.files` | поменять authority у провайдера приложения |

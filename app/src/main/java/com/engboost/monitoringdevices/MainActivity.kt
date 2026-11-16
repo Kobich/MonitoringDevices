@@ -9,6 +9,7 @@ import androidx.compose.material3.Surface
 import com.android.appmanager.feature.documentviewer.DocumentViewerFeatureApi
 import com.android.appmanager.feature.filemanager.FileManagerFeatureApi
 import com.android.core.commonui.theme.AppTheme
+import com.engboost.monitoringdevices.config.MockFileAccessConfigSource
 import com.engboost.monitoringdevices.navigation.AppNavigation
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -21,6 +22,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var documentViewerFeature: DocumentViewerFeatureApi
 
+    @Inject
+    internal lateinit var fileAccessConfigSource: MockFileAccessConfigSource
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val scanner = (application as MonitoringDevicesApplication).scanner
@@ -31,7 +35,8 @@ class MainActivity : ComponentActivity() {
                     AppNavigation(
                         fileManagerFeature = fileManagerFeature,
                         documentViewerFeature = documentViewerFeature,
-                        scanner = scanner
+                        scanner = scanner,
+                        fileAccessConfigSource = fileAccessConfigSource
                     )
                 }
             }

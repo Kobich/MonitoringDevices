@@ -24,11 +24,6 @@ internal value class StoragePath(val value: String) {
         return StoragePath(if (isRoot) name else "$value$SEPARATOR$name")
     }
 
-    /** This path is [folder] itself or somewhere under it. */
-    fun isInside(folder: StoragePath): Boolean {
-        return folder.isRoot || this == folder || value.startsWith(folder.value + SEPARATOR)
-    }
-
     /** From the root to this path, inclusive. */
     fun hierarchy(): List<StoragePath> {
         return generateSequence(this) { path -> path.parent() }

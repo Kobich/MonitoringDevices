@@ -10,6 +10,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
@@ -66,14 +67,8 @@ internal fun FileEntryRow(
                 )
             }
         },
-        trailingContent = if (entry.isLocked) {
-            {
-                Icon(
-                    imageVector = Icons.Outlined.Lock,
-                    contentDescription = stringResource(R.string.fm_locked),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        trailingContent = if (entry.hasMessage || entry.isLocked) {
+            { AccessBadge(hasMessage = entry.hasMessage) }
         } else {
             null
         },
@@ -91,5 +86,15 @@ internal fun FileEntryRow(
                 onLongClick()
             }
         )
+    )
+}
+
+/** A message comes before a password, as in the config. */
+@Composable
+private fun AccessBadge(hasMessage: Boolean) {
+    Icon(
+        imageVector = if (hasMessage) Icons.Outlined.Info else Icons.Outlined.Lock,
+        contentDescription = stringResource(if (hasMessage) R.string.fm_has_message else R.string.fm_locked),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant
     )
 }

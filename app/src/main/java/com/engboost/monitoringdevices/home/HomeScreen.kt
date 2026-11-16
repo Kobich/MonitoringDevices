@@ -18,6 +18,7 @@ internal fun HomeScreen(
     onFeatureTestClick: () -> Unit,
     onUiCatalogClick: () -> Unit,
     onDialogsClick: () -> Unit,
+    onFileAccessConfigClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -41,6 +42,9 @@ internal fun HomeScreen(
         }
         Button(onClick = onDialogsClick) {
             Text(text = "Dialogs and windows")
+        }
+        Button(onClick = onFileAccessConfigClick) {
+            Text(text = "File access config")
         }
     }
 }

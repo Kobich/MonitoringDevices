@@ -15,6 +15,8 @@ import com.android.appmanager.feature.nearbyscanner.ui.navigateToNearbyScan
 import com.android.appmanager.feature.nearbyscanner.ui.nearbyScanScreen
 import com.android.core.commonui.catalog.DialogShowcaseScreen
 import com.android.core.commonui.catalog.UiCatalogScreen
+import com.engboost.monitoringdevices.config.FileAccessConfigScreen
+import com.engboost.monitoringdevices.config.MockFileAccessConfigSource
 import com.engboost.monitoringdevices.featuretest.FeatureTestScreen
 import com.engboost.monitoringdevices.home.HomeScreen
 import java.io.File
@@ -24,6 +26,7 @@ internal fun AppNavigation(
     fileManagerFeature: FileManagerFeatureApi,
     documentViewerFeature: DocumentViewerFeatureApi,
     scanner: NearbyScanner,
+    fileAccessConfigSource: MockFileAccessConfigSource,
     modifier: Modifier = Modifier
 ) {
     val navController = rememberNavController()
@@ -39,7 +42,8 @@ internal fun AppNavigation(
                 onScannerClick = { navController.navigateToNearbyScan() },
                 onFeatureTestClick = { navController.navigate(AppDestination.FEATURE_TEST) },
                 onUiCatalogClick = { navController.navigate(AppDestination.UI_CATALOG) },
-                onDialogsClick = { navController.navigate(AppDestination.DIALOGS) }
+                onDialogsClick = { navController.navigate(AppDestination.DIALOGS) },
+                onFileAccessConfigClick = { navController.navigate(AppDestination.FILE_ACCESS_CONFIG) }
             )
         }
         composable(AppDestination.UI_CATALOG) {
@@ -47,6 +51,9 @@ internal fun AppNavigation(
         }
         composable(AppDestination.DIALOGS) {
             DialogShowcaseScreen(onBackClick = { navController.popBackStack() })
+        }
+        composable(AppDestination.FILE_ACCESS_CONFIG) {
+            FileAccessConfigScreen(source = fileAccessConfigSource, onBackClick = { navController.popBackStack() })
         }
         nearbyScanScreen(scanner = scanner)
         composable(AppDestination.FEATURE_TEST) {
@@ -79,6 +86,7 @@ private object AppDestination {
     const val FEATURE_TEST = "feature_test"
     const val UI_CATALOG = "ui_catalog"
     const val DIALOGS = "dialogs"
+    const val FILE_ACCESS_CONFIG = "file_access_config"
     const val ARG_PATH = "path"
     const val FILE_VIEWER = "file_viewer?$ARG_PATH={$ARG_PATH}"
 

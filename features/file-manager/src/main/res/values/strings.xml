@@ -61,12 +61,14 @@
     <string name="fm_name_too_long">Name is too long</string>
     <string name="fm_name_exists">A file or folder with this name already exists</string>
 
-    <string name="fm_password_title">Password for \"%1$s\"</string>
     <string name="fm_password">Password</string>
-    <string name="fm_unlock">Unlock</string>
-    <string name="fm_locked">Protected with a password</string>
+    <string name="fm_password_import">Password to import</string>
+    <string name="fm_password_export">Password to export</string>
+    <string name="fm_password_delete">Password to delete</string>
     <string name="fm_password_wrong">Wrong password</string>
-    <string name="fm_password_check_failed">Can\'t check the password on this device</string>
+    <string name="fm_ok">OK</string>
+    <string name="fm_locked">Opens with a password</string>
+    <string name="fm_has_message">Doesn\'t open, shows a message</string>
 
     <string name="fm_error_with_reason">%1$s: %2$s</string>
     <string name="fm_import_failed">Import failed</string>

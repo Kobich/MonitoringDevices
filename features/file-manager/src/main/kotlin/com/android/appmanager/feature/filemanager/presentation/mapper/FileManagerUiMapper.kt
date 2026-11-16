@@ -11,7 +11,9 @@ import com.android.appmanager.feature.filemanager.domain.model.TransferSummary
 import com.android.appmanager.feature.filemanager.presentation.model.BreadcrumbUi
 import com.android.appmanager.feature.filemanager.presentation.model.DeletionUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileEntryUi
+import com.android.appmanager.feature.filemanager.presentation.model.PasswordDialogUi
 import com.android.core.commonui.icons.FileKind
+import com.android.core.fileaccess.FileAction
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.DateFormat
 import java.util.Date
@@ -76,6 +78,15 @@ internal class FileManagerUiMapper @Inject constructor(
         } else {
             plural(R.plurals.fm_deleted_many, entries.size)
         }
+    }
+
+    fun passwordDialog(action: FileAction): PasswordDialogUi {
+        val title = when (action) {
+            FileAction.IMPORT -> R.string.fm_password_import
+            FileAction.EXPORT -> R.string.fm_password_export
+            FileAction.DELETE -> R.string.fm_password_delete
+        }
+        return PasswordDialogUi(title = resources.getString(title), error = null)
     }
 
     fun errorText(error: DirectoryNameError): String {

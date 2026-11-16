@@ -4,7 +4,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import java.io.File
 
-/** The screen consumes system Back while not at the root folder or while items are selected. */
+/**
+ * The screen consumes system Back while not at the root folder or while items are selected. What it allows follows the
+ * administrator's config from `FileAccessRules` of `:core:file-access`.
+ */
 interface FileManagerFeatureApi {
     /** Shows [FileStorage.Default]. */
     @Composable
@@ -18,19 +21,6 @@ interface FileManagerFeatureApi {
     @Composable
     fun FileManagerScreen(
         storage: FileStorage,
-        modifier: Modifier,
-        onBackClick: () -> Unit,
-        onFileOpen: (File) -> Unit
-    )
-
-    /**
-     * Shows [storage] with [passwords]: their files are opened, exported and deleted only after the password.
-     * `null` is the same as no passwords. New passwords apply right away and forget the ones already entered.
-     */
-    @Composable
-    fun FileManagerScreen(
-        storage: FileStorage,
-        passwords: FilePasswords?,
         modifier: Modifier,
         onBackClick: () -> Unit,
         onFileOpen: (File) -> Unit

@@ -1,5 +1,6 @@
 package com.android.appmanager.feature.filemanager.presentation
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.annotation.StringRes
@@ -9,7 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.android.appmanager.feature.filemanager.FilePasswords
+import com.android.appmanager.feature.filemanager.FileStorage
 import com.android.appmanager.feature.filemanager.R
 import com.android.appmanager.feature.filemanager.data.repository.FileStorageRepository
 import com.android.appmanager.feature.filemanager.domain.interactor.FileManagerInteractor
@@ -21,36 +22,41 @@ import com.android.appmanager.feature.filemanager.presentation.model.BreadcrumbU
 import com.android.appmanager.feature.filemanager.presentation.model.CreateDirectoryDialogUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileEntryUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileManagerUiState
-import com.android.appmanager.feature.filemanager.presentation.model.PasswordDialogUi
+import com.android.appmanager.feature.filemanager.presentation.model.FileMessageUi
+import com.android.appmanager.feature.filemanager.presentation.model.MenuUi
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
 import com.android.appmanager.feature.filemanager.presentation.model.SelectionUi
+import com.android.core.fileaccess.Access
+import com.android.core.fileaccess.FileAccessConfig
+import com.android.core.fileaccess.FileAccessRules
+import com.android.core.fileaccess.FileAction
+import com.android.core.fileaccess.Password
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 
 private const val TAG = "FileManager"
 
 /**
- * Shows the files under [rootDirectory], the folder of a `FileStorage`. Files in [passwords] are opened, exported and
- * deleted only after their password; an entered password holds until the screen is closed.
+ * Shows the files of [storage] under the administrator's config: actions it leaves out are hidden, protected ones ask
+ * for their password each time, files with a message show it instead of opening. The config may change at any time.
  */
 @HiltViewModel(assistedFactory = FileManagerViewModel.Factory::class)
 internal class FileManagerViewModel @AssistedInject constructor(
-    @Assisted rootDirectory: File,
-    @Assisted private var passwords: FilePasswords?,
+    @Assisted private val storage: FileStorage,
+    @ApplicationContext context: Context,
     repositoryFactory: FileStorageRepository.Factory,
+    rules: FileAccessRules,
     private val uiMapper: FileManagerUiMapper,
     private val savedStateHandle: SavedStateHandle
 ) : ViewModel(), FileManagerActions {
 
-    private val interactor = FileManagerInteractor(repositoryFactory.create(rootDirectory))
+    private val interactor = FileManagerInteractor(repositoryFactory.create(storage.directory(context)))
 
     // Kept in SavedStateHandle to survive process death, e.g. while a system picker is open.
     private var currentPath: StoragePath
@@ -67,9 +73,9 @@ internal class FileManagerViewModel @AssistedInject constructor(
     private var loadJob: Job? = null
     private var operationJob: Job? = null
 
-    // In memory only: a password shouldn't outlive the screen, not even through process death.
-    private val unlockedEntries = mutableSetOf<FilePasswords.Entry>()
-    private var pendingUnlock: PendingUnlock? = null
+    /** `null` until the first config arrives; actions stay hidden till then. */
+    private var config: FileAccessConfig? = null
+    private var pendingAction: PendingAction? = null
 
     var uiState by mutableStateOf(
         FileManagerUiState(
@@ -83,6 +89,8 @@ internal class FileManagerViewModel @AssistedInject constructor(
             pendingDeletion = null,
             createDirectoryDialog = null,
             passwordDialog = null,
+            fileMessage = null,
+            menu = MenuUi.None,
             message = null,
             picker = null,
             fileToOpen = null
@@ -92,20 +100,11 @@ internal class FileManagerViewModel @AssistedInject constructor(
 
     init {
         loadDirectory(currentPath)
+        viewModelScope.launch { rules.config.collect { config -> onConfigChanged(config) } }
     }
 
     fun onScreenResumed() {
         loadDirectory(currentPath)
-    }
-
-    /** New passwords forget the ones entered for the old. */
-    fun onPasswordsChanged(passwords: FilePasswords?) {
-        if (passwords == this.passwords) return
-        Log.d(TAG, "passwords: ${passwords?.entries?.size ?: 0} entry(s)")
-        this.passwords = passwords
-        unlockedEntries.clear()
-        pendingUnlock = null
-        uiState = uiState.copy(entries = uiState.entries.withLocks(), passwordDialog = null)
     }
 
     override fun onEntryClick(entry: FileEntryUi) {
@@ -114,7 +113,11 @@ internal class FileManagerViewModel @AssistedInject constructor(
             entry.isDirectory -> loadDirectory(StoragePath(entry.path))
             else -> {
                 logClick("open_file", "list_item", "File")
-                withUnlocked(listOf(StoragePath(entry.path))) { openFile(entry) }
+                // A password is asked by the viewer: it guards the file however it's opened.
+                when (val access = config?.access(configPath(entry))) {
+                    is Access.Message -> uiState = uiState.copy(fileMessage = FileMessageUi(entry.name, access.text))
+                    else -> openFile(entry)
+                }
             }
         }
     }
@@ -122,7 +125,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
     override fun onEntryLongClick(entry: FileEntryUi) {
         if (uiState.isSelectionMode) {
             toggleSelection(entry)
-        } else {
+        } else if (uiState.menu.canSelect) {
             uiState = uiState.copy(selection = SelectionUi(setOf(entry.path)))
         }
     }
@@ -159,7 +162,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
-        withUnlocked(entries.map { entry -> StoragePath(entry.path) }) {
+        withAccess(FileAction.DELETE) {
             uiState = uiState.copy(pendingDeletion = uiMapper.deletion(entries))
         }
     }
@@ -169,7 +172,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
         val entries = selectedEntries()
         if (entries.isEmpty()) return
 
-        withUnlocked(entries.map { entry -> StoragePath(entry.path) }) { requestExport(entries) }
+        withAccess(FileAction.EXPORT) { requestExport(entries) }
     }
 
     private fun requestExport(entries: List<FileEntryUi>) {
@@ -194,12 +197,12 @@ internal class FileManagerViewModel @AssistedInject constructor(
 
     override fun onImportFilesClick() {
         logClick("import_files", "menu_item", "Import files")
-        uiState = uiState.copy(picker = PickerUi.ImportFiles)
+        withAccess(FileAction.IMPORT) { uiState = uiState.copy(picker = PickerUi.ImportFiles) }
     }
 
     override fun onImportFolderClick() {
         logClick("import_folder", "menu_item", "Import folder")
-        uiState = uiState.copy(picker = PickerUi.ImportFolder)
+        withAccess(FileAction.IMPORT) { uiState = uiState.copy(picker = PickerUi.ImportFolder) }
     }
 
     fun onPickerShown() {
@@ -293,73 +296,72 @@ internal class FileManagerViewModel @AssistedInject constructor(
     }
 
     override fun onPasswordConfirm(password: String) {
-        logClick("password_confirm", "dialog_button", "Unlock")
-        val pending = pendingUnlock ?: return
-        val dialog = uiState.passwordDialog ?: return
-        if (dialog.isChecking || password.isEmpty()) return
-
-        uiState = uiState.copy(passwordDialog = dialog.copy(isChecking = true))
-        viewModelScope.launch {
-            val result = withContext(Dispatchers.Default) {
-                val chars = password.toCharArray()
-                try {
-                    runCatching { pending.entry.password.matches(chars) }
-                } finally {
-                    chars.fill('\u0000')
-                }
-            }
-            if (pendingUnlock !== pending) return@launch
-
-            val matches = result.getOrElse { error ->
-                if (error is CancellationException) throw error
-                Log.e(TAG, "password: can't check", error)
-                uiState = uiState.copy(passwordDialog = dialog.copy(error = uiMapper.text(R.string.fm_password_check_failed)))
-                return@launch
-            }
-            Log.d(TAG, "password: matches=$matches")
-            if (!matches) {
-                uiState = uiState.copy(passwordDialog = dialog.copy(error = uiMapper.text(R.string.fm_password_wrong)))
-                return@launch
-            }
-
-            unlockedEntries += pending.entry
-            pendingUnlock = null
-            uiState = uiState.copy(passwordDialog = null, entries = uiState.entries.withLocks())
-            // Other files of the action may have passwords of their own: each is asked in turn.
-            withUnlocked(pending.paths, pending.action)
+        logClick("password_confirm", "dialog_button", "OK")
+        val pending = pendingAction ?: return
+        val matches = pending.password.matches(password)
+        Log.d(TAG, "password: ${pending.action}, matches=$matches")
+        if (!matches) {
+            uiState = uiState.copy(passwordDialog = uiState.passwordDialog?.copy(error = uiMapper.text(R.string.fm_password_wrong)))
+            return
         }
+        pendingAction = null
+        uiState = uiState.copy(passwordDialog = null)
+        pending.run()
     }
 
     override fun onPasswordDismiss() {
-        pendingUnlock = null
+        pendingAction = null
         uiState = uiState.copy(passwordDialog = null)
     }
 
+    override fun onFileMessageDismiss() {
+        uiState = uiState.copy(fileMessage = null)
+    }
+
+    /** Runs [run] if the config has [action], after its password if it has one. */
+    private fun withAccess(action: FileAction, run: () -> Unit) {
+        when (val access = config?.access(action) ?: Access.Hidden) {
+            Access.Allowed, is Access.Message -> run()
+            Access.Hidden -> Log.w(TAG, "access: $action isn't available")
+            is Access.PasswordRequired -> {
+                pendingAction = PendingAction(action, access.password, run)
+                uiState = uiState.copy(passwordDialog = uiMapper.passwordDialog(action))
+            }
+        }
+    }
+
     /**
-     * Runs [action] on [paths] (files, or folders with everything in them) once every password protecting them is
-     * entered, asking for the first missing one otherwise.
+     * The list and the menu follow the new config at once. Dialogs that may ask for what has changed close; an
+     * operation already running, or a system picker already open, is finished under the old one.
      */
-    private fun withUnlocked(paths: List<StoragePath>, action: () -> Unit) {
-        val locked = paths.firstNotNullOfOrNull { path ->
-            passwords?.entriesCovering(path)?.firstOrNull { entry -> entry !in unlockedEntries }
-                ?.let { entry -> path to entry }
-        }
-        if (locked == null) {
-            action()
-            return
-        }
+    private fun onConfigChanged(config: FileAccessConfig) {
+        val previous = this.config
+        this.config = config
+        Log.d(TAG, "config: $config")
 
-        val (path, entry) = locked
-        // The protected file itself, or the first one inside the selected folder.
-        val fileName = entry.storagePaths.first { file -> file.isInside(path) }.name
-        pendingUnlock = PendingUnlock(paths, entry, action)
-        uiState = uiState.copy(passwordDialog = PasswordDialogUi(fileName = fileName, error = null, isChecking = false))
+        val menu = MenuUi(
+            canImport = config.access(FileAction.IMPORT) != Access.Hidden,
+            canExport = config.access(FileAction.EXPORT) != Access.Hidden,
+            canDelete = config.access(FileAction.DELETE) != Access.Hidden
+        )
+        val deleteChanged = previous?.access(FileAction.DELETE) != config.access(FileAction.DELETE)
+        pendingAction = null
+        uiState = uiState.copy(
+            menu = menu,
+            entries = uiState.entries.withAccess(),
+            selection = uiState.selection?.takeIf { menu.canSelect },
+            passwordDialog = null,
+            pendingDeletion = uiState.pendingDeletion?.takeIf { !deleteChanged }
+        )
     }
 
-    private fun List<FileEntryUi>.withLocks(): List<FileEntryUi> = map { entry ->
-        val lock = if (entry.isDirectory) null else passwords?.entryOf(StoragePath(entry.path))
-        entry.copy(isLocked = lock != null && lock !in unlockedEntries)
+    private fun List<FileEntryUi>.withAccess(): List<FileEntryUi> = map { entry ->
+        val access = if (entry.isDirectory) null else config?.access(configPath(entry))
+        entry.copy(isLocked = access is Access.PasswordRequired, hasMessage = access is Access.Message)
     }
+
+    /** Config paths start at the folder of all storages: `<storage>/<path in it>`. */
+    private fun configPath(entry: FileEntryUi): String = "${storage.name}/${entry.path}"
 
     fun onMessageShown() {
         uiState = uiState.copy(message = null)
@@ -407,7 +409,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
         Log.d(TAG, "showDirectory: ${content.path}, entries=${content.entries.size}, sameFolder=$isSameFolder")
         currentPath = content.path
 
-        val entries = content.entries.map(uiMapper::toUi).withLocks()
+        val entries = content.entries.map(uiMapper::toUi).withAccess()
         // A refresh keeps the selection of items that still exist; another folder resets it.
         val selection = uiState.selection
             ?.takeIf { isSameFolder }
@@ -451,15 +453,15 @@ internal class FileManagerViewModel @AssistedInject constructor(
         }
     }
 
-    private class PendingUnlock(
-        val paths: List<StoragePath>,
-        val entry: FilePasswords.Entry,
-        val action: () -> Unit
+    private class PendingAction(
+        val action: FileAction,
+        val password: Password,
+        val run: () -> Unit
     )
 
     @AssistedFactory
     interface Factory {
-        fun create(rootDirectory: File, passwords: FilePasswords?): FileManagerViewModel
+        fun create(storage: FileStorage): FileManagerViewModel
     }
 
     private companion object {

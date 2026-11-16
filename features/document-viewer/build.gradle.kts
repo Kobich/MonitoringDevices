@@ -29,6 +29,7 @@ dependencies {
     implementation(project(":core:common-ui"))
     implementation(project(":core:logger:client:api"))
     implementation(project(":core:document:api"))
+    implementation(project(":core:file-access"))
 
     // Exposed: the feature API uses Compose types (@Composable, Modifier).
     api(platform(libs.androidx.compose.bom))

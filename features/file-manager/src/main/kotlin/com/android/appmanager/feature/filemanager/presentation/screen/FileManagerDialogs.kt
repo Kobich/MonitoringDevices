@@ -16,11 +16,9 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.android.appmanager.feature.filemanager.R
 import com.android.appmanager.feature.filemanager.presentation.model.DeletionUi
-import com.android.appmanager.feature.filemanager.presentation.model.PasswordDialogUi
+import com.android.appmanager.feature.filemanager.presentation.model.FileMessageUi
 import com.android.core.commonui.components.ConfirmDialog
 
 @Composable
@@ -78,40 +76,16 @@ internal fun CreateDirectoryDialog(
 }
 
 @Composable
-internal fun PasswordDialog(
-    dialog: PasswordDialogUi,
-    onConfirm: (String) -> Unit,
+internal fun FileMessageDialog(
+    message: FileMessageUi,
     onDismiss: () -> Unit
 ) {
-    // Not rememberSaveable: the password must not go into the saved instance state.
-    var password by remember { mutableStateOf("") }
-    val focusRequester = remember { FocusRequester() }
-    val canConfirm = !dialog.isChecking && password.isNotEmpty()
-
-    LaunchedEffect(Unit) {
-        focusRequester.requestFocus()
-    }
-
     ConfirmDialog(
-        title = stringResource(R.string.fm_password_title, dialog.fileName),
-        confirmLabel = stringResource(R.string.fm_unlock),
-        dismissLabel = stringResource(R.string.fm_cancel),
-        confirmEnabled = canConfirm,
-        onConfirm = { onConfirm(password) },
+        title = message.fileName,
+        confirmLabel = stringResource(R.string.fm_ok),
+        onConfirm = onDismiss,
         onDismiss = onDismiss
     ) {
-        OutlinedTextField(
-            value = password,
-            onValueChange = { value -> password = value },
-            label = { Text(text = stringResource(R.string.fm_password)) },
-            singleLine = true,
-            enabled = !dialog.isChecking,
-            isError = dialog.error != null,
-            supportingText = { dialog.error?.let { message -> Text(text = message) } },
-            visualTransformation = PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { if (canConfirm) onConfirm(password) }),
-            modifier = Modifier.focusRequester(focusRequester)
-        )
+        Text(text = message.text)
     }
 }

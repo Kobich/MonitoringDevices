@@ -17,6 +17,7 @@ import com.android.appmanager.feature.documentviewer.presentation.model.ViewerCo
 import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.MessageContent
+import com.android.core.commonui.components.PasswordDialog
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.state.rememberDelayedVisibility
 import com.android.core.document.api.document.AudioDocument
@@ -35,8 +36,22 @@ internal fun DocumentViewerScreen(
     onPageSelected: (Int) -> Unit,
     onRetryClick: () -> Unit,
     onOpenInOtherAppClick: () -> Unit,
+    onPasswordConfirm: (String) -> Unit,
+    onPasswordDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    state.passwordDialog?.let { dialog ->
+        PasswordDialog(
+            title = stringResource(dialog.title),
+            passwordLabel = stringResource(R.string.viewer_password),
+            confirmLabel = stringResource(R.string.viewer_ok),
+            dismissLabel = stringResource(R.string.viewer_cancel),
+            error = dialog.error?.let { error -> stringResource(error) },
+            onConfirm = onPasswordConfirm,
+            onDismiss = onPasswordDismiss
+        )
+    }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -44,11 +59,13 @@ internal fun DocumentViewerScreen(
                 title = state.title,
                 onNavigationClick = onBackClick,
                 actions = {
-                    IconButton(onClick = onOpenInOtherAppClick) {
-                        Icon(
-                            imageVector = AppIcons.OpenExternal,
-                            contentDescription = stringResource(R.string.viewer_open_in_other_app)
-                        )
+                    if (state.canOpenInOtherApp) {
+                        IconButton(onClick = onOpenInOtherAppClick) {
+                            Icon(
+                                imageVector = AppIcons.OpenExternal,
+                                contentDescription = stringResource(R.string.viewer_open_in_other_app)
+                            )
+                        }
                     }
                 }
             )
@@ -62,6 +79,10 @@ internal fun DocumentViewerScreen(
             val isLoadingVisible = rememberDelayedVisibility(state.content is ViewerContent.Loading)
             when (val content = state.content) {
                 ViewerContent.Loading -> if (isLoadingVisible) LoadingContent(text = stringResource(R.string.viewer_opening))
+
+                ViewerContent.Locked -> MessageContent(title = stringResource(R.string.viewer_locked))
+
+                is ViewerContent.Unavailable -> MessageContent(title = content.message)
 
                 is ViewerContent.Loaded -> {
                     val contentModifier = Modifier.fillMaxSize()

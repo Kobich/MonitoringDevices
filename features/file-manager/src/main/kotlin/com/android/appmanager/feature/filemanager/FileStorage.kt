@@ -1,16 +1,18 @@
 package com.android.appmanager.feature.filemanager
 
 import android.content.Context
+import com.android.core.fileaccess.AppFilesRoot
 import java.io.File
 
 /**
- * A folder of the app-private storage, `filesDir/storage/<name>`, that the file manager shows as its root and
- * can't go above. Each feature that keeps files has its own; the file manager's own one is [Default].
+ * A folder of the app-private storage, `filesDir/storage/<name>` under [AppFilesRoot], that the file manager shows as
+ * its root and can't go above. Each feature that keeps files has its own; the file manager's own one is [Default].
+ * Config paths of its files start with [name]: `file-manager/Contract.pdf`.
  */
 class FileStorage private constructor(val name: String) {
 
     /** Where the files are. The folder is created when the file manager first opens it. */
-    fun directory(context: Context): File = File(File(context.filesDir, ROOT_DIRECTORY), name)
+    fun directory(context: Context): File = File(AppFilesRoot.directory(context), name)
 
     override fun equals(other: Any?): Boolean = other is FileStorage && other.name == name
 
@@ -19,11 +21,6 @@ class FileStorage private constructor(val name: String) {
     override fun toString(): String = "FileStorage($name)"
 
     companion object {
-        /**
-         * Not `filesDir` itself: libraries keep files there too (e.g. androidx.profileinstaller's
-         * `profileInstalled`). Not `Context.dataDir`: it also holds databases/, shared_prefs/ and cache/.
-         */
-        private const val ROOT_DIRECTORY = "storage"
         private val NAME = Regex("[a-z0-9][a-z0-9_-]{0,63}")
 
         /** The file manager feature's own storage, shown by the screen called without a storage. */

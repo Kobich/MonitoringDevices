@@ -38,9 +38,11 @@ import com.android.appmanager.feature.filemanager.R
 import com.android.appmanager.feature.filemanager.presentation.FileManagerActions
 import com.android.appmanager.feature.filemanager.presentation.model.BreadcrumbUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileManagerUiState
+import com.android.appmanager.feature.filemanager.presentation.model.MenuUi
 import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.MessageContent
+import com.android.core.commonui.components.PasswordDialog
 import com.android.core.commonui.components.ProgressBar
 import com.android.core.commonui.icons.AppIcons
 import com.android.core.commonui.state.rememberDelayedVisibility
@@ -72,10 +74,18 @@ internal fun FileManagerScreen(
 
     state.passwordDialog?.let { dialog ->
         PasswordDialog(
-            dialog = dialog,
+            title = dialog.title,
+            passwordLabel = stringResource(R.string.fm_password),
+            confirmLabel = stringResource(R.string.fm_ok),
+            dismissLabel = stringResource(R.string.fm_cancel),
+            error = dialog.error,
             onConfirm = actions::onPasswordConfirm,
             onDismiss = actions::onPasswordDismiss
         )
+    }
+
+    state.fileMessage?.let { message ->
+        FileMessageDialog(message = message, onDismiss = actions::onFileMessageDismiss)
     }
 
     Scaffold(
@@ -86,12 +96,14 @@ internal fun FileManagerScreen(
                 SelectionTopBar(
                     selectedCount = selection.count,
                     isActionsEnabled = !state.isBusy,
+                    menu = state.menu,
                     actions = actions
                 )
             } else {
                 BrowseTopBar(
                     title = state.title,
                     isActionsEnabled = !state.isBusy,
+                    menu = state.menu,
                     onBackClick = onBackClick,
                     actions = actions
                 )
@@ -150,13 +162,14 @@ internal fun FileManagerScreen(
 private fun BrowseTopBar(
     title: String,
     isActionsEnabled: Boolean,
+    menu: MenuUi,
     onBackClick: () -> Unit,
     actions: FileManagerActions
 ) {
     BackTopAppBar(
         title = title,
         onNavigationClick = onBackClick,
-        actions = { StorageActionsMenu(enabled = isActionsEnabled, actions = actions) }
+        actions = { StorageActionsMenu(enabled = isActionsEnabled, menu = menu, actions = actions) }
     )
 }
 
@@ -164,6 +177,7 @@ private fun BrowseTopBar(
 private fun SelectionTopBar(
     selectedCount: Int,
     isActionsEnabled: Boolean,
+    menu: MenuUi,
     actions: FileManagerActions
 ) {
     var isMenuExpanded by remember { mutableStateOf(false) }
@@ -174,8 +188,10 @@ private fun SelectionTopBar(
         navigationIcon = AppIcons.Close,
         navigationContentDescription = stringResource(R.string.fm_close_selection),
         actions = {
-            IconButton(onClick = actions::onDeleteSelectedClick, enabled = isActionsEnabled) {
-                Icon(imageVector = AppIcons.Delete, contentDescription = stringResource(R.string.fm_delete_selected))
+            if (menu.canDelete) {
+                IconButton(onClick = actions::onDeleteSelectedClick, enabled = isActionsEnabled) {
+                    Icon(imageVector = AppIcons.Delete, contentDescription = stringResource(R.string.fm_delete_selected))
+                }
             }
             Box {
                 IconButton(onClick = { isMenuExpanded = true }, enabled = isActionsEnabled) {
@@ -189,13 +205,15 @@ private fun SelectionTopBar(
                             actions.onSelectAllClick()
                         }
                     )
-                    DropdownMenuItem(
-                        text = { Text(text = stringResource(R.string.fm_export)) },
-                        onClick = {
-                            isMenuExpanded = false
-                            actions.onExportSelectedClick()
-                        }
-                    )
+                    if (menu.canExport) {
+                        DropdownMenuItem(
+                            text = { Text(text = stringResource(R.string.fm_export)) },
+                            onClick = {
+                                isMenuExpanded = false
+                                actions.onExportSelectedClick()
+                            }
+                        )
+                    }
                 }
             }
         },
@@ -206,6 +224,7 @@ private fun SelectionTopBar(
 @Composable
 private fun StorageActionsMenu(
     enabled: Boolean,
+    menu: MenuUi,
     actions: FileManagerActions
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -215,20 +234,22 @@ private fun StorageActionsMenu(
             Icon(imageVector = AppIcons.More, contentDescription = stringResource(R.string.fm_storage_actions))
         }
         DropdownMenu(expanded = isExpanded, onDismissRequest = { isExpanded = false }) {
-            DropdownMenuItem(
-                text = { Text(text = stringResource(R.string.fm_import_files)) },
-                onClick = {
-                    isExpanded = false
-                    actions.onImportFilesClick()
-                }
-            )
-            DropdownMenuItem(
-                text = { Text(text = stringResource(R.string.fm_import_folder)) },
-                onClick = {
-                    isExpanded = false
-                    actions.onImportFolderClick()
-                }
-            )
+            if (menu.canImport) {
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.fm_import_files)) },
+                    onClick = {
+                        isExpanded = false
+                        actions.onImportFilesClick()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(text = stringResource(R.string.fm_import_folder)) },
+                    onClick = {
+                        isExpanded = false
+                        actions.onImportFolderClick()
+                    }
+                )
+            }
             DropdownMenuItem(
                 text = { Text(text = stringResource(R.string.fm_new_folder)) },
                 onClick = {

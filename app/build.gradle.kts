@@ -45,6 +45,7 @@ dependencies {
     implementation(project(":features:file-manager"))
     implementation(project(":features:document-viewer"))
     implementation(project(":core:document:impl"))
+    implementation(project(":core:file-access"))
     implementation(project(":features:nearby-scanner"))
     implementation(project(":features:condition-data-fetcher"))
 

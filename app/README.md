@@ -15,6 +15,7 @@ app/
 │   ├── home/HomeScreen.kt               # кнопки перехода
 │   ├── di/DocumentCoreModule.kt         # DocumentReader из :core:document:impl как @Singleton
 │   ├── featuretest/FeatureTestScreen.kt # ручной вызов каждой фичи condition-data-fetcher
+│   ├── config/                          # ВРЕМЕННО: заглушка источника конфига и экран его правки
 │   └── sample/                          # ВРЕМЕННО: примеры файлов в хранилище менеджера
 └── src/main/AndroidManifest.xml
 ```
@@ -38,6 +39,12 @@ app/
 ### Бэкап
 
 Данные приложения не покидают устройство: `allowBackup="false"` выключает облачный бэкап, а `res/xml/data_extraction_rules.xml` исключает все области и из облака, и из переноса на новый телефон (Android 12+).
+
+### Конфиг доступа к файлам (ВРЕМЕННО)
+
+Пока модуль store не отдаёт конфиг, его подменяет `MockFileAccessConfigSource` (привязан в `di/FileAccessConfigModule`). Конфиг хранится в SharedPreferences `file_access_config`; при первом запуске действует пример: экспорт с паролем `1111`, удаление с паролем `2222`, `Quarterly report.docx` открывается с паролем `1234`, `Budget.csv` показывает сообщение.
+
+Экран «File access config» на главной правит конфиг. «Apply in 10 s» применяет его через 10 секунд: за это время можно открыть менеджер или файл и посмотреть, как экран меняется на лету. «No config» — конфига нет, доступно всё. Перед релизом заменить заглушку источником из store и удалить пакет `config`.
 
 ### Примеры файлов (ВРЕМЕННО)
 
