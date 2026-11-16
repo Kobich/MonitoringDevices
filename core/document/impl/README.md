@@ -80,6 +80,8 @@ implementation(project(":core:document:impl"))
 
 DI-фреймворка внутри нет: создайте один `DocumentCore` на процесс, например в Hilt-модуле приложения.
 
+Внедрение вместе с файловым менеджером и просмотрщиком в приложение с Hilt — [docs/hilt-integration.md](../../../docs/hilt-integration.md).
+
 ## Описание API
 
 | Метод | Описание |

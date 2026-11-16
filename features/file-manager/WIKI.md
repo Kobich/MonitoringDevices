@@ -176,6 +176,8 @@ adb logcat -s FileManager FileStorage DocumentViewer DocumentReader Player OdrHt
 
 ## Подключение
 
+По шагам, с частыми ошибками, — в [docs/hilt-integration.md](../../docs/hilt-integration.md).
+
 ```kotlin
 // settings.gradle.kts
 include(":core:common-ui")

@@ -66,6 +66,8 @@ implementation(project(":features:file-manager"))
 
 Фича использует Hilt: приложению нужен `@HiltAndroidApp` и `@AndroidEntryPoint` на Activity.
 
+Внедрение в приложение с Hilt по шагам — [docs/hilt-integration.md](../../docs/hilt-integration.md).
+
 ## Описание API
 
 | Метод | Описание |

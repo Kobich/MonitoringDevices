@@ -58,6 +58,8 @@ implementation(project(":core:document:impl"))
 
 Приложению нужен Hilt и `DocumentReader` в графе: `DocumentCore(context).reader` как `@Singleton`.
 
+Внедрение в приложение с Hilt по шагам — [docs/hilt-integration.md](../../docs/hilt-integration.md).
+
 ## Описание API
 
 | Метод | Описание |
