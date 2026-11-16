@@ -1,6 +1,5 @@
 package com.android.core.document.impl.text
 
-import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.document.Document
 import com.android.core.document.impl.FormatReader
@@ -21,14 +20,12 @@ internal class MarkdownReader(
                 return converter.convert(file, format, variant = VARIANT)
             } catch (error: IOException) {
                 // DocumentReadException is an IOException too: any failure falls back to plain text.
-                Log.w(TAG, "Formatted Markdown failed for ${file.name}, showing plain text", error)
             }
         }
         return textReader.read(file, format)
     }
 
     private companion object {
-        const val TAG = "MarkdownReader"
         const val VARIANT = "markdown"
     }
 }

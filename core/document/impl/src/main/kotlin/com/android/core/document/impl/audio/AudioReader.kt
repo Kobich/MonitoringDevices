@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMetadataRetriever
-import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.DocumentReadException
 import com.android.core.document.api.DocumentReadException.Reason
@@ -17,8 +16,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-
-private const val TAG = "AudioReader"
 
 /**
  * All of it is optional: a file whose tags can't be read still opens,
@@ -38,13 +35,8 @@ internal class AudioReader(
     )
 
     override suspend fun read(file: File, format: DocumentFormat): AudioDocument = withContext(ioDispatcher) {
-        val tags = runCatching { readTags(file) }
-            .onFailure { error -> Log.w(TAG, "read: no tags for ${file.name}", error) }
-            .getOrNull() ?: Tags()
-        val track = runCatching { readTrack(file) }
-            .onFailure { error -> Log.w(TAG, "read: no track info for ${file.name}", error) }
-            .getOrNull()
-        Log.d(TAG, "read: ${file.name} durationMs=${tags.durationMs ?: track?.durationUs?.div(1000)}, sampleRate=${track?.sampleRateHz}, channels=${track?.channelCount}")
+        val tags = runCatching { readTags(file) }.getOrNull() ?: Tags()
+        val track = runCatching { readTrack(file) }.getOrNull()
 
         FileAudioDocument(
             file = file,
@@ -132,11 +124,9 @@ internal class AudioReader(
         override suspend fun loadArtwork(maxSizePx: Int): Bitmap? = withContext(ioDispatcher) {
             val bytes = try {
                 withRetriever(file) { retriever -> retriever.embeddedPicture } ?: run {
-                    Log.d(TAG, "loadArtwork: ${file.name} has no cover")
                     return@withContext null
                 }
             } catch (error: RuntimeException) {
-                Log.w(TAG, "loadArtwork: ${file.name} unreadable", error)
                 // MediaMetadataRetriever reports unreadable files with IllegalArgumentException / RuntimeException.
                 throw DocumentReadException(Reason.CORRUPTED, error.message, error)
             }

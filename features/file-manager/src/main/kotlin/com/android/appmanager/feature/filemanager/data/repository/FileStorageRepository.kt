@@ -1,7 +1,6 @@
 package com.android.appmanager.feature.filemanager.data.repository
 
 import android.net.Uri
-import android.util.Log
 import androidx.documentfile.provider.DocumentFile
 import com.android.appmanager.feature.filemanager.data.source.ExternalDocumentSource
 import com.android.appmanager.feature.filemanager.data.source.InternalFileSource
@@ -19,8 +18,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import kotlin.coroutines.coroutineContext
-
-private const val TAG = "FileStorage"
 
 /** Files under [rootDirectory]. All methods may throw [IOException]. */
 internal class FileStorageRepository @AssistedInject constructor(
@@ -77,7 +74,6 @@ internal class FileStorageRepository @AssistedInject constructor(
             val name = documentSource.displayName(uri) ?: uri.lastPathSegment ?: "file"
             copyDocumentToFile(uri, internalSource.uniqueChild(directory, name))
         }
-        Log.d(TAG, "importFiles: ${sources.size} file(s) into $destination")
         TransferSummary(files = sources.size, directories = 0)
     }
 
@@ -98,7 +94,6 @@ internal class FileStorageRepository @AssistedInject constructor(
             counter.directories++
             copyDocumentTree(tree, target, counter)
         } catch (error: Throwable) {
-            Log.w(TAG, "importDirectory: failed, removing partial copy ${target.name}", error)
             target.deleteRecursively()
             throw error
         }
@@ -113,7 +108,6 @@ internal class FileStorageRepository @AssistedInject constructor(
                 documentSource.openOutput(destination).use { output -> input.copyTo(output) }
             }
         } catch (error: Throwable) {
-            Log.w(TAG, "exportFile: $path failed, new document=$isNewDocument", error)
             if (isNewDocument) documentSource.deleteSingle(destination)
             throw error
         }
@@ -134,7 +128,6 @@ internal class FileStorageRepository @AssistedInject constructor(
                 exportItem(internalSource.resolve(path), tree, counter) { item -> createdItems += item }
             }
         } catch (error: Throwable) {
-            Log.w(TAG, "exportToDirectory: failed, removing ${createdItems.size} created item(s)", error)
             createdItems.forEach { item -> runCatching { item.delete() } }
             throw error
         }

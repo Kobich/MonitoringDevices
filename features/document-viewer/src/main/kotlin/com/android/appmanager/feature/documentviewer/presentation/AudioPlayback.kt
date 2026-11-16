@@ -1,6 +1,5 @@
 package com.android.appmanager.feature.documentviewer.presentation
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -12,8 +11,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-
-private const val TAG = "AudioPlayback"
 
 /** [scope] must run on the main thread, like the player. */
 internal class AudioPlayback(
@@ -32,13 +29,11 @@ internal class AudioPlayback(
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
                 Player.STATE_READY -> {
-                    Log.d(TAG, "ready, durationMs=${player.duration}")
                     state = state.copy(isReady = true)
                     update()
                 }
 
                 Player.STATE_ENDED -> {
-                    Log.d(TAG, "completed")
                     // Pause first: seeking an ended player that should play starts it again.
                     player.pause()
                     player.seekTo(0)
@@ -53,7 +48,6 @@ internal class AudioPlayback(
         }
 
         override fun onPlayerError(error: PlaybackException) {
-            Log.e(TAG, "playback failed: ${error.errorCodeName}", error)
             state = state.copy(isFailed = true)
         }
     }
@@ -67,25 +61,21 @@ internal class AudioPlayback(
     }
 
     fun onSeek(positionMs: Long) {
-        Log.d(TAG, "seek: $positionMs ms")
         player.seekTo(positionMs)
         update(positionMs = positionMs)
     }
 
     fun pause() {
-        Log.d(TAG, "pause at ${player.currentPosition} ms")
         player.pause()
     }
 
     fun release() {
-        Log.d(TAG, "release")
         stopProgressUpdates()
         player.removeListener(listener)
         player.release()
     }
 
     private fun play() {
-        Log.d(TAG, "play from ${player.currentPosition} ms")
         player.play()
     }
 

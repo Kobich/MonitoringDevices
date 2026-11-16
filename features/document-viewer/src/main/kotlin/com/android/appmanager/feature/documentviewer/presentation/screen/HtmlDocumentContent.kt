@@ -2,7 +2,6 @@ package com.android.appmanager.feature.documentviewer.presentation.screen
 
 import android.annotation.SuppressLint
 import android.net.Uri
-import android.util.Log
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -23,8 +22,6 @@ import com.android.core.document.api.document.HtmlDocument
 import com.android.core.document.api.document.HtmlPage
 import java.io.ByteArrayInputStream
 import java.io.File
-
-private const val TAG = "HtmlDocument"
 
 @Composable
 internal fun HtmlDocumentContent(
@@ -110,7 +107,6 @@ private class LocalContentWebViewClient(
 ) : WebViewClient() {
     override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse {
         return assetLoader.shouldInterceptRequest(request.url) ?: run {
-            Log.w(TAG, "blocked request: ${request.url}")
             blockedResponse()
         }
     }

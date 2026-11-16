@@ -1,14 +1,11 @@
 package com.android.core.document.impl.cache
 
-import android.util.Log
 import com.android.core.document.api.document.HtmlPage
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
-
-private const val TAG = "RenderCache"
 
 /**
  * One folder per (file version, variant), published atomically by rename.
@@ -35,7 +32,6 @@ internal class RenderCache(
         val directory = entryDirectory(file, variant)
         val manifest = File(directory, MANIFEST_NAME)
         if (!manifest.isFile) {
-            Log.d(TAG, "find: miss ${file.name} [$variant]")
             return null
         }
 
@@ -45,12 +41,10 @@ internal class RenderCache(
                 HtmlPage(title = line.substringBefore('\t'), file = File(directory, line.substringAfter('\t')))
             }
         if (pages.isEmpty() || !pages.all { page -> page.file.isFile }) {
-            Log.w(TAG, "find: broken entry for ${file.name} [$variant], pages=${pages.size}")
             return null
         }
 
         directory.setLastModified(System.currentTimeMillis()) // Recently used: trimmed last.
-        Log.d(TAG, "find: hit ${file.name} [$variant], pages=${pages.size}, dir=${directory.name}")
         return Entry(directory, pages)
     }
 
@@ -71,11 +65,9 @@ internal class RenderCache(
                 if (!temporary.renameTo(target)) throw IOException("Can't publish ${target.path}")
             }
         } catch (error: Throwable) {
-            Log.w(TAG, "store: render of ${file.name} [$variant] failed, temporary folder removed", error)
             temporary.deleteRecursively()
             throw error
         }
-        Log.d(TAG, "store: ${file.name} [$variant] -> ${target.name}")
         synchronized(lock) { trim(keep = target) }
         return find(file, variant) ?: throw IOException("Can't read the stored ${target.path}")
     }
@@ -109,7 +101,6 @@ internal class RenderCache(
                 removed++
             }
         }
-        Log.d(TAG, "trim: total=${totalBytes / 1024} KB, entries=${entries.size}, removed=$removed, leftovers=${leftovers.size}")
     }
 
     private companion object {

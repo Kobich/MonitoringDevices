@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
-import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.DocumentReadException
 import com.android.core.document.api.DocumentReadException.Reason
@@ -24,8 +23,6 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import kotlin.math.roundToInt
-
-private const val TAG = "PdfReader"
 
 /** No text extraction; androidx.pdf or pdfium could add it. */
 internal class PdfReader(
@@ -49,11 +46,8 @@ internal class PdfReader(
     private fun open(file: File): PdfDocument {
         val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
         try {
-            return RendererPdfDocument(file.name, descriptor, openRenderer(descriptor)).also { document ->
-                Log.d(TAG, "open: ${file.name}, pages=${document.pageCount}")
-            }
+            return RendererPdfDocument(file.name, descriptor, openRenderer(descriptor))
         } catch (error: Throwable) {
-            Log.w(TAG, "open: ${file.name} failed", error)
             descriptor.close()
             throw error
         }
@@ -105,7 +99,6 @@ internal class PdfReader(
                 if (isClosed) return
                 isClosed = true
             }
-            Log.d(TAG, "close: $name")
             closeScope.launch {
                 mutex.withLock {
                     renderer.close()

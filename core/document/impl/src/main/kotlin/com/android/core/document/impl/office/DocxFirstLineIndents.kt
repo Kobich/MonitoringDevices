@@ -1,6 +1,5 @@
 package com.android.core.document.impl.office
 
-import android.util.Log
 import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_WORD
 import com.android.core.document.impl.ooxml.OoxmlXml.REL_STYLES
@@ -10,8 +9,6 @@ import org.w3c.dom.Element
 import java.io.File
 import java.util.zip.ZipFile
 import kotlin.math.roundToInt
-
-private const val TAG = "DocxFirstLineIndents"
 
 /**
  * OpenDocument.core drops first-line and hanging indents: every line of a paragraph starts at its left
@@ -39,7 +36,6 @@ internal class DocxFirstLineIndents : DocumentPatch {
             if (marked == 0) return false
             ooxml.markModified(documentPath)
             ooxml.writeTo(output)
-            Log.d(TAG, "Marked $marked paragraph(s)")
             return true
         }
     }

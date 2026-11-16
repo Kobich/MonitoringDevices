@@ -2,7 +2,6 @@ package com.android.appmanager.feature.filemanager.presentation
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
 import androidx.annotation.StringRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,8 +38,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-
-private const val TAG = "FileManager"
 
 /**
  * Shows the files of [storage] under the administrator's config: actions it leaves out are hidden, protected ones ask
@@ -182,7 +179,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
         val picker = if (singleFile != null) PickerUi.ExportFile(singleFile.name) else PickerUi.ExportFolder
 
         pendingExportPaths = entries.map { entry -> StoragePath(entry.path) }
-        Log.d(TAG, "export: ${entries.size} item(s), picker=$picker")
         uiState = uiState.copy(picker = picker)
     }
 
@@ -212,13 +208,11 @@ internal class FileManagerViewModel @AssistedInject constructor(
     }
 
     fun onPickerUnavailable() {
-        Log.w(TAG, "picker: no app to handle it")
         pendingExportPaths = emptyList()
         uiState = uiState.copy(message = uiMapper.text(R.string.fm_no_picker))
     }
 
     fun onImportFilesPicked(uris: List<Uri>) {
-        Log.d(TAG, "importFiles: picked ${uris.size} file(s) into $currentPath")
         if (uris.isEmpty()) return
         val destination = currentPath
         runOperation(R.string.fm_import_failed) {
@@ -227,7 +221,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
     }
 
     fun onImportFolderPicked(uri: Uri?) {
-        Log.d(TAG, "importFolder: picked=${uri != null} into $currentPath")
         uri ?: return
         val destination = currentPath
         runOperation(R.string.fm_import_failed) {
@@ -237,14 +230,12 @@ internal class FileManagerViewModel @AssistedInject constructor(
 
     fun onExportDocumentCreated(uri: Uri?) {
         val path = takePendingExport()?.singleOrNull() ?: return
-        Log.d(TAG, "exportFile: $path, document created=${uri != null}")
         uri ?: return
         export { interactor.exportFile(path, uri) }
     }
 
     fun onExportFolderPicked(uri: Uri?) {
         val paths = takePendingExport() ?: return
-        Log.d(TAG, "exportToFolder: ${paths.size} item(s), folder picked=${uri != null}")
         uri ?: return
         export { interactor.exportToFolder(paths, uri) }
     }
@@ -267,7 +258,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
     override fun onDeleteConfirm() {
         logClick("delete_confirm", "dialog_button", "Delete")
         val entries = uiState.pendingDeletion?.entries ?: return
-        Log.d(TAG, "delete: ${entries.map { it.path }}")
         uiState = uiState.copy(pendingDeletion = null, selection = null)
 
         runOperation(R.string.fm_delete_failed) {
@@ -290,7 +280,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
         val parent = currentPath
         runOperation(R.string.fm_create_folder_failed) {
             val error = interactor.createDirectory(parent, name)
-            Log.d(TAG, "createDirectory: \"$name\" in $parent, error=$error")
             uiState = uiState.copy(
                 createDirectoryDialog = error?.let { CreateDirectoryDialogUi(uiMapper.errorText(it)) }
             )
@@ -302,7 +291,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
         logClick("password_confirm", "dialog_button", "OK")
         val pending = pendingAction ?: return
         val matches = pending.password.matches(password)
-        Log.d(TAG, "password: ${pending.action}, matches=$matches")
         if (!matches) {
             uiState = uiState.copy(passwordDialog = uiState.passwordDialog?.copy(error = uiMapper.text(R.string.fm_password_wrong)))
             return
@@ -325,7 +313,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
     private fun withAccess(action: FileAction, run: () -> Unit) {
         when (val access = config?.access(action) ?: Access.Hidden) {
             Access.Allowed, is Access.Message -> run()
-            Access.Hidden -> Log.w(TAG, "access: $action isn't available")
+            Access.Hidden -> Unit
             is Access.PasswordRequired -> {
                 pendingAction = PendingAction(action, access.password, run)
                 uiState = uiState.copy(passwordDialog = uiMapper.passwordDialog(action))
@@ -340,7 +328,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
     private fun onConfigChanged(config: FileAccessConfig) {
         val previous = this.config
         this.config = config
-        Log.d(TAG, "config: $config")
 
         val menu = MenuUi(
             canImport = config.access(FileAction.IMPORT) != Access.Hidden,
@@ -375,12 +362,10 @@ internal class FileManagerViewModel @AssistedInject constructor(
         viewModelScope.launch {
             try {
                 val file = interactor.fileOf(StoragePath(entry.path))
-                Log.d(TAG, "openFile: ${file.path}")
                 uiState = uiState.copy(fileToOpen = file)
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                Log.e(TAG, "openFile: ${entry.path} failed", error)
                 uiState = uiState.copy(message = uiMapper.failureText(R.string.fm_open_file_failed, error))
             }
         }
@@ -391,7 +376,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
         // The previous folder stays on screen until the new one is read, so a failed
         // navigation leaves a consistent state.
         uiState = uiState.copy(isLoading = true)
-        Log.d(TAG, "loadDirectory: $path")
 
         loadJob = viewModelScope.launch {
             try {
@@ -399,7 +383,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                Log.e(TAG, "loadDirectory: $path failed", error)
                 uiState = uiState.copy(
                     isLoading = false,
                     message = uiMapper.failureText(R.string.fm_open_folder_failed, error)
@@ -410,7 +393,6 @@ internal class FileManagerViewModel @AssistedInject constructor(
 
     private fun showDirectory(content: DirectoryContent) {
         val isSameFolder = content.path == currentPath
-        Log.d(TAG, "showDirectory: ${content.path}, entries=${content.entries.size}, sameFolder=$isSameFolder")
         currentPath = content.path
 
         val entries = content.entries.map(uiMapper::toUi).withAccess()
@@ -435,20 +417,17 @@ internal class FileManagerViewModel @AssistedInject constructor(
     /** One operation at a time; [block] returns a message to show, the folder is reloaded afterwards. */
     private fun runOperation(@StringRes failure: Int, block: suspend () -> String?) {
         if (operationJob?.isActive == true) {
-            Log.w(TAG, "operation: another one is still running")
             uiState = uiState.copy(message = uiMapper.text(R.string.fm_operation_running))
             return
         }
 
         uiState = uiState.copy(isBusy = true)
         operationJob = viewModelScope.launch {
-            val startedAt = System.currentTimeMillis()
             val message = try {
-                block().also { result -> Log.d(TAG, "operation: done in ${System.currentTimeMillis() - startedAt} ms, message=$result") }
+                block()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Exception) {
-                Log.e(TAG, "operation: failed", error)
                 uiMapper.failureText(failure, error)
             }
 

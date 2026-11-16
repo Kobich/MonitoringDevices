@@ -1,6 +1,5 @@
 package com.android.core.document.impl.office
 
-import android.util.Log
 import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_WORD
 import com.android.core.document.impl.ooxml.OoxmlXml.REL_SETTINGS
@@ -12,8 +11,6 @@ import org.w3c.dom.Element
 import java.io.File
 import java.util.zip.ZipFile
 import kotlin.math.roundToInt
-
-private const val TAG = "DocxTabStops"
 
 /**
  * OpenDocument.core keeps a tab as a tab character, which the browser moves to the next half inch: custom
@@ -46,7 +43,6 @@ internal class DocxTabStops : DocumentPatch {
             if (marked == 0) return false
             ooxml.markModified(documentPath)
             ooxml.writeTo(output)
-            Log.d(TAG, "Marked $marked paragraph(s)")
             return true
         }
     }

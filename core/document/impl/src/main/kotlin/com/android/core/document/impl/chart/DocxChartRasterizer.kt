@@ -1,6 +1,5 @@
 package com.android.core.document.impl.chart
 
-import android.util.Log
 import com.android.core.document.impl.office.DocumentPatch
 import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_CHART
@@ -17,8 +16,6 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
 import java.util.zip.ZipFile
-
-private const val TAG = "DocxChartRasterizer"
 
 /**
  * Each chart of the main document becomes a picture of the same size.
@@ -53,7 +50,6 @@ internal class DocxChartRasterizer(
             if (replaced == 0) return false
             ooxml.markModified(documentPath)
             ooxml.writeTo(output)
-            Log.d(TAG, "Replaced $replaced chart(s)")
             return true
         }
     }

@@ -1,6 +1,5 @@
 package com.android.core.document.impl.chart
 
-import android.util.Log
 import com.android.core.document.impl.office.DocumentPatch
 import com.android.core.document.impl.ooxml.OoxmlPackage
 import com.android.core.document.impl.ooxml.OoxmlXml.NS_CHART
@@ -14,8 +13,6 @@ import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
 import java.util.zip.ZipFile
-
-private const val TAG = "PptxChartRasterizer"
 
 /** Charts on slide layouts and masters, and charts we can't parse, stay untouched. */
 internal class PptxChartRasterizer(
@@ -71,7 +68,6 @@ internal class PptxChartRasterizer(
 
             if (replaced == 0) return false
             ooxml.writeTo(output)
-            Log.d(TAG, "Replaced $replaced chart(s)")
             return true
         }
     }

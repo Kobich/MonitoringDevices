@@ -1,6 +1,5 @@
 package com.android.core.document.impl.office
 
-import android.util.Log
 import com.android.core.document.api.DocumentFormat
 import com.android.core.document.api.document.HtmlDocument
 import com.android.core.document.impl.FormatReader
@@ -28,16 +27,14 @@ internal class OfficeReader(
         ) { original, workDirectory ->
             patches.foldIndexed(original) { index, current, patch ->
                 val output = File(workDirectory, "patch-$index.${original.extension}")
-                val isChanged = runCatching { patch.apply(current, output) }
-                    .onFailure { error -> Log.w(TAG, "${patch::class.simpleName} failed for ${original.name}", error) }
-                    .getOrDefault(false)
+                // A patch that fails leaves the document as it was.
+                val isChanged = runCatching { patch.apply(current, output) }.getOrDefault(false)
                 if (isChanged) output else current
             }
         }
     }
 
     private companion object {
-        const val TAG = "OfficeReader"
         const val VARIANT_AS_IS = "as-is"
         const val VARIANT_PATCHED = "patched"
     }

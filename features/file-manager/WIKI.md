@@ -209,7 +209,7 @@ filesDir/storage/
 
 ## Логи
 
-В логгер действий (`ActionLogger`, `:core:logger:client:api`) пишутся только основные действия пользователя, без имён файлов и папок:
+Модули пишут логи только через логгер действий (`ActionLogger`, `:core:logger:client:api`), и только основные действия пользователя, без имён файлов и папок. Своих записей в Logcat у модулей нет.
 
 | Экран | `elementId` | Действие |
 |---|---|---|
@@ -222,13 +222,7 @@ filesDir/storage/
 | `document_viewer` | `open_in_other_app` | открыл файл в другом приложении |
 | `document_viewer` | `retry` | повторил открытие после ошибки |
 
-Сейчас подключена затычка логгера: события идут только в Logcat. Настоящий клиент ставится вместо неё без изменений в коде.
-
-Отладочные записи в Logcat:
-
-```
-adb logcat -s FileManager FileStorage DocumentViewer DocumentReader Player OdrHtmlConverter OfficeReader RenderCache ActionLogger
-```
+Сейчас подключена затычка логгера: события идут в Logcat (`adb logcat -s ActionLogger`). Настоящий клиент ставится вместо неё без изменений в коде.
 
 ## Подключение
 

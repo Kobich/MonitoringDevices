@@ -54,7 +54,7 @@ features/document-viewer/
 
 Плееры держит ViewModel, поэтому воспроизведение переживает поворот экрана. Когда экран уходит в фон, плеер встаёт на паузу. Освобождается он вместе с документом.
 
-Логи: `adb logcat -s DocumentViewer AudioPlayback Player HtmlDocument`.
+Логи: только действия пользователя через `ActionLogger` (`adb logcat -s ActionLogger`, пока подключена затычка).
 
 ## Подключение модуля к проекту
 

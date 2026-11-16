@@ -1,6 +1,5 @@
 package com.android.core.document.impl.office
 
-import android.util.Log
 import app.opendocument.core.Html
 import app.opendocument.core.HtmlConfig
 import app.opendocument.core.HtmlView
@@ -19,8 +18,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.File
-
-private const val TAG = "OdrHtmlConverter"
 
 /** Native calls run one at a time until the library's thread safety is confirmed. */
 internal class OdrHtmlConverter(
@@ -46,17 +43,12 @@ internal class OdrHtmlConverter(
         // A ready document doesn't wait for another one being converted.
         val entry = cache.find(file, variant) ?: mutex.withLock {
             cache.find(file, variant) ?: run {
-                Log.d(TAG, "convert: ${file.name} format=$format variant=$variant")
-                val startedAt = System.currentTimeMillis()
                 val workDirectory = cache.newWorkDirectory()
                 try {
                     val input = prepare(file, workDirectory)
                     cache.store(file, variant) { outputDirectory ->
                         render(input, outputDirectory, format, extraCss, extraScript)
                     }
-                        .also { stored ->
-                            Log.d(TAG, "convert: ${file.name} done, pages=${stored.pages.size}, ${System.currentTimeMillis() - startedAt} ms")
-                        }
                 } finally {
                     workDirectory.deleteRecursively()
                 }
@@ -115,7 +107,6 @@ internal class OdrHtmlConverter(
                 }
             }
         } catch (error: OdrException) {
-            Log.w(TAG, "render: ${input.name} failed in OpenDocument.core: ${error::class.simpleName}", error)
             throw error.toReadException()
         }
     }
@@ -145,7 +136,6 @@ internal class OdrHtmlConverter(
         val html = readText()
         val headEnd = html.indexOf("</head>")
         if (headEnd < 0) {
-            Log.w(TAG, "addToHead: no </head> in $name")
             return
         }
         val scriptTag = if (script.isEmpty()) "" else "<script>$script</script>"
