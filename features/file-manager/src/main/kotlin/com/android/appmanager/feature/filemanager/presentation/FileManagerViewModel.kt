@@ -21,13 +21,16 @@ import com.android.appmanager.feature.filemanager.presentation.model.FileEntryUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileManagerUiState
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
 import com.android.appmanager.feature.filemanager.presentation.model.SelectionUi
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 private const val TAG = "FileManager"
 
-internal class FileManagerViewModel(
+@HiltViewModel
+internal class FileManagerViewModel @Inject constructor(
     private val interactor: FileManagerInteractor,
     private val uiMapper: FileManagerUiMapper,
     private val savedStateHandle: SavedStateHandle

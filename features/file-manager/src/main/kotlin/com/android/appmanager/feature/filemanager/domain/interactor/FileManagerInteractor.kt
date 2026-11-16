@@ -8,8 +8,9 @@ import com.android.appmanager.feature.filemanager.domain.model.FileEntry
 import com.android.appmanager.feature.filemanager.domain.model.StoragePath
 import com.android.appmanager.feature.filemanager.domain.model.TransferSummary
 import java.io.File
+import javax.inject.Inject
 
-internal class FileManagerInteractor(
+internal class FileManagerInteractor @Inject constructor(
     private val repository: FileStorageRepository
 ) {
     /** Falls back to the nearest existing parent if the folder no longer exists. */

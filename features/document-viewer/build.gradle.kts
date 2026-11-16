@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -26,8 +28,7 @@ android {
 dependencies {
     implementation(project(":core:common-ui"))
     implementation(project(":core:logger:client:api"))
-    // Exposed: the feature API takes a DocumentReader.
-    api(project(":core:document:api"))
+    implementation(project(":core:document:api"))
 
     // Exposed: the feature API uses Compose types (@Composable, Modifier).
     api(platform(libs.androidx.compose.bom))
@@ -42,4 +43,8 @@ dependencies {
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.webkit)
     implementation(libs.kotlinx.coroutines.core)
+
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.hilt.navigation.compose)
+    ksp(libs.hilt.compiler)
 }

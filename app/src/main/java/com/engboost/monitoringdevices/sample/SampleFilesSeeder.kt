@@ -158,7 +158,7 @@ internal class SampleFilesSeeder(
         const val PREFERENCES = "sample_files"
         const val KEY_SEEDED = "seeded_v4"
 
-        /** The file manager's root, `FileManagerFeatureImpl.STORAGE_DIRECTORY`. */
+        /** The file manager's root, `FileManagerFeatureModule.STORAGE_DIRECTORY`. */
         const val STORAGE_DIRECTORY = "storage"
 
         const val README = "Sample files created on the first launch.\nThey are temporary and will be removed before release.\n"

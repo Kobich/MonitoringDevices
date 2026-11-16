@@ -10,7 +10,8 @@
 features/file-manager/
 ├── src/main/kotlin/com/android/appmanager/feature/filemanager/
 │   ├── FileManagerFeatureApi.kt        # публичный контракт фичи
-│   ├── FileManagerFeatureImpl.kt       # его реализация, internal: собирает зависимости и ViewModel, корень хранилища filesDir/storage
+│   ├── FileManagerFeatureImpl.kt       # его реализация, internal
+│   ├── di/                             # Hilt-модуль: API и корень хранилища (filesDir/storage)
 │   ├── domain/
 │   │   ├── model/                      # StoragePath, FileEntry, DirectoryContent, TransferSummary, DirectoryNameError
 │   │   └── interactor/                 # FileManagerInteractor: сортировка, откат к существующей папке, проверка имени
@@ -28,7 +29,7 @@ features/file-manager/
 ```
 
 * **Слой:** Presentation / Domain / Data.
-* **Ключевые технологии:** Jetpack Compose, Material 3, Storage Access Framework (`DocumentFile`), Kotlin Coroutines. DI-фреймворка нет: зависимости собирает `FileManagerFeatureImpl`, ViewModel создаётся через `viewModel(factory = …)`.
+* **Ключевые технологии:** Jetpack Compose, Material 3, Hilt, Storage Access Framework (`DocumentFile`), Kotlin Coroutines.
 * **Зависимости:** `:core:common-ui`, `:core:logger:client:api`. Нажатия пользователя уходят в `ActionLogger` из `:core:logger:client:api` (`UiActionLog.kt`, экран `file_manager`); имена файлов в лог не пишутся.
 
 Минимальная версия SDK: 23. Версия компиляции SDK: 36.
@@ -63,13 +64,12 @@ include(":features:file-manager")
 implementation(project(":features:file-manager"))
 ```
 
-DI-фреймворк приложению не нужен: фичу создаёт функция `FileManagerFeatureApi(context)`, одна на приложение.
+Фича использует Hilt: приложению нужен `@HiltAndroidApp` и `@AndroidEntryPoint` на Activity.
 
 ## Описание API
 
 | Метод | Описание |
 |---|---|
-| `FileManagerFeatureApi(context): FileManagerFeatureApi` | Создаёт фичу; достаточно одной на приложение. Файлы хранятся в `filesDir/storage` |
 | `FileManagerFeatureApi.FileManagerScreen(modifier, onBackClick, onFileOpen)` | Экран фичи. Сам обрабатывает системный Back, пока открыта не корневая папка или выделены элементы |
 | `onBackClick: () -> Unit` | Пользователь хочет выйти из фичи |
 | `onFileOpen: (File) -> Unit` | Пользователь нажал на файл; хост решает, чем его показать |
@@ -77,11 +77,11 @@ DI-фреймворк приложению не нужен: фичу созда�
 ## Примеры использования
 
 ```kotlin
-class App : Application() {
-    val fileManager: FileManagerFeatureApi by lazy { FileManagerFeatureApi(this) }
+@AndroidEntryPoint
+class MainActivity : ComponentActivity() {
+    @Inject lateinit var fileManager: FileManagerFeatureApi
+    // ...
 }
-
-val fileManager = (application as App).fileManager
 
 composable("file_manager") {
     fileManager.FileManagerScreen(

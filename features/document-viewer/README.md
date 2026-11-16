@@ -10,7 +10,8 @@
 features/document-viewer/
 ├── src/main/kotlin/com/android/appmanager/feature/documentviewer/
 │   ├── DocumentViewerFeatureApi.kt        # публичный контракт фичи
-│   ├── DocumentViewerFeatureImpl.kt       # его реализация, internal: ViewModel на каждый файл
+│   ├── DocumentViewerFeatureImpl.kt       # его реализация, internal
+│   ├── di/                                # Hilt-модуль: API фичи
 │   ├── data/player/                       # PlayerFactory: Media3 ExoPlayer для аудио и видео
 │   └── presentation/
 │       ├── DocumentViewerFeatureScreen.kt # Route: ViewModel по File, пауза при уходе в фон
@@ -22,8 +23,8 @@ features/document-viewer/
 ```
 
 * **Слой:** Presentation.
-* **Ключевые технологии:** Jetpack Compose, Material 3, Media3 ExoPlayer, WebView + `WebViewAssetLoader`.
-* **Зависимости:** `:core:document:api`, `:core:common-ui`, `:core:logger:client:api`. Нажатия пользователя уходят в `ActionLogger` из `:core:logger:client:api` (`UiActionLog.kt`, экран `document_viewer`); имена файлов в лог не пишутся. `DocumentReader` фича получает при создании: его даёт `:core:document:impl`.
+* **Ключевые технологии:** Jetpack Compose, Material 3, Hilt (assisted injection: ViewModel создаётся под `File`), Media3 ExoPlayer, WebView + `WebViewAssetLoader`.
+* **Зависимости:** `:core:document:api`, `:core:common-ui`, `:core:logger:client:api`. Нажатия пользователя уходят в `ActionLogger` из `:core:logger:client:api` (`UiActionLog.kt`, экран `document_viewer`); имена файлов в лог не пишутся. `DocumentReader` фича берёт из графа Hilt приложения: его даёт `:core:document:impl` (см. `DocumentCoreModule` в `:app`).
 
 Минимальная версия SDK: 23. Версия компиляции SDK: 36.
 
@@ -55,22 +56,17 @@ implementation(project(":features:document-viewer"))
 implementation(project(":core:document:impl"))
 ```
 
-DI-фреймворк приложению не нужен: фичу создаёт функция `DocumentViewerFeatureApi(context, reader)`, одна на приложение. `reader` — `DocumentCore(context).reader` из `:core:document:impl`, тоже один на приложение.
+Приложению нужен Hilt и `DocumentReader` в графе: `DocumentCore(context).reader` как `@Singleton`.
 
 ## Описание API
 
 | Метод | Описание |
 |---|---|
-| `DocumentViewerFeatureApi(context, reader): DocumentViewerFeatureApi` | Создаёт фичу; `reader` читает файлы |
 | `DocumentViewerFeatureApi.DocumentViewerScreen(file, modifier, onBackClick)` | Экран просмотра файла `file`; на каждый файл своя ViewModel |
 
 ## Примеры использования
 
 ```kotlin
-class App : Application() {
-    val documentViewer: DocumentViewerFeatureApi by lazy { DocumentViewerFeatureApi(this, DocumentCore(this).reader) }
-}
-
 composable(
     route = "file_viewer?path={path}",
     arguments = listOf(navArgument("path") { type = NavType.StringType })

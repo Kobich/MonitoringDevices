@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.android.appmanager.feature.filemanager.presentation.contract.CreateDocumentContract
@@ -22,8 +23,8 @@ import java.io.File
 internal fun FileManagerFeatureScreen(
     onBackClick: () -> Unit,
     onFileOpen: (File) -> Unit,
-    viewModel: FileManagerViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: FileManagerViewModel = hiltViewModel()
 ) {
     val state = viewModel.uiState
     val snackbarHostState = remember { SnackbarHostState() }

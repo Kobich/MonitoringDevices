@@ -12,11 +12,13 @@ import com.android.appmanager.feature.filemanager.presentation.model.BreadcrumbU
 import com.android.appmanager.feature.filemanager.presentation.model.DeletionUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileEntryUi
 import com.android.core.commonui.icons.FileKind
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.text.DateFormat
 import java.util.Date
+import javax.inject.Inject
 
-internal class FileManagerUiMapper(
-    private val context: Context
+internal class FileManagerUiMapper @Inject constructor(
+    @ApplicationContext private val context: Context
 ) {
     private val resources = context.resources
     private val dateFormat: DateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)

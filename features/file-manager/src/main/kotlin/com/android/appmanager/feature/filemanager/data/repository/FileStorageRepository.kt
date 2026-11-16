@@ -15,12 +15,13 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
+import javax.inject.Inject
 import kotlin.coroutines.coroutineContext
 
 private const val TAG = "FileStorage"
 
 /** All methods may throw [IOException]. */
-internal class FileStorageRepository(
+internal class FileStorageRepository @Inject constructor(
     private val internalSource: InternalFileSource,
     private val documentSource: ExternalDocumentSource
 ) {
