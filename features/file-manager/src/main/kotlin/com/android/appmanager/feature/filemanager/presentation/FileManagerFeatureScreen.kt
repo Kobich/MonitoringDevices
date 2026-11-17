@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.android.appmanager.feature.filemanager.FileStorage
 import com.android.appmanager.feature.filemanager.presentation.contract.CreateDocumentContract
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
+import com.android.appmanager.feature.filemanager.presentation.model.asString
 import com.android.appmanager.feature.filemanager.presentation.screen.FileManagerScreen
 import java.io.File
 
@@ -56,8 +57,9 @@ internal fun FileManagerFeatureScreen(
     // Files may be changed by other parts of the app while the screen is in background.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { viewModel.onScreenResumed() }
 
+    val message = state.message?.asString()
     LaunchedEffect(state.message) {
-        val message = state.message ?: return@LaunchedEffect
+        if (message == null) return@LaunchedEffect
         snackbarHostState.showSnackbar(message)
         viewModel.onMessageShown()
     }

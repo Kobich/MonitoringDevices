@@ -39,6 +39,7 @@ import com.android.appmanager.feature.filemanager.presentation.FileManagerAction
 import com.android.appmanager.feature.filemanager.presentation.model.BreadcrumbUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileManagerUiState
 import com.android.appmanager.feature.filemanager.presentation.model.MenuUi
+import com.android.appmanager.feature.filemanager.presentation.model.asString
 import com.android.core.commonui.components.BackTopAppBar
 import com.android.core.commonui.components.LoadingContent
 import com.android.core.commonui.components.MessageContent
@@ -65,7 +66,7 @@ internal fun FileManagerScreen(
 
     state.createDirectoryDialog?.let { dialog ->
         CreateDirectoryDialog(
-            error = dialog.error,
+            error = dialog.error?.asString(),
             isBusy = state.isBusy,
             onConfirm = actions::onCreateDirectoryConfirm,
             onDismiss = actions::onCreateDirectoryDismiss
@@ -74,11 +75,11 @@ internal fun FileManagerScreen(
 
     state.passwordDialog?.let { dialog ->
         PasswordDialog(
-            title = dialog.title,
+            title = stringResource(dialog.title),
             passwordLabel = stringResource(R.string.fm_password),
             confirmLabel = stringResource(R.string.fm_ok),
             dismissLabel = stringResource(R.string.fm_cancel),
-            error = dialog.error,
+            error = dialog.error?.let { error -> stringResource(error) },
             onConfirm = actions::onPasswordConfirm,
             onDismiss = actions::onPasswordDismiss
         )
@@ -101,7 +102,7 @@ internal fun FileManagerScreen(
                 )
             } else {
                 BrowseTopBar(
-                    title = state.title,
+                    title = state.title.asString(),
                     isActionsEnabled = !state.isBusy,
                     menu = state.menu,
                     onBackClick = onBackClick,
@@ -296,7 +297,7 @@ private fun Breadcrumbs(
                     Text(text = "›", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 TextButton(onClick = { onClick(breadcrumb) }, enabled = isEnabled && index != breadcrumbs.lastIndex) {
-                    Text(text = breadcrumb.title, maxLines = 1)
+                    Text(text = breadcrumb.title.asString(), maxLines = 1)
                 }
             }
         }

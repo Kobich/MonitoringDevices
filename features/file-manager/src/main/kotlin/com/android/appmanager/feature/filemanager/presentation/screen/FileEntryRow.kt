@@ -1,5 +1,6 @@
 package com.android.appmanager.feature.filemanager.presentation.screen
 
+import android.text.format.Formatter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
@@ -18,9 +19,11 @@ import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +32,8 @@ import com.android.appmanager.feature.filemanager.R
 import com.android.appmanager.feature.filemanager.presentation.model.FileEntryUi
 import com.android.core.commonui.components.SelectionIndicator
 import com.android.core.commonui.icons.FileTypeIcon
+import java.text.DateFormat
+import java.util.Date
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -47,7 +52,7 @@ internal fun FileEntryRow(
             Text(text = entry.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         supportingContent = {
-            Text(text = entry.details, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(text = entryDetails(entry), maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
         leadingContent = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -97,4 +102,19 @@ private fun AccessBadge(hasMessage: Boolean) {
         contentDescription = stringResource(if (hasMessage) R.string.fm_has_message else R.string.fm_locked),
         tint = MaterialTheme.colorScheme.onSurfaceVariant
     )
+}
+
+/** "12 KB · 17.11.26, 14:05" for a file, "3 items · …" or "Empty · …" for a folder. */
+@Composable
+private fun entryDetails(entry: FileEntryUi): String {
+    val context = LocalContext.current
+    val size = when {
+        !entry.isDirectory -> Formatter.formatShortFileSize(context, entry.sizeBytes)
+        entry.childCount == 0 -> stringResource(R.string.fm_folder_empty_details)
+        else -> context.resources.getQuantityString(R.plurals.fm_items, entry.childCount, entry.childCount)
+    }
+    val date = remember(entry.lastModifiedMillis) {
+        DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT).format(Date(entry.lastModifiedMillis))
+    }
+    return "$size · $date"
 }

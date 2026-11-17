@@ -19,6 +19,7 @@ import androidx.compose.ui.text.input.ImeAction
 import com.android.appmanager.feature.filemanager.R
 import com.android.appmanager.feature.filemanager.presentation.model.DeletionUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileMessageUi
+import com.android.appmanager.feature.filemanager.presentation.model.asString
 import com.android.core.commonui.components.ConfirmDialog
 
 @Composable
@@ -28,14 +29,14 @@ internal fun DeleteConfirmationDialog(
     onDismiss: () -> Unit
 ) {
     ConfirmDialog(
-        title = deletion.title,
+        title = deletion.title.asString(),
         confirmLabel = stringResource(R.string.fm_delete),
         dismissLabel = stringResource(R.string.fm_cancel),
         destructive = true,
         onConfirm = onConfirm,
         onDismiss = onDismiss
     ) {
-        Text(text = deletion.text)
+        Text(text = deletion.text.asString())
     }
 }
 

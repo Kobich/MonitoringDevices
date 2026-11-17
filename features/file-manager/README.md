@@ -25,7 +25,7 @@ features/file-manager/
 │   │   ├── FileManagerFeatureScreen.kt # Route: ViewModel, системные пикеры, Back, snackbar
 │   │   ├── FileManagerViewModel.kt     # состояние экрана, режим выбора, операции по одной; своя на каждое хранилище
 │   │   ├── FileManagerActions.kt       # действия экрана, их реализует ViewModel
-│   │   ├── model/ mapper/ contract/    # UiState, тексты из ресурсов, «Сохранить как» с MIME по имени файла
+│   │   ├── model/ mapper/ contract/    # UiState (тексты — UiText: ресурсы, строку собирает экран), «Сохранить как» с MIME
 │   │   └── screen/                     # FileManagerScreen, строка списка, диалоги
 │   └── util/                           # MIME-тип по имени файла
 └── src/main/res/values/strings.xml     # строки с префиксом fm_

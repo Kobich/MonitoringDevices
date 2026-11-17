@@ -1,7 +1,5 @@
 package com.android.appmanager.feature.filemanager.presentation.mapper
 
-import android.content.Context
-import android.text.format.Formatter
 import androidx.annotation.StringRes
 import com.android.appmanager.feature.filemanager.R
 import com.android.appmanager.feature.filemanager.domain.model.DirectoryNameError
@@ -12,21 +10,16 @@ import com.android.appmanager.feature.filemanager.presentation.model.BreadcrumbU
 import com.android.appmanager.feature.filemanager.presentation.model.DeletionUi
 import com.android.appmanager.feature.filemanager.presentation.model.FileEntryUi
 import com.android.appmanager.feature.filemanager.presentation.model.PasswordDialogUi
+import com.android.appmanager.feature.filemanager.presentation.model.UiText
 import com.android.core.commonui.icons.FileKind
 import com.android.core.fileaccess.FileAction
-import dagger.hilt.android.qualifiers.ApplicationContext
-import java.text.DateFormat
-import java.util.Date
 import javax.inject.Inject
 
-internal class FileManagerUiMapper @Inject constructor(
-    @ApplicationContext private val context: Context
-) {
-    private val resources = context.resources
-    private val dateFormat: DateFormat = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT)
+/** Domain data to screen state. Texts stay resources: the screen resolves them. */
+internal class FileManagerUiMapper @Inject constructor() {
 
-    fun title(path: StoragePath): String {
-        return if (path.isRoot) resources.getString(R.string.fm_root_title) else path.name
+    fun title(path: StoragePath): UiText {
+        return if (path.isRoot) UiText.Resource(R.string.fm_root_title) else UiText.Plain(path.name)
     }
 
     fun breadcrumbs(path: StoragePath): List<BreadcrumbUi> {
@@ -36,31 +29,27 @@ internal class FileManagerUiMapper @Inject constructor(
     }
 
     fun toUi(entry: FileEntry): FileEntryUi {
-        val primaryDetails = when {
-            !entry.isDirectory -> Formatter.formatShortFileSize(context, entry.sizeBytes)
-            entry.childCount == 0 -> resources.getString(R.string.fm_folder_empty_details)
-            else -> plural(R.plurals.fm_items, entry.childCount)
-        }
-
         return FileEntryUi(
             path = entry.path.value,
             name = entry.name,
             isDirectory = entry.isDirectory,
             kind = FileKind.of(entry.name, entry.isDirectory),
-            details = "$primaryDetails · ${dateFormat.format(Date(entry.lastModifiedMillis))}"
+            sizeBytes = entry.sizeBytes,
+            childCount = entry.childCount,
+            lastModifiedMillis = entry.lastModifiedMillis
         )
     }
 
-    fun importedText(summary: TransferSummary): String = resources.getString(R.string.fm_imported, summary.toText())
+    fun importedText(summary: TransferSummary): UiText = UiText.Resource(R.string.fm_imported, summary.toText())
 
-    fun exportedText(summary: TransferSummary): String = resources.getString(R.string.fm_exported, summary.toText())
+    fun exportedText(summary: TransferSummary): UiText = UiText.Resource(R.string.fm_exported, summary.toText())
 
     fun deletion(entries: List<FileEntryUi>): DeletionUi {
         val single = entries.singleOrNull()
         val title = if (single != null) {
-            resources.getString(R.string.fm_delete_one_title, single.name)
+            UiText.Resource(R.string.fm_delete_one_title, UiText.Plain(single.name))
         } else {
-            plural(R.plurals.fm_delete_many_title, entries.size)
+            UiText.Plural(R.plurals.fm_delete_many_title, entries.size)
         }
         val text = when {
             single != null && single.isDirectory -> R.string.fm_delete_folder_text
@@ -68,15 +57,15 @@ internal class FileManagerUiMapper @Inject constructor(
             entries.any { entry -> entry.isDirectory } -> R.string.fm_delete_with_folders_text
             else -> R.string.fm_delete_files_text
         }
-        return DeletionUi(entries = entries, title = title, text = resources.getString(text))
+        return DeletionUi(entries = entries, title = title, text = UiText.Resource(text))
     }
 
-    fun deletedText(entries: List<FileEntryUi>): String {
+    fun deletedText(entries: List<FileEntryUi>): UiText {
         val single = entries.singleOrNull()
         return if (single != null) {
-            resources.getString(R.string.fm_deleted_one, single.name)
+            UiText.Resource(R.string.fm_deleted_one, UiText.Plain(single.name))
         } else {
-            plural(R.plurals.fm_deleted_many, entries.size)
+            UiText.Plural(R.plurals.fm_deleted_many, entries.size)
         }
     }
 
@@ -86,10 +75,10 @@ internal class FileManagerUiMapper @Inject constructor(
             FileAction.EXPORT -> R.string.fm_password_export
             FileAction.DELETE -> R.string.fm_password_delete
         }
-        return PasswordDialogUi(title = resources.getString(title), error = null)
+        return PasswordDialogUi(title = title, error = null)
     }
 
-    fun errorText(error: DirectoryNameError): String {
+    fun errorText(error: DirectoryNameError): UiText {
         val text = when (error) {
             DirectoryNameError.EMPTY -> R.string.fm_name_empty
             DirectoryNameError.RESERVED -> R.string.fm_name_reserved
@@ -97,23 +86,23 @@ internal class FileManagerUiMapper @Inject constructor(
             DirectoryNameError.TOO_LONG -> R.string.fm_name_too_long
             DirectoryNameError.ALREADY_EXISTS -> R.string.fm_name_exists
         }
-        return resources.getString(text)
+        return UiText.Resource(text)
     }
 
-    fun failureText(@StringRes what: Int, error: Throwable): String {
+    /** "Import failed: <reason>"; the reason is the error's own message and isn't translated. */
+    fun failureText(@StringRes what: Int, error: Throwable): UiText {
         val reason = error.message?.takeIf { it.isNotBlank() } ?: error::class.java.simpleName
-        return resources.getString(R.string.fm_error_with_reason, resources.getString(what), reason)
+        return UiText.Resource(R.string.fm_error_with_reason, UiText.Resource(what), UiText.Plain(reason))
     }
 
-    fun text(@StringRes id: Int): String = resources.getString(id)
+    fun text(@StringRes id: Int): UiText = UiText.Resource(id)
 
-    private fun TransferSummary.toText(): String {
+    /** "2 folders, 5 files"; "0 files" when nothing was copied. */
+    private fun TransferSummary.toText(): UiText {
         val parts = buildList {
-            if (directories > 0) add(plural(R.plurals.fm_folders, directories))
-            if (files > 0 || directories == 0) add(plural(R.plurals.fm_files, files))
+            if (directories > 0) add(UiText.Plural(R.plurals.fm_folders, directories))
+            if (files > 0 || directories == 0) add(UiText.Plural(R.plurals.fm_files, files))
         }
-        return parts.joinToString(separator = ", ")
+        return UiText.Joined(parts, separator = ", ")
     }
-
-    private fun plural(id: Int, count: Int): String = resources.getQuantityString(id, count, count)
 }

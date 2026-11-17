@@ -1,12 +1,13 @@
 package com.android.appmanager.feature.filemanager.presentation.model
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import com.android.core.commonui.icons.FileKind
 import java.io.File
 
 @Immutable
 internal data class FileManagerUiState(
-    val title: String,
+    val title: UiText,
     val breadcrumbs: List<BreadcrumbUi>,
     val isRoot: Boolean,
     val entries: List<FileEntryUi>,
@@ -23,7 +24,7 @@ internal data class FileManagerUiState(
     /** What the config makes available. */
     val menu: MenuUi,
     /** One-shot message for a snackbar, cleared by `onMessageShown`. */
-    val message: String?,
+    val message: UiText?,
     /** One-shot request to show a system picker, cleared by `onPickerShown`. */
     val picker: PickerUi?,
     /** One-shot request to open a file, cleared by `onFileOpenHandled`. */
@@ -39,7 +40,11 @@ internal data class FileEntryUi(
     val name: String,
     val isDirectory: Boolean,
     val kind: FileKind,
-    val details: String,
+    /** For files. */
+    val sizeBytes: Long,
+    /** For folders. */
+    val childCount: Int,
+    val lastModifiedMillis: Long,
     /** Opens only with a password. */
     val isLocked: Boolean = false,
     /** Shows a message instead of opening. */
@@ -49,7 +54,7 @@ internal data class FileEntryUi(
 @Immutable
 internal data class BreadcrumbUi(
     val path: String,
-    val title: String
+    val title: UiText
 )
 
 @Immutable
@@ -65,21 +70,22 @@ internal data class SelectionUi(
 @Immutable
 internal data class DeletionUi(
     val entries: List<FileEntryUi>,
-    val title: String,
-    val text: String
+    val title: UiText,
+    val text: UiText
 )
 
 @Immutable
 internal data class CreateDirectoryDialogUi(
-    val error: String?
+    val error: UiText?
 )
 
 @Immutable
 internal data class PasswordDialogUi(
-    val title: String,
-    val error: String?
+    @StringRes val title: Int,
+    @StringRes val error: Int?
 )
 
+/** The administrator's text and the file name: shown as they are. */
 @Immutable
 internal data class FileMessageUi(
     val fileName: String,

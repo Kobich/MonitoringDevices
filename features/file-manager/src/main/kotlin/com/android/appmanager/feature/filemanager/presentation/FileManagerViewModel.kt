@@ -25,6 +25,7 @@ import com.android.appmanager.feature.filemanager.presentation.model.FileMessage
 import com.android.appmanager.feature.filemanager.presentation.model.MenuUi
 import com.android.appmanager.feature.filemanager.presentation.model.PickerUi
 import com.android.appmanager.feature.filemanager.presentation.model.SelectionUi
+import com.android.appmanager.feature.filemanager.presentation.model.UiText
 import com.android.core.fileaccess.ActionAccess
 import com.android.core.fileaccess.FileAccessConfig
 import com.android.core.fileaccess.FileAccess
@@ -295,8 +296,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
         val pending = pendingAction ?: return
         val matches = pending.password.matches(password)
         if (!matches) {
-            val wrongPassword = uiMapper.text(R.string.fm_password_wrong)
-            uiState = uiState.copy(passwordDialog = uiState.passwordDialog?.copy(error = wrongPassword))
+            uiState = uiState.copy(passwordDialog = uiState.passwordDialog?.copy(error = R.string.fm_password_wrong))
             return
         }
         pendingAction = null
@@ -419,7 +419,7 @@ internal class FileManagerViewModel @AssistedInject constructor(
     }
 
     /** One operation at a time; [block] returns a message to show, the folder is reloaded afterwards. */
-    private fun runOperation(@StringRes failure: Int, block: suspend () -> String?) {
+    private fun runOperation(@StringRes failure: Int, block: suspend () -> UiText?) {
         if (operationJob?.isActive == true) {
             uiState = uiState.copy(message = uiMapper.text(R.string.fm_operation_running))
             return
